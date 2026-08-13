@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -24,7 +26,7 @@ use Spatie\Permission\Traits\HasRoles;
  *   لایه اول  — سطح سازمان: فیلدهای جدول customers
  *   لایه دوم  — سطح حساب:   فیلدهای همین جدول (فقط محدودتر می‌کنند، بازتر نه)
  */
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
@@ -41,6 +43,17 @@ class User extends Authenticatable
 
     protected $hidden = ['password', 'remember_token'];
 
+    /**
+     * مقادیر پیش‌فرض روی خودِ مدل — نه فقط در دیتابیس.
+     * بدون این، رکورد تازه‌ساخته‌شده تا وقتی از دیتابیس خوانده نشود
+     * is_active برابر null دارد و بررسی‌های دسترسی اشتباه جواب می‌دهند.
+     */
+    protected $attributes = [
+        'is_active' => true,
+        'theme'     => 'ocean',
+        'user_type' => self::TYPE_SUPPORT_STAFF,
+    ];
+
     protected function casts(): array
     {
         return [
@@ -51,6 +64,17 @@ class User extends Authenticatable
             'can_print_invoices' => 'boolean',
             'last_login_at'      => 'datetime',
         ];
+    }
+
+    /**
+     * دسترسی به پنل Filament.
+     *
+     * فقط کاربران داخلی و فعال. این بررسی مستقل از میان‌افزار انجام می‌شود
+     * تا حتی اگر ترتیب میان‌افزارها عوض شد، کاربر مشتری وارد پنل نشود.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->isSupportUser() && $this->is_active;
     }
 
     // ---------------------------------------------------------------- روابط

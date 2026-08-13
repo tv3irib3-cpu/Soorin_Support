@@ -4,6 +4,38 @@
    انتخاب هر کاربر در ستون users.theme ذخیره می‌شود و روی <html> می‌نشیند.
 ------------------------------------------------------------------- */
 
+/* ---------- فونت وزیرمتن — محلی، بدون CDN ----------
+   سرور ممکن است به اینترنت دسترسی نداشته باشد، پس فونت داخل پروژه است.
+   همین فونت برای خروجی PDF فاکتور هم استفاده می‌شود. */
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('/fonts/vazirmatn/Vazirmatn-300.woff2') format('woff2');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('/fonts/vazirmatn/Vazirmatn-400.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('/fonts/vazirmatn/Vazirmatn-500.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('/fonts/vazirmatn/Vazirmatn-700.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root,
 [data-theme="ocean"] {
     --nav:          #0f2d4d;
