@@ -34,6 +34,11 @@
             width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 8px;
             padding: 11px; font-family: inherit; font-size: 14px; cursor: pointer; margin-top: 6px;
         }
+        .login-footer { margin-top: 18px; }
+        .login-footer .app-footer { border-top: none; margin-top: 0; }
+        .login-footer .app-footer__copy,
+        .login-footer .app-footer__meta { color: rgba(255,255,255,.55); }
+        .login-footer .app-footer__meta a { color: rgba(255,255,255,.85); }
     </style>
 </head>
 <body>
@@ -58,6 +63,10 @@
             </div>
             <button type="submit" class="submit">{{ __('auth.login_action') }}</button>
         </form>
+    </div>
+
+    <div class="login-footer">
+        <x-footer />
     </div>
 </body>
 </html>
