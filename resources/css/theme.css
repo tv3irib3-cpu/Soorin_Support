@@ -1,0 +1,106 @@
+/* ------------------------------------------------------------------
+   تم سامانه پشتیبانی سورین
+   دو حالت: ocean (آبی نفتی و فیروزه‌ای) و night (شب)
+   انتخاب هر کاربر در ستون users.theme ذخیره می‌شود و روی <html> می‌نشیند.
+------------------------------------------------------------------- */
+
+:root,
+[data-theme="ocean"] {
+    --nav:          #0f2d4d;
+    --nav-text:     #93b4c9;
+    --nav-on:       #ffffff;
+    --nav-active:   #14b8a6;
+
+    --bg:           #eef4f6;
+    --card:         #ffffff;
+    --border:       #dde8ec;
+    --text:         #0b2b3f;
+    --muted:        #5f7d8c;
+
+    --accent:       #14b8a6;
+    --accent-soft:  #ccfbf1;
+    --accent-text:  #0f766e;
+
+    --success:      #059669;
+    --warning:      #b45309;
+    --danger:       #dc2626;
+
+    --radius:       12px;
+    --shadow:       0 1px 3px rgba(11, 43, 63, .07);
+}
+
+[data-theme="night"] {
+    --nav:          #0b1220;
+    --nav-text:     #7b8ca3;
+    --nav-on:       #ffffff;
+    --nav-active:   #34d399;
+
+    --bg:           #111a2b;
+    --card:         #182338;
+    --border:       #25314a;
+    --text:         #e6edf7;
+    --muted:        #8ea0b8;
+
+    --accent:       #34d399;
+    --accent-soft:  #12372c;
+    --accent-text:  #6ee7b7;
+
+    --success:      #34d399;
+    --warning:      #fbbf24;
+    --danger:       #f87171;
+
+    --shadow:       0 1px 3px rgba(0, 0, 0, .35);
+}
+
+html { font-family: Vazirmatn, system-ui, sans-serif; }
+body { background: var(--bg); color: var(--text); }
+
+/* ---------- فوتر ---------- */
+.app-footer {
+    border-top: 1px solid var(--border);
+    margin-top: 28px;
+    padding: 16px 0 22px;
+}
+.app-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin-inline: auto;
+    padding-inline: 22px;
+}
+.app-footer__copy {
+    font-size: 12px;
+    color: var(--muted);
+}
+.app-footer__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--muted);
+}
+.app-footer__meta a {
+    color: var(--accent-text);
+    text-decoration: none;
+    font-weight: 600;
+}
+.app-footer__meta a:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+    .app-footer__inner { flex-direction: column; align-items: flex-start; }
+}
+
+/* ---------- دسترس‌پذیری ---------- */
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+    }
+}
