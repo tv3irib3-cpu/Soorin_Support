@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Tickets\Pages;
 
 use App\Enums\Permission;
+use App\Filament\Resources\Invoices\InvoiceResource;
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Models\ActivityLog;
 use App\Models\Ticket;
@@ -163,6 +164,13 @@ class ViewTicket extends ViewRecord
 
                     Notification::make()->success()->title(__('common.saved'))->send();
                 }),
+
+            Action::make('createInvoice')
+                ->label(__('tickets.create_invoice'))
+                ->icon('heroicon-o-receipt-percent')
+                ->color('gray')
+                ->visible(fn () => auth()->user()?->can(Permission::ManageInvoices->value) ?? false)
+                ->url(fn () => InvoiceResource::getUrl('create', ['ticket' => $ticket->id])),
 
             EditAction::make(),
         ];
