@@ -106,8 +106,11 @@ class Invoice extends Model
      * ترتیب کار:
      *   ۱. جمع ارزش خدمات و قطعات از ردیف‌ها
      *   ۲. جمع سهم قرارداد از ردیف‌ها (هر ردیف سهم خودش را دارد)
-     *   ۳. اعمال سقف ریالی قرارداد — سهم قرارداد از مانده سقف بیشتر نمی‌شود
+     *   ۳. اعمال سقف ریالی قرارداد — سهم قرارداد از مانده سقف فراتر نمی‌رود
      *   ۴. کسر تخفیف دستی
+     *   ۵. به‌روزرسانی used_amount قرارداد (idempotent — بر مبنای تفاوت
+     *      با سهم قبلیِ همین فاکتور، نه جمع مطلق، تا محاسبه دوباره
+     *      بعد از ویرایش ردیف‌ها دوبار شمرده نشود)
      */
     public function recalculate(): void
     {
@@ -120,8 +123,13 @@ class Invoice extends Model
         $grossTotal      = $serviceAmount + $partsAmount + $otherAmount;
         $contractCovered = (int) $items->sum('contract_covered');
 
-        // سقف قرارداد — سهم قرارداد از مانده سقف فراتر نمی‌رود
-        if ($this->contract && ($remaining = $this->contract->remainingCeiling()) !== null) {
+        // سهمی که همین فاکتور در محاسبه قبلی خودش ثبت کرده بود
+        $previousContribution = (int) $this->contract_amount;
+
+        // سقف قرارداد — مانده باید بدون احتساب سهم قبلی همین فاکتور محاسبه شود
+        if ($this->contract && ($ceiling = $this->contract->plan?->ceiling_amount) !== null) {
+            $usedByOthers = max(0, $this->contract->used_amount - $previousContribution);
+            $remaining    = max(0, $ceiling - $usedByOthers);
             $contractCovered = min($contractCovered, $remaining);
         }
 
@@ -139,7 +147,24 @@ class Invoice extends Model
             'is_warranty'     => $grossTotal > 0 && $payable === 0,
         ])->save();
 
+        if ($this->contract && ($delta = $contractCovered - $previousContribution) !== 0) {
+            $this->contract->increment('used_amount', $delta);
+        }
+
         $this->refreshPaymentStatus();
+    }
+
+    /**
+     * لغو فاکتور — سهمی که از سقف قرارداد گرفته بود آزاد می‌شود، ولی
+     * مبالغ ثبت‌شده برای حسابرسی دست‌نخورده می‌مانند.
+     */
+    public function cancel(): void
+    {
+        if ($this->contract && $this->contract_amount > 0) {
+            $this->contract->decrement('used_amount', $this->contract_amount);
+        }
+
+        $this->forceFill(['status' => self::STATUS_CANCELLED])->save();
     }
 
     /** به‌روزرسانی وضعیت پرداخت از روی جمع پرداخت‌های ثبت‌شده. */

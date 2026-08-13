@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Contract;
 use App\Models\Ticket;
+use App\Observers\ContractObserver;
 use App\Observers\TicketObserver;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,5 +24,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Ticket::observe(TicketObserver::class);
+        Contract::observe(ContractObserver::class);
     }
 }
