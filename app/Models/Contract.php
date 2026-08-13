@@ -21,6 +21,12 @@ class Contract extends Model
     public const STATUS_EXPIRED   = 'expired';
     public const STATUS_CANCELLED = 'cancelled';
 
+    protected $attributes = [
+        'status'      => self::STATUS_ACTIVE,
+        'amount'      => 0,
+        'used_amount' => 0,
+    ];
+
     protected $fillable = [
         'number', 'customer_id', 'contract_plan_id',
         'start_date', 'end_date', 'amount', 'used_amount', 'status', 'notes',

@@ -42,6 +42,19 @@ class Ticket extends Model
         self::STATUS_CANCELLED        => [],
     ];
 
+    /**
+     * مقادیر پیش‌فرض روی خودِ مدل، نه فقط در migration.
+     * وگرنه در callback رویداد created (قبل از fresh از دیتابیس) این
+     * مقادیر null هستند و TicketObserver با وضعیت غلط کار می‌کند.
+     */
+    protected $attributes = [
+        'status'       => self::STATUS_NEW,
+        'priority'     => 'normal',
+        'service_type' => 'hardware',
+        'work_minutes' => 0,
+        'is_locked'    => false,
+    ];
+
     protected $fillable = [
         'number', 'customer_id', 'customer_project_id', 'ticket_category_id',
         'system_name', 'contract_id', 'subject', 'description',

@@ -24,6 +24,16 @@ class Customer extends Model
     public const STATUS_SUSPENDED = 'suspended';
     public const STATUS_BLOCKED   = 'blocked';
 
+    /** پیش‌فرض روی خودِ مدل — وگرنه بلافاصله بعد از create() مقدار در حافظه null است. */
+    protected $attributes = [
+        'entity_type'         => 'company',
+        'service_status'      => self::STATUS_ACTIVE,
+        'can_create_ticket'   => true,
+        'can_view_history'    => true,
+        'can_view_invoices'   => true,
+        'can_print_invoices'  => true,
+    ];
+
     protected $fillable = [
         'code', 'name', 'entity_type', 'national_id', 'economic_code',
         'phone', 'mobile', 'email', 'city', 'address', 'postal_code',

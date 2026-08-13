@@ -17,6 +17,8 @@ class TicketMessage extends Model
 {
     use HasFactory;
 
+    protected $attributes = ['is_internal' => false];
+
     protected $fillable = ['ticket_id', 'user_id', 'body', 'is_internal'];
 
     protected function casts(): array

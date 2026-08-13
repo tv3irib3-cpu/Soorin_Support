@@ -32,6 +32,17 @@ class Invoice extends Model
     public const STATUS_PARTIALLY_PAID = 'partially_paid';
     public const STATUS_CANCELLED      = 'cancelled';
 
+    protected $attributes = [
+        'status'          => self::STATUS_DRAFT,
+        'service_amount'  => 0,
+        'parts_amount'    => 0,
+        'discount_amount' => 0,
+        'contract_amount' => 0,
+        'payable_amount'  => 0,
+        'paid_amount'     => 0,
+        'is_warranty'     => false,
+    ];
+
     protected $fillable = [
         'number', 'customer_id', 'ticket_id', 'contract_id',
         'issue_date', 'due_date',

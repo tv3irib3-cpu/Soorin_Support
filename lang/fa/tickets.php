@@ -17,7 +17,9 @@ return [
     'parent_category' => 'دسته اصلی',
     'child_category'  => 'زیردسته',
     'contract'      => 'قرارداد',
+    'project'       => 'پروژه',
     'system'        => 'سامانه مرتبط',
+    'system_name'   => 'نام سامانه',
 
     'service_type'  => 'نوع خدمت',
     'service_types' => [
