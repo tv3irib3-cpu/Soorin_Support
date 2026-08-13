@@ -2,47 +2,212 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * کاربر سامانه.
+ *
+ * چهار نوع حساب وجود دارد و تنها «مدیر پشتیبان» اجازه ساخت حساب دارد:
+ *   support_admin   مدیر پشتیبان    — دسترسی کامل
+ *   support_staff   کارشناس پشتیبان — کار روی تیکت، بدون ساخت حساب
+ *   customer_admin  مدیر مشتری      — تمام پروژه‌های همان مشتری
+ *   customer_staff  کارشناس مشتری   — فقط پروژه‌های تخصیص‌داده‌شده به او
+ *
+ * دسترسی کاربر مشتری از دو لایه خوانده می‌شود:
+ *   لایه اول  — سطح سازمان: فیلدهای جدول customers
+ *   لایه دوم  — سطح حساب:   فیلدهای همین جدول (فقط محدودتر می‌کنند، بازتر نه)
+ */
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    public const TYPE_SUPPORT_ADMIN  = 'support_admin';
+    public const TYPE_SUPPORT_STAFF  = 'support_staff';
+    public const TYPE_CUSTOMER_ADMIN = 'customer_admin';
+    public const TYPE_CUSTOMER_STAFF = 'customer_staff';
+
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+        'name', 'email', 'mobile', 'password', 'user_type', 'customer_id',
+        'theme', 'is_active', 'can_create_ticket', 'can_view_invoices',
+        'can_print_invoices', 'history_scope',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    protected $hidden = ['password', 'remember_token'];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'           => 'hashed',
+            'is_active'          => 'boolean',
+            'can_create_ticket'  => 'boolean',
+            'can_view_invoices'  => 'boolean',
+            'can_print_invoices' => 'boolean',
+            'last_login_at'      => 'datetime',
         ];
+    }
+
+    // ---------------------------------------------------------------- روابط
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    /** پروژه‌هایی که این کارشناس مشتری مسئولشان است. */
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(CustomerProject::class, 'customer_project_user')
+            ->withTimestamps();
+    }
+
+    public function assignedTickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class, 'assigned_to');
+    }
+
+    public function createdTickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class, 'created_by');
+    }
+
+    // ------------------------------------------------------- تشخیص نوع حساب
+
+    public function isSupportAdmin(): bool
+    {
+        return $this->user_type === self::TYPE_SUPPORT_ADMIN;
+    }
+
+    public function isSupportStaff(): bool
+    {
+        return $this->user_type === self::TYPE_SUPPORT_STAFF;
+    }
+
+    /** کاربر داخلی شرکت — به پنل مدیریت دسترسی دارد. */
+    public function isSupportUser(): bool
+    {
+        return in_array($this->user_type, [
+            self::TYPE_SUPPORT_ADMIN,
+            self::TYPE_SUPPORT_STAFF,
+        ], true);
+    }
+
+    public function isCustomerAdmin(): bool
+    {
+        return $this->user_type === self::TYPE_CUSTOMER_ADMIN;
+    }
+
+    public function isCustomerStaff(): bool
+    {
+        return $this->user_type === self::TYPE_CUSTOMER_STAFF;
+    }
+
+    /** کاربر سمت مشتری — فقط به پرتال دسترسی دارد. */
+    public function isCustomerUser(): bool
+    {
+        return in_array($this->user_type, [
+            self::TYPE_CUSTOMER_ADMIN,
+            self::TYPE_CUSTOMER_STAFF,
+        ], true);
+    }
+
+    // ------------------------------------------------------------- دسترسی‌ها
+
+    /**
+     * شناسه پروژه‌هایی که این کاربر حق دیدنشان را دارد.
+     *
+     *   مدیر مشتری  → همه پروژه‌های آن مشتری
+     *   کارشناس مشتری → فقط پروژه‌های تخصیص‌داده‌شده
+     *
+     * @return array<int>
+     */
+    public function accessibleProjectIds(): array
+    {
+        if (! $this->isCustomerUser() || ! $this->customer_id) {
+            return [];
+        }
+
+        if ($this->isCustomerAdmin()) {
+            return $this->customer->projects()->pluck('id')->all();
+        }
+
+        return $this->projects()->pluck('customer_projects.id')->all();
+    }
+
+    /**
+     * آیا این کاربر اجازه ثبت تیکت دارد؟
+     *
+     * سه شرط پشت سر هم بررسی می‌شود و هر کدام «نه» بگوید، پاسخ نه است:
+     *   ۱. وضعیت خدمات‌دهی مشتری فعال باشد
+     *   ۲. مشتری در سطح سازمان اجازه ثبت تیکت داشته باشد
+     *   ۳. خودِ این حساب محدود نشده باشد
+     */
+    public function canCreateTicket(): bool
+    {
+        if ($this->isSupportUser()) {
+            return true;
+        }
+
+        if (! $this->customer || ! $this->customer->canReceiveService()) {
+            return false;
+        }
+
+        if (! $this->customer->can_create_ticket) {
+            return false;
+        }
+
+        // null یعنی «محدودیتی در سطح حساب تعریف نشده» → از سطح سازمان پیروی کن
+        return $this->can_create_ticket ?? true;
+    }
+
+    /**
+     * دامنه دیدن سوابق تیکت.
+     * اگر در سطح حساب تعیین نشده باشد، پیش‌فرض نقش اعمال می‌شود.
+     */
+    public function historyScope(): string
+    {
+        if ($this->isSupportUser()) {
+            return 'all';
+        }
+
+        if ($this->history_scope !== null) {
+            return $this->history_scope;
+        }
+
+        // پیش‌فرض: مدیر مشتری همه‌چیز، کارشناس مشتری هیچ سابقه‌ای
+        return $this->isCustomerAdmin() ? 'customer' : 'none';
+    }
+
+    public function canViewInvoices(): bool
+    {
+        if ($this->isSupportUser()) {
+            return true;
+        }
+
+        if (! $this->customer?->can_view_invoices) {
+            return false;
+        }
+
+        // پیش‌فرض: فقط مدیر مشتری فاکتور می‌بیند
+        return $this->can_view_invoices ?? $this->isCustomerAdmin();
+    }
+
+    public function canPrintInvoices(): bool
+    {
+        if ($this->isSupportUser()) {
+            return true;
+        }
+
+        if (! $this->canViewInvoices() || ! $this->customer?->can_print_invoices) {
+            return false;
+        }
+
+        return $this->can_print_invoices ?? $this->isCustomerAdmin();
     }
 }
