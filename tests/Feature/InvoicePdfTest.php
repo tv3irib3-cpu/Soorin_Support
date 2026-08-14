@@ -47,6 +47,28 @@ class InvoicePdfTest extends TestCase
         $this->assertStringStartsWith('%PDF', $output);
     }
 
+    /**
+     * تست ضد رگرسیون — یک بار کلید ترجمه «invoices.amount» ناموجود بود و
+     * خام (بدون ترجمه) در سربرگ جدول پرداخت‌ها چاپ می‌شد. این تست مطمئن
+     * می‌شود هیچ کلید ترجمه‌ای در HTML خام فاکتور جا نمی‌ماند.
+     */
+    public function test_invoice_html_has_no_untranslated_lang_keys(): void
+    {
+        $this->invoice->payments()->create(['amount' => 1_000_000, 'paid_at' => now(), 'method' => 'transfer']);
+
+        $html = view('pdf.invoice', [
+            'invoice' => $this->invoice->fresh(),
+            'company' => config('branding.company'),
+            'money'   => fn (int $amount) => \App\Support\Jalali::money($amount),
+            'date'    => fn ($d) => \App\Support\Jalali::format($d),
+        ])->render();
+
+        $this->assertStringContainsString(__('invoices.amount'), $html); // ترجمه واقعی رندر شده — نه کلید خام
+        $this->assertDoesNotMatchRegularExpression('/\binvoices\.[a-z_]+\b/', $html);
+        $this->assertDoesNotMatchRegularExpression('/\btickets\.[a-z_]+\b/', $html);
+        $this->assertDoesNotMatchRegularExpression('/\bcontracts\.[a-z_]+\b/', $html);
+    }
+
     public function test_support_user_can_view_invoice_pdf(): void
     {
         $admin = User::create([

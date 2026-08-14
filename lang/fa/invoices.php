@@ -70,6 +70,7 @@ return [
     'payments'      => 'پرداخت‌ها',
     'payment'       => 'پرداخت',
     'add_payment'   => 'ثبت پرداخت',
+    'amount'        => 'مبلغ',
     'paid_at'       => 'تاریخ پرداخت',
     'method'        => 'روش پرداخت',
     'methods'       => [

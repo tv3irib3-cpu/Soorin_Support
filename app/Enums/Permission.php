@@ -41,6 +41,7 @@ enum Permission: string
     // تنظیمات
     case ManageSettings = 'settings.manage';
     case ViewActivity   = 'activity.view';
+    case ViewReports    = 'reports.view';
 
     public function label(): string
     {
@@ -63,6 +64,7 @@ enum Permission: string
             self::ManagePayments  => 'ثبت پرداخت',
             self::ManageSettings  => 'تنظیمات سامانه',
             self::ViewActivity    => 'مشاهده تاریخچه تغییرات',
+            self::ViewReports     => 'مشاهده گزارش‌ها',
         };
     }
 
@@ -85,7 +87,7 @@ enum Permission: string
             self::ViewCustomers, self::ViewTickets, self::CreateTickets,
             self::ManageTickets, self::AssignTickets, self::InternalNotes,
             self::ViewContracts, self::ViewInvoices, self::ManageInvoices,
-            self::PrintInvoices, self::ManagePayments,
+            self::PrintInvoices, self::ManagePayments, self::ViewReports,
         ];
 
         return [
