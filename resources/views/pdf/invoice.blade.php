@@ -92,9 +92,9 @@
             @foreach ($invoice->items as $item)
             <tr>
                 <td>{{ $item->title }}</td>
-                <td class="num">{{ $item->quantity }}</td>
+                <td class="num">{{ \App\Support\Jalali::digits(rtrim(rtrim($item->quantity, '0'), '.') ?: '0') }}</td>
                 <td class="num">{{ $money($item->unit_price) }}</td>
-                <td class="num">{{ $item->contract_cover_percent }}٪</td>
+                <td class="num">{{ \App\Support\Jalali::digits((string) $item->contract_cover_percent) }}٪</td>
                 <td class="num">{{ $money($item->line_total) }}</td>
             </tr>
             @endforeach

@@ -39,7 +39,9 @@ class AdminPanelProvider extends PanelProvider
             ->brandName(config('branding.app.title'))
             ->brandLogo(fn () => asset(config('branding.logo.light')))
             ->darkModeBrandLogo(fn () => asset(config('branding.logo.dark')))
-            ->favicon(fn () => asset(config('branding.logo.mark')))
+            // آیکون واقعی PNG در سایز مناسب — نه SVG با جزئیات زیاد که مرورگر
+            // در سایز کوچک تب با کیفیت پایین کوچک می‌کند
+            ->favicon(fn () => asset('images/favicon-32.png'))
             ->colors([
                 'primary' => $ocean['accent'],   // فیروزه‌ای برند
                 'gray'    => '#5f7d8c',

@@ -8,7 +8,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ __("errors.$code.title") }} — {{ config('branding.company.name') }}</title>
-    <link rel="icon" href="{{ asset(config('branding.logo.mark')) }}">
+    <x-favicon />
     <link rel="stylesheet" href="{{ route('theme.css') }}">
     <style>
         * { box-sizing: border-box; }

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ?? __('portal.title') }} — {{ config('branding.company.name') }}</title>
-    <link rel="icon" href="{{ asset(config('branding.logo.mark')) }}">
+    <x-favicon />
     <link rel="stylesheet" href="{{ route('theme.css') }}">
     <style>
         * { box-sizing: border-box; }
@@ -71,7 +71,7 @@
 
     <header class="portal-header">
         <div class="portal-header__brand">
-            <img src="{{ asset(config('branding.logo.dark')) }}" alt="{{ config('branding.company.name') }}" onerror="this.style.display='none'">
+            <img src="{{ asset(config('branding.logo.mark')) }}" alt="{{ config('branding.company.name') }}" onerror="this.style.display='none'">
             {{ __('portal.title') }}
         </div>
         @auth
