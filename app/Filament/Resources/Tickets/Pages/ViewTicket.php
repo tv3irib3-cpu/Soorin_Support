@@ -82,6 +82,16 @@ class ViewTicket extends ViewRecord
                         ->state(__('tickets.locked_notice'))
                         ->color('warning'),
                 ]),
+
+            Section::make()
+                ->visible(fn () => $ticket->isSlaBreached())
+                ->icon('heroicon-o-exclamation-triangle')
+                ->schema([
+                    TextEntry::make('sla_notice')
+                        ->hiddenLabel()
+                        ->state(__('tickets.sla_breached_hint'))
+                        ->color('danger'),
+                ]),
         ]);
     }
 

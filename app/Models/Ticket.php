@@ -155,6 +155,31 @@ class Ticket extends Model
         return ! in_array($this->status, [self::STATUS_CLOSED, self::STATUS_CANCELLED], true);
     }
 
+    // ------------------------------------------------------------------ SLA
+
+    /** مهلت پاسخ تعهدشده طبق قرارداد — اگر قرارداد یا SLA نداشته باشد null است. */
+    public function slaDeadline(): ?\Carbon\CarbonInterface
+    {
+        $hours = $this->contract?->plan?->response_hours;
+
+        return $hours ? $this->created_at->addHours($hours) : null;
+    }
+
+    /**
+     * آیا مهلت پاسخ اولیه گذشته و هنوز کسی جواب نداده؟
+     * تیکتی که بسته/لغو شده دیگر «معطل» حساب نمی‌شود.
+     */
+    public function isSlaBreached(): bool
+    {
+        if ($this->first_response_at !== null || ! $this->isOpen()) {
+            return false;
+        }
+
+        $deadline = $this->slaDeadline();
+
+        return $deadline !== null && now()->greaterThan($deadline);
+    }
+
     // -------------------------------------------------------------- کوئری‌ها
 
     /**
