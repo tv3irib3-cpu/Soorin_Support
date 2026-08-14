@@ -30,9 +30,10 @@ return [
     'permissions'       => 'مجوزها',
     'user_type'         => 'نوع کاربر',
     'types'             => [
-        'admin'    => 'مدیر',
-        'staff'    => 'کارشناس',
-        'customer' => 'مشتری',
+        'support_admin'  => 'مدیر پشتیبان',
+        'support_staff'  => 'کارشناس پشتیبان',
+        'customer_admin' => 'مدیر مشتری',
+        'customer_staff' => 'کارشناس مشتری',
     ],
 
     'last_login_at'     => 'آخرین ورود',
