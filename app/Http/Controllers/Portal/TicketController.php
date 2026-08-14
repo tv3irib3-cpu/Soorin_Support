@@ -80,8 +80,15 @@ class TicketController extends Controller
             'created_by'          => $user->id,
         ]);
 
-        return redirect()->route('portal.tickets.show', $ticket)
-            ->with('status', __('portal.ticket_submitted', ['number' => $ticket->number]));
+        $message = __('portal.ticket_submitted', ['number' => $ticket->number]);
+
+        // اگر کاربر اجازه دیدن سوابق ندارد، هدایت به صفحه تیکت ۴۰۴ می‌دهد؛
+        // به‌جایش با همان پیام موفقیت به صفحه اصلی پرتال برمی‌گردد.
+        $canSeeIt = Ticket::visibleTo($user)->whereKey($ticket->id)->exists();
+
+        return $canSeeIt
+            ? redirect()->route('portal.tickets.show', $ticket)->with('status', $message)
+            : redirect()->route('portal.dashboard')->with('status', $message);
     }
 
     public function show(Ticket $ticket): View

@@ -18,7 +18,7 @@ class AttachmentsRelationManager extends RelationManager
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
-        return __('tickets.attachments');
+        return __('common.attachments');
     }
 
     public function form(Schema $schema): Schema

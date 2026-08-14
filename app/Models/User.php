@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -75,6 +76,32 @@ class User extends Authenticatable implements FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->isSupportUser() && $this->is_active;
+    }
+
+    protected static function booted(): void
+    {
+        /*
+        | نقش Spatie همیشه با user_type هم‌راستا نگه داشته می‌شود.
+        |
+        | بدون این، کاربری که مدیر از پنل می‌سازد هیچ نقشی نمی‌گیرد و چون
+        | تمام بررسی‌های دسترسی مجوزمحورند، بعد از ورود پنل کاملاً خالی
+        | می‌بیند. تغییر نوع حساب هم باید نقش را جابه‌جا کند.
+        |
+        | در مدل انجام شده (نه observer) تا از هر مسیری — پنل، seeder،
+        | tinker، تست — یکسان اجرا شود.
+        */
+        static::saved(function (User $user) {
+            if (blank($user->user_type) || ! $user->wasChanged('user_type') && ! $user->wasRecentlyCreated) {
+                return;
+            }
+
+            // اگر نقش‌ها هنوز seed نشده‌اند (دیتابیس تازه)، بی‌صدا رد شود
+            if (! Role::where('name', $user->user_type)->where('guard_name', 'web')->exists()) {
+                return;
+            }
+
+            $user->syncRoles([$user->user_type]);
+        });
     }
 
     // ---------------------------------------------------------------- روابط
@@ -192,12 +219,22 @@ class User extends Authenticatable implements FilamentUser
 
     /**
      * دامنه دیدن سوابق تیکت.
-     * اگر در سطح حساب تعیین نشده باشد، پیش‌فرض نقش اعمال می‌شود.
+     *
+     * لایه اول (سقف سازمان): اگر مشتری در سطح سازمان اجازه دیدن تاریخچه
+     * نداشته باشد، هیچ حسابی زیرمجموعه‌اش سابقه نمی‌بیند — حتی مدیر مشتری.
+     * این همان سناریوی صریح مالک پروژه است: «دسترسی مشتری به تاریخچه بسته
+     * باشد ولی فقط بتواند تیکت جدید بزند».
+     *
+     * لایه دوم (سطح حساب): اگر تعیین نشده باشد، پیش‌فرض نقش اعمال می‌شود.
      */
     public function historyScope(): string
     {
         if ($this->isSupportUser()) {
             return 'all';
+        }
+
+        if (! $this->customer?->can_view_history) {
+            return 'none';
         }
 
         if ($this->history_scope !== null) {

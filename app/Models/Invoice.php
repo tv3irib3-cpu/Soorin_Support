@@ -190,4 +190,22 @@ class Invoice extends Model
     {
         return max(0, $this->payable_amount - $this->paid_amount);
     }
+
+    protected static function booted(): void
+    {
+        /*
+        | حذف فاکتور باید سهمی که از سقف قرارداد گرفته را آزاد کند، وگرنه
+        | سقف برای همیشه اشتباه پر می‌ماند. فاکتور لغوشده قبلاً در cancel()
+        | آزاد شده، پس دوباره کم نمی‌شود.
+        */
+        static::deleting(function (Invoice $invoice) {
+            if ($invoice->status === self::STATUS_CANCELLED) {
+                return;
+            }
+
+            if ($invoice->contract && $invoice->contract_amount > 0) {
+                $invoice->contract->decrement('used_amount', $invoice->contract_amount);
+            }
+        });
+    }
 }
