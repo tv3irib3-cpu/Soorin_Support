@@ -17,5 +17,10 @@ return [
     'invoice_issued_payable' => 'مبلغ قابل پرداخت: :amount ریال',
     'invoice_issued_cta'     => 'مشاهده فاکتور',
 
+    'survey_subject'  => 'نظر شما درباره خدمت تیکت :number',
+    'survey_greeting' => 'سلام،',
+    'survey_body'     => 'تیکت شماره :number («:subject») حل شد. لطفاً چند ثانیه وقت بگذارید و به کیفیت خدمت امتیاز بدهید — این برای ما خیلی ارزشمند است.',
+    'survey_cta'      => 'ثبت نظر',
+
     'footer_note' => 'این یک ایمیل خودکار از سامانه پشتیبانی :company است. لطفاً به این ایمیل پاسخ ندهید.',
 ];

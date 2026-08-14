@@ -5,6 +5,7 @@ use App\Http\Controllers\Portal\AuthController as PortalAuthController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
 use App\Http\Controllers\Portal\InvoiceController as PortalInvoiceController;
 use App\Http\Controllers\Portal\TicketController as PortalTicketController;
+use App\Http\Controllers\SurveyController;
 use App\Http\Middleware\ApplyUserTheme;
 use App\Http\Middleware\PortalAuthenticate;
 use Illuminate\Support\Facades\Route;
@@ -50,4 +51,13 @@ Route::prefix('portal')->name('portal.')->group(function () {
 
         Route::get('/invoices', [PortalInvoiceController::class, 'index'])->name('invoices.index');
     });
+});
+
+// ------------------------------------------------------------ نظرسنجی رضایت
+// عمومی و بدون ورود — فقط با لینک امضاشده که هنگام «حل‌شدن» تیکت ایمیل می‌شود.
+// فرم همان آدرس امضاشده را برای POST هم دوباره استفاده می‌کند (ApplyUserTheme
+// لازم نیست، صفحه تم ثابت ocean دارد مثل صفحه ورود).
+Route::middleware('signed')->group(function () {
+    Route::get('/survey/{ticket}', [SurveyController::class, 'show'])->name('survey.show');
+    Route::post('/survey/{ticket}', [SurveyController::class, 'store'])->name('survey.store');
 });

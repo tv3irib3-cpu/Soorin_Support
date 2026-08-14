@@ -73,6 +73,20 @@ class ViewTicket extends ViewRecord
                     TextEntry::make('resolution')->hiddenLabel(),
                 ]),
 
+            Section::make(__('tickets.rating'))
+                ->visible(fn () => $ticket->rating !== null)
+                ->columns(2)
+                ->schema([
+                    TextEntry::make('rating')
+                        ->label(__('tickets.rating'))
+                        ->formatStateUsing(fn (?int $state) => $state ? str_repeat('★', $state) . ' (' . $state . '/۵)' : '—')
+                        ->color('warning'),
+                    TextEntry::make('rating_comment')
+                        ->label(__('tickets.rating_comment'))
+                        ->placeholder('—')
+                        ->columnSpanFull(),
+                ]),
+
             Section::make()
                 ->visible(fn () => $ticket->is_locked)
                 ->icon('heroicon-o-lock-closed')

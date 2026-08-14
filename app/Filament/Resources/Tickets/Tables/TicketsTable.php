@@ -88,6 +88,13 @@ class TicketsTable
                     ->color(fn (bool $state) => $state ? 'danger' : 'gray')
                     ->tooltip(fn (bool $state) => $state ? __('tickets.sla_breached_hint') : null),
 
+                TextColumn::make('rating')
+                    ->label(__('tickets.rating'))
+                    ->formatStateUsing(fn (?int $state) => $state ? str_repeat('★', $state) : '—')
+                    ->color('warning')
+                    ->extraHeaderAttributes(['class' => 'hidden lg:table-cell'])
+                    ->extraCellAttributes(['class' => 'hidden lg:table-cell']),
+
                 TextColumn::make('created_at')
                     ->label(__('common.created_at'))
                     ->formatStateUsing(fn ($state) => \App\Support\Jalali::format($state))

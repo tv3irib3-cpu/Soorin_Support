@@ -2,9 +2,12 @@
 
 namespace App\Observers;
 
+use App\Mail\TicketSurveyMail;
 use App\Models\ActivityLog;
 use App\Models\Ticket;
 use App\Models\TicketStatusLog;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
 /**
  * رفتار خودکار تیکت:
@@ -12,6 +15,7 @@ use App\Models\TicketStatusLog;
  *   - ثبت هر تغییر وضعیت در ticket_status_logs (هرگز حذف نمی‌شود)
  *   - قفل شدن خودکار و ثبت زمان هنگام رسیدن به «بسته‌شده»
  *   - ثبت زمان اولین پاسخ و زمان حل
+ *   - دعوت به نظرسنجی رضایت هنگام رسیدن به «حل‌شده»
  */
 class TicketObserver
 {
@@ -72,7 +76,25 @@ class TicketObserver
                 'from' => $ticket->getOriginal('status'),
                 'to'   => $ticket->status,
             ]);
+
+            if ($ticket->status === Ticket::STATUS_RESOLVED) {
+                $this->sendSurveyInvite($ticket);
+            }
         }
+    }
+
+    /** دعوت به نظرسنجی — فقط اگر مشتری ایمیل داشته باشد و هنوز نظر نداده باشد. */
+    private function sendSurveyInvite(Ticket $ticket): void
+    {
+        $email = $ticket->customer?->email;
+
+        if (blank($email) || $ticket->rating !== null) {
+            return;
+        }
+
+        $url = URL::temporarySignedRoute('survey.show', now()->addDays(30), ['ticket' => $ticket]);
+
+        Mail::to($email)->send(new TicketSurveyMail($ticket, $url));
     }
 
     /** شماره تیکت به قالب T-14050522-0001 — سال‌ماه‌روز شمسی + شمارنده روزانه. */

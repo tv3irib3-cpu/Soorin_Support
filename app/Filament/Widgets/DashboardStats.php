@@ -27,6 +27,8 @@ class DashboardStats extends StatsOverviewWidget
 
         $unpaidInvoices = Invoice::whereNotIn('status', ['paid', 'cancelled', 'draft'])->count();
 
+        $avgRating = Ticket::whereNotNull('rating')->avg('rating');
+
         $slaBreached = Ticket::whereNull('first_response_at')
             ->whereNotIn('status', ['closed', 'cancelled'])
             ->whereHas('contract.plan', fn ($q) => $q->whereNotNull('response_hours'))
@@ -51,6 +53,10 @@ class DashboardStats extends StatsOverviewWidget
             Stat::make(__('tickets.sla_breached'), (string) $slaBreached)
                 ->icon('heroicon-o-exclamation-triangle')
                 ->color($slaBreached > 0 ? 'danger' : 'gray'),
+
+            Stat::make(__('tickets.rating'), $avgRating ? number_format($avgRating, 1) . ' / ۵' : '—')
+                ->icon('heroicon-o-star')
+                ->color('warning'),
         ];
     }
 }
