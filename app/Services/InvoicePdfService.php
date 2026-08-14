@@ -31,6 +31,11 @@ class InvoicePdfService
                 'vazirmatn' => [
                     'R' => 'Vazirmatn-Regular.ttf',
                     'B' => 'Vazirmatn-Bold.ttf',
+                    // useOTL باید صریحاً روشن شود — بدون آن mPDF شکل مجزای هر
+                    // حرف را چاپ می‌کند (م‌ش‌ت‌ر‌ی به‌جای مشتری، چسبیده‌نشده).
+                    // 0xFF یعنی همه ویژگی‌های OpenType (از جمله اتصال حروف فارسی) فعال شود.
+                    'useOTL'    => 0xFF,
+                    'useKashida' => 75,
                 ],
             ]),
             'margin_top'    => 15,

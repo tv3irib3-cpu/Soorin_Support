@@ -42,7 +42,6 @@
                 @else
                     <div class="company-name">{{ $company['name'] }}</div>
                 @endif
-                <div class="company-sub">{{ $company['website_label'] }}</div>
             </td>
             <td style="width: 45%;">
                 <div class="invoice-title">{{ __('invoices.invoice_title') }}</div>
