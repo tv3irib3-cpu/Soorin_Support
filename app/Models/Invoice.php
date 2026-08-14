@@ -101,6 +101,25 @@ class Invoice extends Model
     // --------------------------------------------------------------- محاسبه
 
     /**
+     * نوع قراردادی که واقعاً باید پوشش بدهد.
+     *
+     * قرارداد منقضی یا لغوشده هیچ پوششی نمی‌دهد — خدمتی که بعد از پایان
+     * قرارداد ارائه شده باید کامل حساب شود. اعتبار نسبت به **تاریخ صدور
+     * فاکتور** سنجیده می‌شود نه امروز، تا محاسبه دوباره در آینده نتیجه را
+     * عوض نکند.
+     */
+    public function effectiveContractPlan(): ?ContractPlan
+    {
+        if (! $this->contract) {
+            return null;
+        }
+
+        $onDate = ($this->issue_date ?? now())->toDateString();
+
+        return $this->contract->isValidOn($onDate) ? $this->contract->plan : null;
+    }
+
+    /**
      * محاسبه سه عدد کلیدی از روی ردیف‌ها و ثبت آن‌ها روی فاکتور.
      *
      * ترتیب کار:
@@ -120,8 +139,20 @@ class Invoice extends Model
         $partsAmount   = (int) $items->where('item_type', 'part')->sum('line_total');
         $otherAmount   = (int) $items->where('item_type', 'other')->sum('line_total');
 
-        $grossTotal      = $serviceAmount + $partsAmount + $otherAmount;
-        $contractCovered = (int) $items->sum('contract_covered');
+        $grossTotal = $serviceAmount + $partsAmount + $otherAmount;
+
+        // قرارداد منقضی/لغوشده هیچ پوششی نمی‌دهد — سهم ردیف‌ها هم صفر می‌شود
+        // تا نمایش ردیف با جمع فاکتور ناسازگار نشود.
+        if ($this->effectiveContractPlan() === null) {
+            $items->each(fn (InvoiceItem $i) => $i->forceFill([
+                'contract_cover_percent' => 0,
+                'contract_covered'       => 0,
+                'payable'                => $i->line_total,
+            ])->save());
+            $contractCovered = 0;
+        } else {
+            $contractCovered = (int) $items->sum('contract_covered');
+        }
 
         // سهمی که همین فاکتور در محاسبه قبلی خودش ثبت کرده بود
         $previousContribution = (int) $this->contract_amount;

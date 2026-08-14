@@ -11,9 +11,9 @@ use App\Http\Middleware\ApplyUserTheme;
 use App\Http\Middleware\PortalAuthenticate;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// ریشه سایت به پرتال مشتری می‌رود — نه صفحه پیش‌فرض لاراول.
+// کاربر داخلی که وارد شده باشد، PortalAuthenticate او را به پنل می‌فرستد.
+Route::get('/', fn () => redirect()->route('portal.login'));
 
 // مسیر پیش‌فرض ورود — میان‌افزار auth لاراول برای کاربر مهمان به این نام
 // ریدایرکت می‌کند. تا ساخت صفحه ورود پرتال (فاز بعد)، به ورود پنل می‌رود.

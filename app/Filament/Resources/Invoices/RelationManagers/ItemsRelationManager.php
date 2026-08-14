@@ -119,7 +119,8 @@ class ItemsRelationManager extends RelationManager
         $ticket  = $invoice->ticket;
 
         $item->recalculate(
-            plan: $invoice->contract?->plan,
+            // قرارداد منقضی/لغوشده پوشش نمی‌دهد
+            plan: $invoice->effectiveContractPlan(),
             serviceType: $ticket->service_type ?? 'hardware',
             method: $ticket->method ?? null,
         );
