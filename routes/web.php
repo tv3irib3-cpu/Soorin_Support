@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\Portal\AuthController as PortalAuthController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Portal\DashboardController as PortalDashboardController;
 use App\Http\Controllers\Portal\InvoiceController as PortalInvoiceController;
 use App\Http\Controllers\Portal\TicketController as PortalTicketController;
@@ -32,6 +33,9 @@ Route::get('/css/theme.css', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/invoices/{invoice}/pdf', [InvoicePdfController::class, 'view'])->name('invoices.pdf.view');
     Route::get('/invoices/{invoice}/pdf/download', [InvoicePdfController::class, 'download'])->name('invoices.pdf.download');
+
+    Route::get('/reports/export/excel', [ReportController::class, 'excel'])->name('reports.export.excel');
+    Route::get('/reports/export/pdf', [ReportController::class, 'pdf'])->name('reports.export.pdf');
 });
 
 // ---------------------------------------------------------------- پرتال مشتری
