@@ -6,6 +6,8 @@ use App\Mail\TicketSurveyMail;
 use App\Models\ActivityLog;
 use App\Models\Ticket;
 use App\Models\TicketStatusLog;
+use App\Models\User;
+use App\Services\SmsService;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 
@@ -16,6 +18,7 @@ use Illuminate\Support\Facades\URL;
  *   - قفل شدن خودکار و ثبت زمان هنگام رسیدن به «بسته‌شده»
  *   - ثبت زمان اولین پاسخ و زمان حل
  *   - دعوت به نظرسنجی رضایت هنگام رسیدن به «حل‌شده»
+ *   - پیامک: تیکت جدید ← تیم پشتیبانی، حل‌شدن ← مشتری (اگر sms.enabled باشد)
  */
 class TicketObserver
 {
@@ -36,6 +39,8 @@ class TicketObserver
         ]);
 
         ActivityLog::record('created', $ticket);
+
+        $this->notifySupportTeamBySms($ticket);
     }
 
     public function updating(Ticket $ticket): void
@@ -79,8 +84,55 @@ class TicketObserver
 
             if ($ticket->status === Ticket::STATUS_RESOLVED) {
                 $this->sendSurveyInvite($ticket);
+                $this->notifyCustomerBySms($ticket);
             }
         }
+    }
+
+    /** پیامک ثبت تیکت جدید به مدیر پشتیبان و کارشناسان — نه به مشتری. */
+    private function notifySupportTeamBySms(Ticket $ticket): void
+    {
+        if (! SmsService::isEnabled()) {
+            return;
+        }
+
+        $mobiles = User::whereIn('user_type', [User::TYPE_SUPPORT_ADMIN, User::TYPE_SUPPORT_STAFF])
+            ->where('is_active', true)
+            ->pluck('mobile')
+            ->all();
+
+        app(SmsService::class)->sendToMany(
+            $mobiles,
+            __('sms.new_ticket_text', ['number' => $ticket->number, 'customer' => $ticket->customer?->name]),
+        );
+    }
+
+    /**
+     * پیامک حل‌شدن تیکت به مدیر مشتری و کارشناس مشتریِ همان پروژه (اگر تیکت
+     * به پروژه‌ای وصل باشد). کارشناسان مشتری در پروژه‌های دیگر پیامک نمی‌گیرند.
+     */
+    private function notifyCustomerBySms(Ticket $ticket): void
+    {
+        if (! SmsService::isEnabled() || ! $ticket->customer_id) {
+            return;
+        }
+
+        $recipients = User::where('customer_id', $ticket->customer_id)
+            ->where('is_active', true)
+            ->where(function ($q) use ($ticket) {
+                $q->where('user_type', User::TYPE_CUSTOMER_ADMIN);
+
+                if ($ticket->customer_project_id) {
+                    $q->orWhereHas('projects', fn ($p) => $p->where('customer_projects.id', $ticket->customer_project_id));
+                }
+            })
+            ->pluck('mobile')
+            ->all();
+
+        app(SmsService::class)->sendToMany(
+            $recipients,
+            __('sms.resolved_text', ['number' => $ticket->number]),
+        );
     }
 
     /** دعوت به نظرسنجی — فقط اگر مشتری ایمیل داشته باشد و هنوز نظر نداده باشد. */
