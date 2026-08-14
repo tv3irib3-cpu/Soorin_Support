@@ -109,6 +109,8 @@ class TicketController extends Controller
 
         $data = $request->validate(['body' => ['required', 'string']]);
 
+        // اطلاع‌رسانی ایمیل به کارشناس مسئول در App\Observers\TicketMessageObserver
+        // متمرکز است — همان مسیری که پنل مدیریت هم از آن استفاده می‌کند.
         $ticket->messages()->create([
             'user_id'     => $user->id,
             'body'        => $data['body'],

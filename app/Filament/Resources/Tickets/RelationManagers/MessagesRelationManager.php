@@ -81,6 +81,9 @@ class MessagesRelationManager extends RelationManager
 
                         return $data;
                     }),
+                // اطلاع‌رسانی ایمیل به مشتری و ثبت first_response_at برای SLA
+                // در App\Observers\TicketMessageObserver متمرکز است — نه اینجا،
+                // تا هر مسیر ساخت پیام (پنل یا پرتال) رفتار یکسان داشته باشد.
             ])
             ->defaultSort('created_at')
             ->emptyStateHeading(__('tickets.no_messages'));

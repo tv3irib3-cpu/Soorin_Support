@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Invoices\Pages;
 
+use App\Actions\IssueInvoice;
 use App\Enums\Permission;
 use App\Filament\Resources\Invoices\InvoiceResource;
 use App\Models\Invoice;
@@ -88,8 +89,7 @@ class ViewInvoice extends ViewRecord
                     && (auth()->user()?->can(Permission::ManageInvoices->value) ?? false))
                 ->requiresConfirmation()
                 ->action(function () use ($invoice) {
-                    $invoice->update(['status' => Invoice::STATUS_ISSUED]);
-                    $invoice->refreshPaymentStatus();
+                    app(IssueInvoice::class)($invoice);
 
                     Notification::make()->success()->title(__('common.saved'))->send();
                 }),
