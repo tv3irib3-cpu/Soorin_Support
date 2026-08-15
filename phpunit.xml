@@ -22,8 +22,16 @@
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
-        <!-- <env name="DB_CONNECTION" value="sqlite"/> -->
-        <!-- <env name="DB_DATABASE" value=":memory:"/> -->
+        <!--
+            دیتابیس تست باید جدا باشد. RefreshDatabase هر بار جدول‌ها را از نو
+            می‌سازد؛ اگر اینجا خالی بماند، «php artisan test» دیتابیس واقعی
+            soorin_support را پاک می‌کند.
+
+            پیش از اولین اجرا:
+                CREATE DATABASE soorin_support_test
+                    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        -->
+        <env name="DB_DATABASE" value="soorin_support_test"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
