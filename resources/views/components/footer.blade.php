@@ -10,6 +10,10 @@
     $yearRange   = $founded && $founded < $currentYear
         ? $founded . ' – ' . $currentYear
         : $currentYear;
+
+    // سال شمسی است، پس ارقامش هم باید فارسی باشد. شماره نسخه عمداً لاتین
+    // می‌ماند چون شناسه فنی است، نه عددی که خوانده شود.
+    $yearRange   = \App\Support\Jalali::digits((string) $yearRange);
 @endphp
 
 <footer class="app-footer">
