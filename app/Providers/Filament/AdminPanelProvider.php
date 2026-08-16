@@ -39,6 +39,9 @@ class AdminPanelProvider extends PanelProvider
             ->brandName(config('branding.app.title'))
             ->brandLogo(fn () => asset(config('branding.logo.light')))
             ->darkModeBrandLogo(fn () => asset(config('branding.logo.dark')))
+            // ارتفاع لوگو محدود شود؛ فایل SVG ابعاد ذاتی بزرگ (۸۸۹×۶۰۷) دارد و
+            // بدون این تنظیم در سربرگ و صفحه ورود بیش از حد بزرگ رندر می‌شود
+            ->brandLogoHeight('2.25rem')
             // آیکون واقعی PNG در سایز مناسب — نه SVG با جزئیات زیاد که مرورگر
             // در سایز کوچک تب با کیفیت پایین کوچک می‌کند
             ->favicon(fn () => asset('images/favicon-32.png'))
