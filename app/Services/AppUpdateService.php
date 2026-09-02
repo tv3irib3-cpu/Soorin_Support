@@ -6,6 +6,7 @@ use App\Support\AppVersion;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use RuntimeException;
 use ZipArchive;
@@ -30,8 +31,14 @@ class AppUpdateService
     {
         $current = AppVersion::current();
 
+        // اگر «مانیفستِ به‌روزرسانی» تنظیم شده باشد، کانالِ به‌روزرسانی از همان است
+        // (روشِ کاملاً PHPایِ بدونِ SSH، مثلِ وردپرس) — روی هاستِ اشتراکی هم کار می‌کند.
+        if ($this->manifestConfigured()) {
+            return $this->packageStatus();
+        }
+
         if (! AppVersion::isGitRepo()) {
-            // بدون git فقط به‌روزرسانی آفلاین با زیپ ممکن است
+            // بدون git و بدون مانیفست، فقط به‌روزرسانیِ دستی با آپلودِ زیپ ممکن است
             return ['method' => 'offline', 'current' => $current, 'latest' => null, 'available' => false];
         }
 
@@ -82,6 +89,166 @@ class AppUpdateService
                 'error'     => $e->getMessage(),
             ];
         }
+    }
+
+    /** آیا آدرسِ «مانیفستِ به‌روزرسانی» تنظیم شده؟ (روشِ بدونِ SSH، مثلِ وردپرس) */
+    public function manifestConfigured(): bool
+    {
+        return filled(config('branding.update.manifest'));
+    }
+
+    /**
+     * وضعیت از روی «مانیفست» — یک JSONِ ساده در یک URL که نسخهٔ جدید و آدرسِ ZIPِ
+     * آماده (همراهِ vendor) را می‌دهد. همه‌چیز با PHP انجام می‌شود، بدونِ SSH/شل.
+     *
+     * قالبِ مانیفست: {"version":"0.4.5","zip":"https://.../full.zip","sha256":"...","notes":"..."}
+     *
+     * @return array{method: string, current: string, latest: ?string, available: bool, zip?: string, sha256?: ?string, notes?: ?string, error?: string}
+     */
+    public function packageStatus(): array
+    {
+        $current = AppVersion::current();
+        $url = trim((string) config('branding.update.manifest'));
+
+        if ($url === '') {
+            return ['method' => 'package', 'current' => $current, 'latest' => null, 'available' => false,
+                'error' => 'آدرسِ مانیفستِ به‌روزرسانی تنظیم نشده است.'];
+        }
+
+        try {
+            $res = Http::timeout(30)->acceptJson()->get($url);
+
+            if (! $res->successful()) {
+                return ['method' => 'package', 'current' => $current, 'latest' => null, 'available' => false,
+                    'error' => 'ارتباط با سرورِ به‌روزرسانی ناموفق بود (کد ' . $res->status() . ').'];
+            }
+
+            $data = (array) $res->json();
+            $latest = trim((string) ($data['version'] ?? ''));
+            $zip = trim((string) ($data['zip'] ?? ''));
+
+            if ($latest === '' || $zip === '') {
+                return ['method' => 'package', 'current' => $current, 'latest' => null, 'available' => false,
+                    'error' => 'مانیفستِ به‌روزرسانی نامعتبر است (version یا zip ندارد).'];
+            }
+
+            return [
+                'method'    => 'package',
+                'current'   => $current,
+                'latest'    => $latest,
+                'zip'       => $zip,
+                'sha256'    => $data['sha256'] ?? null,
+                'notes'     => $data['notes'] ?? null,
+                'available' => version_compare($latest, $current, '>'),
+            ];
+        } catch (\Throwable $e) {
+            return ['method' => 'package', 'current' => $current, 'latest' => null, 'available' => false,
+                'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * به‌روزرسانیِ تک‌کلیکیِ بدونِ SSH — مثلِ وردپرس.
+     *
+     * ZIPِ آماده (همراهِ vendor) را با PHP دانلود می‌کند، چک‌سام را می‌سنجد، با
+     * ZipArchive باز می‌کند، فایل‌ها را با PHP کپی می‌کند و مهاجرت/پاک‌سازی را
+     * «درجا» با Artisan::call اجرا می‌کند. هیچ git/composer/شلی لازم نیست.
+     *
+     * @return array{backup: ?string, version: string}
+     */
+    public function updateFromPackage(): array
+    {
+        // کپیِ vendor چند ده‌هزار فایل است؛ روی هاستِ اشتراکی نباید با مهلتِ اجرا
+        // یا قطعِ مرورگر نیمه‌کاره بماند.
+        @set_time_limit(0);
+        @ignore_user_abort(true);
+
+        $status = $this->packageStatus();
+
+        if (! empty($status['error'])) {
+            throw new RuntimeException($status['error']);
+        }
+
+        if (empty($status['available'])) {
+            throw new RuntimeException('نسخهٔ جدیدی در دسترس نیست.');
+        }
+
+        $tmpZip = storage_path('app/update-' . uniqid() . '.zip');
+
+        $res = Http::timeout(600)->sink($tmpZip)->get($status['zip']);
+
+        if (! $res->successful() || ! is_file($tmpZip) || filesize($tmpZip) === 0) {
+            @unlink($tmpZip);
+
+            throw new RuntimeException('دانلودِ بستهٔ به‌روزرسانی ناموفق بود.');
+        }
+
+        // اگر چک‌سام داده شده، صحتِ فایل را بررسی کن (جلوگیری از فایلِ خراب/دستکاری‌شده).
+        if (filled($status['sha256'] ?? null)) {
+            $actual = hash_file('sha256', $tmpZip);
+
+            if (! hash_equals(strtolower((string) $status['sha256']), strtolower((string) $actual))) {
+                @unlink($tmpZip);
+
+                throw new RuntimeException('چک‌سامِ بستهٔ دانلودشده نادرست است (فایل خراب یا دستکاری‌شده).');
+            }
+        }
+
+        try {
+            return $this->applyPackageZip($tmpZip);
+        } finally {
+            @unlink($tmpZip);
+        }
+    }
+
+    /**
+     * بازکردن و اعمالِ یک بستهٔ کاملِ ZIP (همراهِ vendor) — کاملاً با PHP.
+     *
+     * بسته باید «کامل» باشد (شاملِ vendor)، پس نیازی به composer نیست و مهاجرت
+     * هم درجا با Artisan اجرا می‌شود. فقط `.env` و `storage` و `.git` دست‌نخورده
+     * می‌مانند تا داده و تنظیماتِ محلی حفظ شود.
+     *
+     * @return array{backup: ?string, version: string}
+     */
+    private function applyPackageZip(string $zipPath): array
+    {
+        $tmp = storage_path('app/pkg-' . uniqid());
+
+        $zip = new ZipArchive();
+
+        if ($zip->open($zipPath) !== true) {
+            throw new RuntimeException('باز کردنِ فایلِ بسته ناموفق بود.');
+        }
+
+        @mkdir($tmp, 0775, true);
+        $zip->extractTo($tmp);
+        $zip->close();
+
+        // اگر همه‌چیز داخلِ یک پوشهٔ تک قرار گرفته، همان را ریشه بگیر
+        $entries = array_values(array_diff(scandir($tmp) ?: [], ['.', '..']));
+        $source = (count($entries) === 1 && is_dir($tmp . '/' . $entries[0])) ? $tmp . '/' . $entries[0] : $tmp;
+
+        if (! is_file($source . '/artisan') || ! is_dir($source . '/vendor')) {
+            $this->rrmdir($tmp);
+
+            throw new RuntimeException('این بسته کامل نیست (باید شاملِ artisan و پوشهٔ vendor باشد).');
+        }
+
+        $backup = $this->safetyBackup();
+
+        // بسته کامل است؛ همه‌چیز جز داده و تنظیماتِ محلی بازنویسی می‌شود (شاملِ vendor).
+        $this->copyOver($source, base_path(), ['.env', 'storage', '.git']);
+
+        $this->rrmdir($tmp);
+
+        // مهاجرت و پاک‌سازیِ کش «درجا» با PHP — بدونِ شل، composer یا git.
+        Artisan::call('migrate', ['--force' => true]);
+        Artisan::call('optimize:clear');
+
+        $version = AppVersion::current();
+        $this->markUpToDate($version);
+
+        return ['backup' => $backup, 'version' => $version];
     }
 
     /** کلید کشِ نتیجهٔ آخرین بررسی روزانهٔ به‌روزرسانی. */
@@ -172,56 +339,19 @@ class AppUpdateService
     }
 
     /**
-     * به‌روزرسانی با فایل زیپ نسخهٔ جدید.
+     * به‌روزرسانی با آپلودِ فایلِ زیپِ نسخهٔ جدید — کاملاً با PHP، بدونِ شل.
+     *
+     * زیپ باید «بستهٔ کامل» باشد (همراهِ پوشهٔ vendor)، تا روی هاستِ اشتراکیِ بدونِ
+     * SSH هم کار کند (نه composer لازم است، نه اجرای دستور). مهاجرت درجا انجام می‌شود.
      *
      * @return array{backup: ?string, version: string}
      */
     public function updateFromZip(string $zipPath): array
     {
-        $tmp = storage_path('app/update-' . uniqid());
+        @set_time_limit(0);
+        @ignore_user_abort(true);
 
-        $zip = new ZipArchive();
-
-        if ($zip->open($zipPath) !== true) {
-            throw new RuntimeException('باز کردن فایل زیپ ناموفق بود.');
-        }
-
-        @mkdir($tmp, 0775, true);
-        $zip->extractTo($tmp);
-        $zip->close();
-
-        // اگر زیپ داخل یک پوشهٔ تک قرار گرفته، همان را ریشه بگیر
-        $entries = array_values(array_diff(scandir($tmp) ?: [], ['.', '..']));
-        $source = (count($entries) === 1 && is_dir($tmp . '/' . $entries[0]))
-            ? $tmp . '/' . $entries[0]
-            : $tmp;
-
-        if (! is_file($source . '/artisan')) {
-            $this->rrmdir($tmp);
-
-            throw new RuntimeException('این فایل زیپ، بستهٔ برنامه نیست (فایل artisan پیدا نشد).');
-        }
-
-        $backup = $this->safetyBackup();
-
-        // کپی روی فایل‌های فعلی، بدون دست‌زدن به .env، storage، .git و vendor
-        $this->copyOver($source, base_path(), ['.env', 'storage', '.git', 'vendor', 'VERSION']);
-        // VERSION را جدا کپی کن (تا نسخهٔ جدید ثبت شود)
-        if (is_file($source . '/VERSION')) {
-            @copy($source . '/VERSION', base_path('VERSION'));
-        }
-
-        $this->rrmdir($tmp);
-
-        $root = base_path();
-        $this->run($root, 'composer install --no-dev --optimize-autoloader --no-interaction', 600);
-        $this->run($root, 'php artisan migrate --force', 300);
-        $this->run($root, 'php artisan optimize:clear', 120);
-
-        $version = AppVersion::current();
-        $this->markUpToDate($version);
-
-        return ['backup' => $backup, 'version' => $version];
+        return $this->applyPackageZip($zipPath);
     }
 
     /**

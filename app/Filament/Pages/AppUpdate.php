@@ -92,10 +92,45 @@ class AppUpdate extends Page
     {
         return [
             $this->checkAction(),
+            $this->updatePackageAction(),
             $this->updateFromGitAction(),
             $this->updateFromZipAction(),
             $this->linkToGitAction(),
         ];
+    }
+
+    /**
+     * به‌روزرسانیِ تک‌کلیکیِ بدونِ SSH (مثلِ وردپرس) — فقط وقتی «مانیفست» تنظیم شده
+     * و نسخهٔ جدیدی موجود است. بستهٔ آماده را با PHP می‌گیرد و اعمال می‌کند.
+     */
+    private function updatePackageAction(): Action
+    {
+        return Action::make('updatePackage')
+            ->label(__('updates.update_package'))
+            ->icon(Heroicon::OutlinedCloudArrowDown)
+            ->color('primary')
+            ->visible(fn () => ($this->status['method'] ?? null) === 'package' && ($this->status['available'] ?? false))
+            ->requiresConfirmation()
+            ->modalHeading(__('updates.update_package'))
+            ->modalDescription(__('updates.update_warning'))
+            ->action(function (AppUpdateService $service): void {
+                try {
+                    $result = $service->updateFromPackage();
+                } catch (\Throwable $e) {
+                    Notification::make()->danger()->title(__('updates.update_failed'))
+                        ->body($e->getMessage())->persistent()->send();
+
+                    return;
+                }
+
+                $this->status['current'] = $result['version'];
+                $this->status['available'] = false;
+
+                Notification::make()->success()
+                    ->title(__('updates.updated', ['version' => $result['version']]))
+                    ->body(__('updates.updated_backup', ['file' => $result['backup'] ?? '—']))
+                    ->persistent()->send();
+            });
     }
 
     /**

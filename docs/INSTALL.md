@@ -121,43 +121,43 @@ bash scripts/install.sh   # کانتینرها + composer + migrate --seed + opt
 > پروژه (شاملِ `.env` که رمزها در آن است) باید **بیرونِ** ریشهٔ وب بماند.
 
 ### گام ۱ — زیردامنه بسازید
-در DirectAdmin → **Subdomain Management** → زیردامنه `support` را بسازید.
-DirectAdmin پوشهٔ `~/domains/dpst.ir/public_html/support` را می‌سازد (ریشهٔ وبِ این
-زیردامنه همین‌جاست).
+در DirectAdmin → **Subdomain Management** → زیردامنه (مثلاً `crm`) را بسازید.
+DirectAdmin ممکن است دو گزینه برای ریشهٔ وب بدهد:
+- `/domains/crm.dpst.ir/public_html` ← **این را انتخاب کن** (زیردامنه یک پوشهٔ جدا و
+  مستقل از سایتِ اصلی دارد؛ تمیزتر و امن‌تر).
+- `/domains/dpst.ir/public_html/crm` (تودرتو داخلِ سایتِ اصلی).
 
-### گام ۲ — کد را بیرونِ ریشهٔ وب بگذارید
-یک پوشه **کنارِ** `public_html` (نه داخلش) بسازید، مثلاً `crm_app`:
+در ادامه فرض می‌کنیم گزینهٔ اول را زده‌ای؛ پس ریشهٔ وب `~/domains/crm.dpst.ir/public_html` است.
 
-- **با SSH (توصیه‌شده):**
-  ```bash
-  cd ~/domains/dpst.ir
-  git clone https://github.com/tv3irib3-cpu/Soorin_Support.git crm_app
-  cd crm_app
-  composer install --no-dev --optimize-autoloader
-  ```
-- **بدون SSH:** از صفحهٔ Releases گیت‌هاب یک بستهٔ zip که پوشهٔ `vendor` را همراه
-  دارد بگیرید و با **File Manager** داخل `~/domains/dpst.ir/crm_app` اکسترکت کنید.
-  (Laravel برای `migrate` و `key:generate` به اجرای دستور نیاز دارد؛ اگر هاست
-  اصلاً ترمینال/SSH ندارد، از پشتیبانیِ هاست بخواهید SSH را فعال کند — بدونِ آن
-  نصبِ Laravel روی اشتراکی عملاً ممکن نیست.)
+### گام ۲ و ۳ — چیدمانِ فایل‌ها (بدونِ SSH، تمیز)
 
-### گام ۳ — ریشهٔ وب را به `public` وصل کنید
-دو راه؛ اولی تمیزتر است:
+چون DirectAdmin پوشهٔ `~/domains/crm.dpst.ir/public_html` را به‌عنوان ریشهٔ وب ساخته،
+کلِ برنامه را **یک پله بالاتر** می‌گذاریم و فقط محتوای `public` را داخلِ `public_html`:
 
-- **راهِ ۱ (symlink، اگر SSH دارید):** پوشهٔ خودکارِ زیردامنه را با یک لینک به
-  `public` پروژه جایگزین کنید:
-  ```bash
-  cd ~/domains/dpst.ir/public_html
-  rm -rf support
-  ln -s ../crm_app/public support
-  ```
-  با این کار همه‌چیز (از جمله لوگوهای آپلودیِ «شخصی‌سازی» و `storage:link`) درست کار می‌کند.
+```
+~/domains/crm.dpst.ir/
+├── app/  bootstrap/  config/  database/  routes/  vendor/  storage/ …   ← بدنهٔ برنامه
+├── artisan   .env
+└── public_html/   ← ریشهٔ وب (محتوای پوشهٔ public لاراول)
+    ├── index.php   (دو مسیرش را به «../» اصلاح کن)
+    ├── .htaccess
+    └── …
+```
 
-- **راهِ ۲ (بدون symlink):** محتوای `crm_app/public/*` را داخل `public_html/support/`
-  کپی کنید، سپس در `public_html/support/index.php` دو مسیرِ `__DIR__.'/../...'` را
-  به `__DIR__.'/../../crm_app/...'` اصلاح کنید تا به پوشهٔ پروژه اشاره کنند. (در این
-  راه، برای اینکه لوگوهای آپلودی هم دیده شوند، پوشهٔ `crm_app/public/branding` را هم
-  داخل `public_html/support/branding` کپی/لینک کنید.)
+مراحل با **File Manager** (بدونِ SSH):
+1. بستهٔ کامل (همراهِ `vendor`) را که با `deploy/build-package.sh` ساخته‌ای، در
+   `~/domains/crm.dpst.ir/` آپلود و اکسترکت کن.
+2. **محتوای** پوشهٔ `public` را به `public_html` منتقل کن (خودِ پوشهٔ `public` خالی می‌ماند/حذف).
+3. در `public_html/index.php` دو خط را از `__DIR__.'/../…'` به `__DIR__.'/../…'` نگه‌دار
+   (چون حالا `public_html` مستقیماً زیرِ ریشهٔ برنامه است، همان `../` درست است:
+   `require __DIR__.'/../vendor/autoload.php';` و `$app = require_once __DIR__.'/../bootstrap/app.php';`).
+4. در `.env` بگذار: **`APP_PUBLIC_PATH=public_html`** — تا `public_path()` (و در نتیجه
+   لوگوهای «شخصی‌سازی» و `storage:link`) به `public_html` اشاره کند. بدونِ این، لوگوهای
+   آپلودی روی وب دیده نمی‌شوند.
+
+> اگر SSH داری، ساده‌تر: کلِ ریپو را در `~/domains/crm.dpst.ir/app` کلون کن، بعد
+> `public_html` را حذف و `ln -s ../app/public public_html` بزن؛ آن‌وقت به `APP_PUBLIC_PATH`
+> هم نیازی نیست.
 
 ### گام ۴ — دیتابیس
 در DirectAdmin → **MySQL Management**. دو گزینه دارید:
@@ -251,7 +251,34 @@ migrationِ تازه بود، SQLاش را import کنی). یعنی به‌رو�
 
 ## به‌روزرسانی به نسخهٔ جدید
 
-**با SSH (سرور اختصاصی یا اشتراکیِ دارای SSH) — تک‌دستوری:**
+### روشِ تک‌کلیکیِ بدونِ SSH (مثلِ وردپرس) — توصیه‌شده برای هاستِ اشتراکی
+
+سامانه می‌تواند مثلِ وردپرس، از داخلِ پنل و **بدونِ SSH/composer/git** به‌روز شود.
+همه‌چیز با خودِ PHP انجام می‌شود: دانلودِ یک بستهٔ آمادهٔ ZIP (همراهِ `vendor`) از یک
+آدرسِ عمومی، بازکردن با ZipArchive، کپیِ فایل‌ها، و مهاجرتِ دیتابیس «درجا».
+
+راه‌اندازی (یک‌بار):
+1. روی یک محیطِ لینوکسی/WSL/CI بستهٔ به‌روزرسانی را بساز:
+   ```bash
+   bash deploy/build-package.sh https://آدرسِ-عمومیِ-تو/updates
+   ```
+   خروجی در `dist/`: فایلِ `soorin-support-<نسخه>.zip` و `latest.json`.
+2. آن دو فایل را روی یک **آدرسِ عمومی** آپلود کن (یک پوشه روی هاستِ خودت، یا هر
+   فضای عمومیِ دیگر).
+3. در `.env` سامانه:
+   ```
+   APP_UPDATE_MANIFEST=https://آدرسِ-عمومیِ-تو/updates/latest.json
+   ```
+
+از این پس هر بار نسخهٔ تازه‌ای منتشر کردی (build-package.sh را دوباره اجرا و دو فایل
+را جایگزین کن)، در پنلِ سامانه کنارِ منوی «به‌روزرسانی» یک **نقطهٔ قرمز** ظاهر می‌شود و
+با **یک کلیک** روی «به‌روزرسانیِ یک‌کلیکی» نصب می‌شود (پیش از آن پشتیبانِ خودکار گرفته
+می‌شود). همچنین می‌توانی فایلِ zip را مستقیم در «به‌روزرسانی با فایل» آپلود کنی.
+
+> نیازمندی‌های هاست برای این روش: افزونهٔ `zip` فعال، و `allow_url_fopen` یا cURL
+> (تقریباً همیشه هست). چون هیچ دستورِ شل اجرا نمی‌شود، روی DirectAdminِ بدونِ SSH هم کار می‌کند.
+
+### با SSH (سرور اختصاصی) — تک‌دستوری
 ```bash
 cd مسیرِ-پروژه
 bash deploy/update.sh
