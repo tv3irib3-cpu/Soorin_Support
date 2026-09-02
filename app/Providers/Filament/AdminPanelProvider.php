@@ -36,12 +36,12 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName(config('branding.app.title'))
-            ->brandLogo(fn () => asset(config('branding.logo.light')))
-            ->darkModeBrandLogo(fn () => asset(config('branding.logo.dark')))
-            // آیکون واقعی PNG در سایز مناسب — نه SVG با جزئیات زیاد که مرورگر
-            // در سایز کوچک تب با کیفیت پایین کوچک می‌کند
-            ->favicon(fn () => asset('images/favicon-32.png'))
+            // نام و لوگو از App\Support\Branding خوانده می‌شوند تا شخصی‌سازیِ مدیر
+            // (صفحهٔ «شخصی‌سازی») همه‌جا اعمال شود، نه فقط پیش‌فرضِ config.
+            ->brandName(fn () => \App\Support\Branding::appTitle())
+            ->brandLogo(fn () => \App\Support\Branding::logo('light'))
+            ->darkModeBrandLogo(fn () => \App\Support\Branding::logo('dark'))
+            ->favicon(fn () => \App\Support\Branding::logo('favicon'))
             ->colors([
                 'primary' => $ocean['accent'],   // فیروزه‌ای برند
                 'gray'    => '#5f7d8c',

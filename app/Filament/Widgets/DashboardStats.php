@@ -16,6 +16,9 @@ class DashboardStats extends StatsOverviewWidget
     // کوئری‌ها سبک‌اند (چند COUNT ساده)؛ بدون تأخیر AJAX نمایش داده شوند
     protected static bool $isLazy = false;
 
+    // بالای داشبورد، پیش از نمودار و جدول
+    protected static ?int $sort = 1;
+
     protected function getStats(): array
     {
         $openTickets = Ticket::whereNotIn('status', ['closed', 'cancelled'])->count();

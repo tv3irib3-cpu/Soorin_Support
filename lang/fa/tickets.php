@@ -10,6 +10,7 @@ return [
     'nav_group' => 'پشتیبانی',
 
     'number'        => 'شماره تیکت',
+    'created_at'    => 'تاریخ ثبت',
     'subject'       => 'موضوع',
     'description'   => 'شرح مشکل',
     'customer'      => 'مشتری',
