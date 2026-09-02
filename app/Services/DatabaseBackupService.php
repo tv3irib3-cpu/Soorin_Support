@@ -209,15 +209,38 @@ class DatabaseBackupService
         }
     }
 
-    /** @return array<int, string> */
+    /**
+     * جدول‌هایی که بکاپ/بازیابی می‌شوند.
+     *
+     * اگر پیشوندِ جدول تنظیم شده باشد (یعنی دیتابیس با نرم‌افزارِ دیگری مثلِ
+     * وردپرس مشترک است)، **فقط جدول‌های همین سامانه** (با همان پیشوند) برداشته
+     * می‌شوند تا:
+     *   ۱. بکاپ فقط دادهٔ CRM باشد، نه کلِ دیتابیس.
+     *   ۲. بازیابی هرگز جدول‌های نرم‌افزارِ دیگر را حذف/بازنویسی نکند (چون سندِ
+     *      بکاپ فقط شاملِ همین جدول‌هاست و DROP TABLE هم فقط روی همین‌ها اجرا می‌شود).
+     *
+     * بدونِ پیشوند (دیتابیسِ اختصاصی)، مثلِ قبل کلِ دیتابیس بکاپ می‌شود.
+     *
+     * @return array<int, string>
+     */
     private function tables(): array
     {
         $database = DB::connection()->getDatabaseName();
+        $prefix = DB::connection()->getTablePrefix();
 
-        return array_map(
+        $tables = array_map(
             fn (object $row) => array_values((array) $row)[0],
             DB::select('SHOW FULL TABLES FROM `' . $database . '` WHERE Table_type = "BASE TABLE"'),
         );
+
+        if ($prefix !== '') {
+            $tables = array_values(array_filter(
+                $tables,
+                fn (string $table) => str_starts_with($table, $prefix),
+            ));
+        }
+
+        return $tables;
     }
 
     private function header(?string $reason): string
