@@ -36,6 +36,22 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/reports/export/excel', [ReportController::class, 'excel'])->name('reports.export.excel');
     Route::get('/reports/export/pdf', [ReportController::class, 'pdf'])->name('reports.export.pdf');
+
+    // دانلود مستقیم فایل پشتیبان — لینک ساده به‌جای اکشن Livewire، تا روی
+    // گوشی هم مطمئن کار کند. اعتبارسنجی نام و دسترسی همین‌جا انجام می‌شود.
+    Route::get('/backups/download/{name}', function (string $name) {
+        abort_unless(auth()->user()?->can(\App\Enums\Permission::ViewBackups->value), 403);
+
+        $service = app(\App\Services\DatabaseBackupService::class);
+
+        try {
+            abort_unless($service->exists($name), 404);
+
+            return response()->download($service->absolutePath($name));
+        } catch (\RuntimeException) {
+            abort(404);
+        }
+    })->where('name', '[A-Za-z0-9_.\-]+')->name('backups.download');
 });
 
 // ---------------------------------------------------------------- پرتال مشتری

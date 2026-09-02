@@ -15,6 +15,9 @@ use InvalidArgumentException;
  */
 class Jalali
 {
+    /** منطقهٔ زمانیِ نمایش/زمان‌بندی — مبنای «سرِ ساعت»ِ بکاپِ خودکار. */
+    public const TIMEZONE = 'Asia/Tehran';
+
     /** نمایش تاریخ: ۱۴۰۵/۰۵/۲۲ */
     public static function format(mixed $date, string $format = 'Y/m/d'): ?string
     {

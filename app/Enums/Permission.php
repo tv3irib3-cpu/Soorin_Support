@@ -43,6 +43,16 @@ enum Permission: string
     case ViewActivity   = 'activity.view';
     case ViewReports    = 'reports.view';
 
+    /*
+    | پشتیبان‌گیری — عمداً به چهار مجوز جدا شکسته شد: «تهیهٔ پشتیبان» بی‌خطر است
+    | ولی «بازیابی» کل دادهٔ شرکت را دور می‌ریزد؛ این دو نباید با یک تیک داده شوند.
+    */
+    case ViewBackups          = 'backups.view';
+    case CreateBackups        = 'backups.create';
+    case DeleteBackups        = 'backups.delete';
+    case RestoreBackups       = 'backups.restore';
+    case ManageBackupSettings = 'backups.settings'; // بکاپ روی شبکه و زمان‌بندیِ خودکار
+
     public function label(): string
     {
         return match ($this) {
@@ -65,6 +75,11 @@ enum Permission: string
             self::ManageSettings  => 'تنظیمات سامانه',
             self::ViewActivity    => 'مشاهده تاریخچه تغییرات',
             self::ViewReports     => 'مشاهده گزارش‌ها',
+            self::ViewBackups          => 'مشاهده و دانلود پشتیبان',
+            self::CreateBackups        => 'تهیهٔ پشتیبان',
+            self::DeleteBackups        => 'حذف پشتیبان',
+            self::RestoreBackups       => 'بازیابی از پشتیبان',
+            self::ManageBackupSettings => 'تنظیماتِ بکاپِ شبکه و زمان‌بندی',
         };
     }
 
