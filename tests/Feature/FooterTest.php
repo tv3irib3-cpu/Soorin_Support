@@ -28,7 +28,8 @@ class FooterTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('dpst.ir');
-        $response->assertSee(config('branding.app.version'));
+        // نسخه از فایل VERSION خوانده می‌شود (منبعِ حقیقتِ به‌روزرسانی).
+        $response->assertSee(\App\Support\AppVersion::current());
     }
 
     public function test_footer_appears_on_portal_login(): void

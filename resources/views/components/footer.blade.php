@@ -29,7 +29,7 @@
             <span aria-hidden="true">·</span>
             <span>{{ $app['title'] }}</span>
             <span aria-hidden="true">·</span>
-            <span dir="ltr">v{{ $app['version'] }}</span>
+            <span dir="ltr">v{{ \App\Support\AppVersion::current() }}</span>
         </div>
     </div>
 </footer>

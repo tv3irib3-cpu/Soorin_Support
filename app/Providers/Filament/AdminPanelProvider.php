@@ -56,11 +56,17 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
-                fn () => '<link rel="stylesheet" href="' . route('theme.css') . '">',
+                // ?v=نسخه تا بعد از هر به‌روزرسانی مرورگر CSSِ تازه را بگیرد.
+                fn () => '<link rel="stylesheet" href="' . route('theme.css') . '?v=' . \App\Support\AppVersion::current() . '">',
             )
             ->renderHook(
                 PanelsRenderHook::FOOTER,
                 fn () => view('components.footer'),
+            )
+            // نقطهٔ قرمزِ «نسخهٔ جدید» کنار تیترِ گروهِ منو.
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn () => view('components.update-nav-indicator'),
             )
             ->middleware([
                 EncryptCookies::class,

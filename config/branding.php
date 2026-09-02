@@ -22,7 +22,7 @@ return [
 
     'app' => [
         'title'   => 'سامانه خدمات و پشتیبانی',
-        'version' => '0.4.3',        // نسخه سامانه — در فوتر نمایش داده می‌شود
+        'version' => '0.4.4',        // سازگاری عقب‌رو — نسخهٔ واقعی از فایل VERSION خوانده می‌شود
     ],
 
     'logo' => [
@@ -67,4 +67,13 @@ return [
     ],
 
     'default_theme' => 'ocean',
+
+    /*
+    | آدرس مخزن گیت‌هاب — برای «به‌روزرسانیِ داخلِ برنامه» و «اتصال به گیت‌هاب» در
+    | نصب‌های زیپ. اگر مخزن private است، توکن را در URL بگذار:
+    | https://<TOKEN>@github.com/…
+    */
+    'github' => [
+        'repo' => env('APP_GITHUB_REPO', 'https://github.com/tv3irib3-cpu/Soorin_Support.git'),
+    ],
 ];
