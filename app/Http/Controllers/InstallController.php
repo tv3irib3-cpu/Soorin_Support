@@ -28,6 +28,12 @@ class InstallController extends Controller
         }
 
         try {
+            // اگر APP_KEY تنظیم نشده (تا در بستهٔ عمومی رمزی نباشد)، همین‌جا ساخته
+            // و در .env نوشته می‌شود — مثلِ وردپرس. کلید در همین درخواست هم فعال می‌شود.
+            if (blank(config('app.key'))) {
+                Artisan::call('key:generate', ['--force' => true]);
+            }
+
             Artisan::call('migrate', ['--force' => true, '--seed' => true]);
         } catch (\Throwable $e) {
             return response()->view('install', [
