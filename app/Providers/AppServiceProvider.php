@@ -10,6 +10,7 @@ use App\Observers\ContractObserver;
 use App\Observers\TicketMessageObserver;
 use App\Observers\TicketObserver;
 use App\Services\Sms\LogSmsGateway;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -29,6 +30,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // هاست‌های قدیمی (MyISAM / MySQL قدیم) طولِ کلیدِ ایندکس را محدود می‌کنند؛
+        // با utf8mb4، ستونِ varchar(255) از حد رد می‌شود («key too long»). محدودکردنِ
+        // طولِ پیش‌فرضِ رشته به ۱۹۱ این را روی همهٔ هاست‌ها امن می‌کند.
+        Schema::defaultStringLength(191);
+
         Ticket::observe(TicketObserver::class);
         Contract::observe(ContractObserver::class);
         TicketMessage::observe(TicketMessageObserver::class);
