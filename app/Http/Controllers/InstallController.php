@@ -85,9 +85,10 @@ class InstallController extends Controller
         ]);
 
         try {
-            if (blank(config('app.key'))) {
-                Artisan::call('key:generate', ['--force' => true]);
-            }
+            // همیشه یک کلیدِ تازه و یکتا برای این نصب ساخته می‌شود و جایگزینِ کلیدِ
+            // موقتِ داخلِ بسته می‌شود — تا هر نصب کلیدِ اختصاصیِ خودش را داشته باشد
+            // (کلیدِ موقت فقط برای این است که همین صفحهٔ /install بتواند بالا بیاید).
+            Artisan::call('key:generate', ['--force' => true]);
 
             Artisan::call('migrate', ['--force' => true, '--seed' => true]);
         } catch (\Throwable $e) {
