@@ -53,6 +53,16 @@ class LoginAndInstallTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_install_form_is_shown_on_a_fresh_install(): void
+    {
+        // جدول‌ها هست ولی هیچ کاربری نیست → فرمِ نصب نمایش داده می‌شود.
+        $this->get('/install')
+            ->assertOk()
+            ->assertSee('نصبِ سامانه', false)
+            ->assertSee('نام دیتابیس', false)
+            ->assertSee('حساب مدیر', false);
+    }
+
     public function test_install_route_reports_already_installed_when_users_exist(): void
     {
         User::create([

@@ -12,9 +12,10 @@ use App\Http\Middleware\ApplyUserTheme;
 use App\Http\Middleware\PortalAuthenticate;
 use Illuminate\Support\Facades\Route;
 
-// نصب‌کننده‌ی وب (مثلِ وردپرس) — یک‌بار پس از اکسترکت روی هاست باز می‌شود تا جدول‌ها
-// ساخته و مدیرِ اولیه ساخته شود. پس از نصب، بی‌اثر می‌شود.
-Route::get('/install', [InstallController::class, 'run'])->name('install');
+// ویزاردِ نصبِ وب (مثلِ وردپرس) — پس از اکسترکت روی هاست، اطلاعاتِ دیتابیس و حساب
+// مدیر را می‌گیرد و نصب را کامل می‌کند. پس از نصب، بی‌اثر می‌شود.
+Route::get('/install', [InstallController::class, 'show'])->name('install');
+Route::post('/install', [InstallController::class, 'store']);
 
 // ریشه سایت به پرتال مشتری می‌رود — نه صفحه پیش‌فرض لاراول.
 // کاربر داخلی که وارد شده باشد، PortalAuthenticate او را به پنل می‌فرستد.
