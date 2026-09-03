@@ -18,28 +18,19 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RolePermissionSeeder::class);
 
-        // ---------------------------------------------------- کاربران داخلی
+        // ---------------------------------------------------- کاربرِ مدیرِ اولیه
+        // نامِ کاربری «admin» (نه ایمیل) — ورودِ پنل با همین کار می‌کند. رمزِ پیش‌فرض
+        // «password» است و باید بلافاصله پس از اولین ورود عوض شود (نصب‌کننده هم
+        // رمزِ تصادفی می‌سازد و نشان می‌دهد).
         $admin = User::firstOrCreate(
-            ['email' => 'admin@dpst.ir'],
+            ['email' => 'admin'],
             [
                 'name'      => 'مدیر سامانه',
-                'mobile'    => '09120000001',
                 'password'  => 'password',
                 'user_type' => User::TYPE_SUPPORT_ADMIN,
             ],
         );
         $admin->syncRoles(User::TYPE_SUPPORT_ADMIN);
-
-        $staff = User::firstOrCreate(
-            ['email' => 'karshenas@dpst.ir'],
-            [
-                'name'      => 'کارشناس پشتیبانی',
-                'mobile'    => '09120000002',
-                'password'  => 'password',
-                'user_type' => User::TYPE_SUPPORT_STAFF,
-            ],
-        );
-        $staff->syncRoles(User::TYPE_SUPPORT_STAFF);
 
         // ------------------------------------------------- دسته‌بندی دولایه
         $categories = [

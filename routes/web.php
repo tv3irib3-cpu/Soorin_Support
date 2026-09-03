@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\InstallController;
 use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\Portal\AuthController as PortalAuthController;
 use App\Http\Controllers\ReportController;
@@ -10,6 +11,10 @@ use App\Http\Controllers\SurveyController;
 use App\Http\Middleware\ApplyUserTheme;
 use App\Http\Middleware\PortalAuthenticate;
 use Illuminate\Support\Facades\Route;
+
+// نصب‌کننده‌ی وب (مثلِ وردپرس) — یک‌بار پس از اکسترکت روی هاست باز می‌شود تا جدول‌ها
+// ساخته و مدیرِ اولیه ساخته شود. پس از نصب، بی‌اثر می‌شود.
+Route::get('/install', [InstallController::class, 'run'])->name('install');
 
 // ریشه سایت به پرتال مشتری می‌رود — نه صفحه پیش‌فرض لاراول.
 // کاربر داخلی که وارد شده باشد، PortalAuthenticate او را به پنل می‌فرستد.

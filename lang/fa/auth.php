@@ -12,6 +12,7 @@ return [
 
     'login'             => 'ورود به سامانه',
     'login_action'      => 'ورود',
+    'login_identifier'  => 'نام کاربری یا ایمیل',
     'logout'            => 'خروج',
     'identifier'        => 'ایمیل یا شماره موبایل',
     'identifier_hint'   => 'می‌توانید با ایمیل یا شماره موبایل وارد شوید.',
