@@ -34,13 +34,6 @@ class Login extends BaseLogin
      */
     protected function getCredentialsFromFormData(#[SensitiveParameter] array $data): array
     {
-        // [DEBUG-LOGIN] اثباتِ اینکه درخواستِ ورود واقعاً به سرور رسید (بدونِ رمز).
-        @file_put_contents(
-            storage_path('logs/login-debug.log'),
-            date('Y-m-d H:i:s') . '  SERVER  فرمِ ورود به سرور رسید. identifier=' . trim((string) ($data['email'] ?? '')) . "\n",
-            FILE_APPEND
-        );
-
         $login = trim((string) $data['email']);
 
         $user = User::query()
