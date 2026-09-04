@@ -110,17 +110,25 @@ PDF با mPDF و فونت وزیرمتن · تاریخ شمسی (hesabro/hesabix
    این را هنگامِ بوت خودکار می‌سازد؛ **هرگز حذفش نکن** و از اولِ `bootstrap/providers.php`
    برندار.
 
-4. **هر چیزی که در مرورگر بار می‌شود باید فایلِ فیزیکی باشد، نه مسیرِ زنده با پسوندِ
-   استاتیک.** این هاست‌ها فایلِ `.js/.css`ِ فیزیکی را سرو می‌کنند ولی مسیرِ زنده‌ای که به
-   `.js` ختم شود (مثلِ `/livewire/livewire.js`) را ۴۰۴ می‌دهند → هستهٔ Livewire بار
-   نمی‌شود، فرمِ Filament ارسال نمی‌شود و صفحه فقط ری‌لود می‌شود. بنابراین:
-   - فایل‌های Livewire باید **publish** شوند (`public/vendor/livewire/`) تا Livewire خودکار
-     از `/vendor/livewire/livewire.js` (فایلِ فیزیکی) استفاده کند. این در
-     `post-autoload-dump`ِ composer هست (`vendor:publish --tag=livewire:assets --force`) —
-     **حذفش نکن.**
-   - assetهای Filament هم باید publish و در `public/` کامیت باشند.
-   - **بعد از هر آپدیتِ Livewire/Filament** دوباره publish کن و مطمئن شو
-     `/vendor/livewire/livewire.js` (۲۰۰) و فرمِ ورود کار می‌کنند.
+4. **مشکلِ اصلیِ «فرمِ ورود فقط ری‌لود می‌شود» = هستهٔ Livewire بار نمی‌شود.** این
+   هاست‌ها (LiteSpeed) فایلِ `.js`ِ **فیزیکی** را سرو می‌کنند ولی مسیرِ **زنده‌ای** که به
+   `.js` ختم شود (مثلِ `/livewire/livewire.js` یا `/livewire/livewire.min.js` که خودِ
+   Livewire می‌سازد) را **۴۰۴** می‌دهند → `window.Livewire` تعریف نمی‌شود، فرمِ Filament
+   ارسال نمی‌شود و صفحه فقط ری‌لود می‌شود (حتی با رمزِ اشتباه هم خطا نمی‌دهد). راهِ حلِ
+   **کاملِ** این مشکل دو تکه دارد و **هر دو لازم است**:
+   - **الف) publishِ فایل‌های Livewire** (`public/vendor/livewire/`) — در
+     `post-autoload-dump`ِ composer هست (`vendor:publish --tag=livewire:assets --force`).
+     این فایل‌ها باید در `public/` کامیت هم باشند تا در بسته بروند. **حذفش نکن.**
+   - **ب) اجبارِ `livewire.asset_url` در `AppServiceProvider::boot()`** به
+     `/vendor/livewire/livewire(.min).js`. تنها publish کافی **نیست**، چون تشخیصِ
+     خودکارِ Livewire (`usePublishedAssetsIfAvailable`) به `public_path()` وابسته است که
+     روی هاستِ `public_html` بدونِ `APP_PUBLIC_PATH` درست جواب نمی‌دهد و صفحه دوباره سراغِ
+     مسیرِ زندهٔ خراب می‌رود. با ست‌کردنِ `config(['livewire.asset_url' => ...])` آدرس
+     **قطعاً** به فایلِ فیزیکی بسته می‌شود، مستقل از هر تشخیص. **این خط را برندار.**
+   - قاعدهٔ کلی: هر asset که باید در مرورگر بار شود، از یک **فایلِ فیزیکی** بیاید نه مسیرِ
+     زنده با پسوندِ استاتیک. بعد از هر آپدیتِ Livewire/Filament دوباره publish کن و مطمئن
+     شو `https://…/vendor/livewire/livewire.min.js` ۲۰۰ می‌دهد و صفحهٔ لاگین به همان اشاره
+     می‌کند (نه به `/livewire/…`).
 
 5. **کلِ محتوای `public/` باید در `public_html/` قرار گیرد** (وب‌روتِ این هاست‌ها
    `public_html` است و `APP_PUBLIC_PATH=public_html`). فقط `index.php` کافی نیست؛
