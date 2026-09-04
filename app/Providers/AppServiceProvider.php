@@ -35,6 +35,15 @@ class AppServiceProvider extends ServiceProvider
         // طولِ پیش‌فرضِ رشته به ۱۹۱ این را روی همهٔ هاست‌ها امن می‌کند.
         Schema::defaultStringLength(191);
 
+        // روی هاست‌هایی مثلِ LiteSpeed مسیرِ زندهٔ /livewire/livewire.js با ۴۰۴ برمی‌گردد
+        // (فقط فایلِ .jsِ فیزیکی سرو می‌شود، نه مسیرِ زنده). فایل‌های Livewire را publish
+        // کرده‌ایم؛ اینجا آدرسِ اسکریپت را قطعاً به همان فایلِ فیزیکی می‌بندیم تا مستقل از
+        // APP_PUBLIC_PATH و تشخیصِ خودکارِ Livewire کار کند و فرمِ ورود همه‌جا بالا بیاید.
+        if (blank(config('livewire.asset_url'))) {
+            $livewireFile = config('app.debug') ? 'livewire.js' : 'livewire.min.js';
+            config(['livewire.asset_url' => '/vendor/livewire/' . $livewireFile]);
+        }
+
         Ticket::observe(TicketObserver::class);
         Contract::observe(ContractObserver::class);
         TicketMessage::observe(TicketMessageObserver::class);
