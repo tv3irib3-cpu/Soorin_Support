@@ -89,3 +89,48 @@ PDF با mPDF و فونت وزیرمتن · تاریخ شمسی (hesabro/hesabix
   (مثلاً Redis اجباری، WebSocket، پردازش پس‌زمینه دائمی).
 - تغییر ساختار جدول‌های تحویل‌شده فاز ۰ بدون هماهنگی با مالک پروژه.
 - حذف داده‌های تاریخی به هر بهانه.
+
+## قواعد استقرار و نصب روی هاست اشتراکی (LiteSpeed/DirectAdmin) — این‌ها را نشکن
+
+این‌ها از یک عیب‌یابیِ طولانیِ واقعی به‌دست آمده‌اند. شکستنِ هرکدام یعنی نصب یا ورودِ
+کاربر روی هاستِ اشتراکی دوباره خراب می‌شود. سرِ هر آپدیت این فهرست را چک کن.
+
+1. **`DB_HOST` باید `localhost` باشد، نه `127.0.0.1`.** این هاست‌ها اتصالِ TCP به پورت
+   ۳۳۰۶ را بسته‌اند («Establishing tcp connections on remote port 3306 has been
+   disabled»); فقط سوکتِ یونیکس (`localhost`) کار می‌کند. پیش‌فرضِ فرمِ نصب و
+   `.env.shared-host.example` باید `localhost` بماند.
+
+2. **درایورِ نشست و کش باید `file` باشد (نه `database`)** در `.env.shared-host.example`
+   (`SESSION_DRIVER=file`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync`). نصب‌کننده باید
+   پیش از ساختِ جدول‌ها بالا بیاید؛ با درایورِ دیتابیسی، `/install` قبل از وجودِ جدولِ
+   `sessions` خطای ۵۰۰ می‌دهد.
+
+3. **`APP_KEY` باید پیش از هر صفحهٔ وب موجود باشد.** با کلیدِ خالی، میدلورِ
+   `EncryptCookies` هر صفحه — حتی `/install` — را ۵۰۰ می‌کند. `EnsureAppKeyServiceProvider`
+   این را هنگامِ بوت خودکار می‌سازد؛ **هرگز حذفش نکن** و از اولِ `bootstrap/providers.php`
+   برندار.
+
+4. **هر چیزی که در مرورگر بار می‌شود باید فایلِ فیزیکی باشد، نه مسیرِ زنده با پسوندِ
+   استاتیک.** این هاست‌ها فایلِ `.js/.css`ِ فیزیکی را سرو می‌کنند ولی مسیرِ زنده‌ای که به
+   `.js` ختم شود (مثلِ `/livewire/livewire.js`) را ۴۰۴ می‌دهند → هستهٔ Livewire بار
+   نمی‌شود، فرمِ Filament ارسال نمی‌شود و صفحه فقط ری‌لود می‌شود. بنابراین:
+   - فایل‌های Livewire باید **publish** شوند (`public/vendor/livewire/`) تا Livewire خودکار
+     از `/vendor/livewire/livewire.js` (فایلِ فیزیکی) استفاده کند. این در
+     `post-autoload-dump`ِ composer هست (`vendor:publish --tag=livewire:assets --force`) —
+     **حذفش نکن.**
+   - assetهای Filament هم باید publish و در `public/` کامیت باشند.
+   - **بعد از هر آپدیتِ Livewire/Filament** دوباره publish کن و مطمئن شو
+     `/vendor/livewire/livewire.js` (۲۰۰) و فرمِ ورود کار می‌کنند.
+
+5. **کلِ محتوای `public/` باید در `public_html/` قرار گیرد** (وب‌روتِ این هاست‌ها
+   `public_html` است و `APP_PUBLIC_PATH=public_html`). فقط `index.php` کافی نیست؛
+   `js/`, `css/`, `fonts/`, `images/`, `vendor/` هم باید آنجا باشند. بستهٔ نصب باید همه را
+   داشته باشد.
+
+6. **`Schema::defaultStringLength(191)` در `AppServiceProvider`** برای هاست‌های قدیمی
+   (MyISAM، خطای «key too long») لازم است — حذفش نکن.
+
+7. **آزمونِ سلامتِ نصب پیش از هر ریلیز:** روی نصبِ تازه با `.env.shared-host.example`
+   (کلیدِ خالی، دیتابیسِ خالی) باید `/install` با ۲۰۰ بالا بیاید؛ و پس از نصب،
+   `/admin/login` باید `window.Livewire` را تعریف کند و فرم واقعاً به سرور ارسال شود
+   (نه ری‌لودِ خالی).
