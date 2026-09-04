@@ -60,6 +60,27 @@ class AdminPanelProvider extends PanelProvider
                 // ?v=نسخه تا بعد از هر به‌روزرسانی مرورگر CSSِ تازه را بگیرد.
                 fn () => '<link rel="stylesheet" href="' . route('theme.css') . '?v=' . \App\Support\AppVersion::current() . '">',
             )
+            // [DEBUG-LOGIN] گیرندهٔ خطای جاوااسکریپت — هر خطای مرورگر را به سرور می‌فرستد
+            // تا در storage/logs/login-debug.log ثبت شود. برای عیب‌یابیِ «فرم ری‌لود می‌شود».
+            ->renderHook(
+                PanelsRenderHook::HEAD_START,
+                fn (): string => <<<'HTML'
+<script>
+(function () {
+  function send(m) { try { fetch('/__debug/client-error?m=' + encodeURIComponent(m)); } catch (e) {} }
+  window.addEventListener('error', function (e) {
+    send('JS-ERROR: ' + (e.message || '') + ' @ ' + (e.filename || '') + ':' + (e.lineno || 0));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e.reason; send('PROMISE: ' + ((r && r.message) || String(r || '')));
+  });
+  window.addEventListener('DOMContentLoaded', function () {
+    send('PAGE-LOADED livewire=' + (typeof window.Livewire !== 'undefined') + ' alpine=' + (typeof window.Alpine !== 'undefined'));
+  });
+})();
+</script>
+HTML
+            )
             ->renderHook(
                 PanelsRenderHook::FOOTER,
                 fn () => view('components.footer'),

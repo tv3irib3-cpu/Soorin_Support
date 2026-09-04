@@ -17,6 +17,18 @@ use Illuminate\Support\Facades\Route;
 Route::get('/install', [InstallController::class, 'show'])->name('install');
 Route::post('/install', [InstallController::class, 'store']);
 
+// [DEBUG-LOGIN] ثبتِ خطاهای جاوااسکریپتِ مرورگر برای عیب‌یابیِ «فرمِ ورود فقط ری‌لود می‌شود».
+// مرورگر خطاها را به این آدرس می‌فرستد و در storage/logs/login-debug.log نوشته می‌شود.
+Route::get('/__debug/client-error', function (\Illuminate\Http\Request $request) {
+    @file_put_contents(
+        storage_path('logs/login-debug.log'),
+        date('Y-m-d H:i:s') . '  CLIENT  ' . mb_substr((string) $request->query('m', ''), 0, 800) . "\n",
+        FILE_APPEND
+    );
+
+    return response()->noContent();
+});
+
 // ریشه سایت به پرتال مشتری می‌رود — نه صفحه پیش‌فرض لاراول.
 // کاربر داخلی که وارد شده باشد، PortalAuthenticate او را به پنل می‌فرستد.
 Route::get('/', fn () => redirect()->route('portal.login'));
