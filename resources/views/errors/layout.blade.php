@@ -30,7 +30,7 @@
 </head>
 <body>
     <div class="error-card">
-        <img src="{{ asset(config('branding.logo.mark')) }}" alt="" onerror="this.style.display='none'">
+        <img src="{{ \App\Support\Branding::logo('mark') }}" alt="" onerror="this.style.display='none'">
         <div class="error-code">{{ __('errors.code') }} {{ $code }}</div>
         <h1 class="error-title">{{ __("errors.$code.title") }}</h1>
         <p class="error-body">{{ __("errors.$code.body") }}</p>

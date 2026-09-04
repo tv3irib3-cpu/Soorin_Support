@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ __('survey.title') }} — {{ config('branding.company.name') }}</title>
-    <link rel="icon" href="{{ asset(config('branding.logo.mark')) }}">
+    <link rel="icon" href="{{ \App\Support\Branding::logo('favicon') }}">
     <link rel="stylesheet" href="{{ route('theme.css') }}">
     <style>
         * { box-sizing: border-box; }
@@ -48,7 +48,7 @@
 </head>
 <body>
     <div class="card">
-        <img src="{{ asset(config('branding.logo.mark')) }}" alt="" onerror="this.style.display='none'">
+        <img src="{{ \App\Support\Branding::logo('mark') }}" alt="" onerror="this.style.display='none'">
 
         @if ($submitted || $ticket->rating !== null)
             <div class="thanks-icon">🙏</div>

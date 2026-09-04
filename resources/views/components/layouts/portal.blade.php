@@ -71,7 +71,7 @@
 
     <header class="portal-header">
         <div class="portal-header__brand">
-            <img src="{{ asset(config('branding.logo.mark')) }}" alt="{{ config('branding.company.name') }}" onerror="this.style.display='none'">
+            <img src="{{ \App\Support\Branding::logo('mark') }}" alt="{{ \App\Support\Branding::companyName() }}" onerror="this.style.display='none'">
             {{ __('portal.title') }}
         </div>
         @auth
