@@ -375,10 +375,20 @@ class Backups extends Page
         return $beat ? Jalali::formatDateTime($beat) : null;
     }
 
-    /** دستوری که مدیرِ سرور برای روشن‌کردنِ زمان‌بند اجرا می‌کند. */
+    /** آیا سرور دسترسیِ شل دارد؟ روی هاستِ اشتراکی زمان‌بند از کرانِ پنلِ هاست می‌آید. */
+    public function serverHasShell(): bool
+    {
+        return \App\Support\AppVersion::hasShell();
+    }
+
+    /** دستورِ روشن‌کردنِ زمان‌بند — روی سرورِ اختصاصی systemd، روی هاستِ اشتراکی کرانِ هر-دقیقه. */
     public function schedulerRepairCommand(): string
     {
-        return 'sudo systemctl enable --now soorin-scheduler.timer';
+        if ($this->serverHasShell()) {
+            return 'sudo systemctl enable --now soorin-scheduler.timer';
+        }
+
+        return '* * * * * cd ' . base_path() . ' && php artisan schedule:run >/dev/null 2>&1';
     }
 
     /**

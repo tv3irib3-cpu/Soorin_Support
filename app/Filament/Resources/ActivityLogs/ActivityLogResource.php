@@ -74,9 +74,14 @@ class ActivityLogResource extends Resource
 
                 TextColumn::make('changes')
                     ->label(__('activity.changes'))
-                    ->formatStateUsing(fn (?array $state) => $state ? json_encode($state, JSON_UNESCAPED_UNICODE) : '—')
+                    // type-safe: مقدارِ changes ممکن است آرایه، رشته، عدد یا null باشد
+                    // (اگر JSONِ ذخیره‌شده اسکالر باشد، cast آن را int/string می‌کند) — پس
+                    // type-hintِ سخت نمی‌گذاریم تا صفحهٔ تاریخچه ۵۰۰ ندهد.
+                    ->formatStateUsing(fn ($state) => filled($state)
+                        ? (is_array($state) ? json_encode($state, JSON_UNESCAPED_UNICODE) : (string) $state)
+                        : '—')
                     ->limit(50)
-                    ->tooltip(fn (?array $state) => $state ? json_encode($state, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : null)
+                    ->tooltip(fn ($state) => is_array($state) ? json_encode($state, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : null)
                     ->extraHeaderAttributes(['class' => 'hidden xl:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden xl:table-cell']),
 

@@ -187,6 +187,7 @@ class AppUpdate extends Page
     {
         return Action::make('check')
             ->label(__('updates.check'))
+            ->color('info')   // آبی — متمایز از دکمهٔ سبزِ «به‌روزرسانی»
             ->icon(Heroicon::OutlinedMagnifyingGlass)
             ->action(function (AppUpdateService $service): void {
                 // بررسیِ زنده + به‌روزرسانیِ کش تا نشانِ قرمزِ منو هم فوراً هماهنگ شود.
