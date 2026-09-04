@@ -4,8 +4,13 @@ namespace App\Providers;
 
 use App\Contracts\SmsGateway;
 use App\Models\Contract;
+use App\Models\Customer;
+use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
+use App\Models\User;
+use App\Observers\AuditObserver;
 use App\Observers\ContractObserver;
 use App\Observers\TicketMessageObserver;
 use App\Observers\TicketObserver;
@@ -47,5 +52,11 @@ class AppServiceProvider extends ServiceProvider
         Ticket::observe(TicketObserver::class);
         Contract::observe(ContractObserver::class);
         TicketMessage::observe(TicketMessageObserver::class);
+
+        // سیاههٔ حسابرسیِ عمومی برای مدل‌های کلیدی — ساخت/ویرایش/حذف در تاریخچهٔ تغییرات
+        // ثبت می‌شود. (تیکت سیاههٔ اختصاصیِ خودش را دارد، پس اینجا تکرار نمی‌شود.)
+        foreach ([Invoice::class, Customer::class, Contract::class, User::class, Payment::class] as $auditable) {
+            $auditable::observe(AuditObserver::class);
+        }
     }
 }
