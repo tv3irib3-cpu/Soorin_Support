@@ -50,7 +50,7 @@
                         {{ __('backups.scheduler_dead_title') }}
                     </div>
                     <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ $this->serverHasShell() ? __('backups.scheduler_dead_body') : __('backups.scheduler_dead_body_shared') }}</p>
-                    <pre class="mt-2 overflow-x-auto rounded-md p-3 text-xs" dir="ltr"
+                    <pre class="mt-2 rounded-md p-3 text-xs whitespace-pre-wrap break-all" dir="ltr"
                          style="background:rgba(0,0,0,.06);"><code>{{ $this->schedulerRepairCommand() }}</code></pre>
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $this->serverHasShell() ? __('backups.scheduler_dead_hint') : __('backups.scheduler_dead_hint_shared') }}</p>
                 </div>

@@ -36,7 +36,7 @@
 
             <p class="text-sm text-gray-600 dark:text-gray-300">{{ __('ssl.helper_missing_body') }}</p>
 
-            <pre class="mt-3 overflow-x-auto rounded-lg bg-gray-900 p-3 text-left text-sm text-gray-100" dir="ltr">{{ $this->getInstallCommand() }}</pre>
+            <pre class="mt-3 rounded-lg bg-gray-900 p-3 text-left text-sm text-gray-100 whitespace-pre-wrap break-all" dir="ltr">{{ $this->getInstallCommand() }}</pre>
 
             <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">{{ __('ssl.helper_missing_note') }}</p>
         </x-filament::section>
