@@ -30,4 +30,21 @@ class AppVersion
     {
         return is_dir(base_path('.git'));
     }
+
+    /**
+     * آیا اجرای دستورِ سیستمی (git/composer/شل/SSL-helper) ممکن است؟
+     *
+     * روی هاستِ اشتراکی معمولاً `proc_open` غیرفعال است؛ پس هر قابلیتی که به شل نیاز
+     * دارد باید پیش از تلاش این را چک کند تا به‌جای خطای زشت، پیامِ مناسب بدهد.
+     */
+    public static function hasShell(): bool
+    {
+        if (! function_exists('proc_open')) {
+            return false;
+        }
+
+        $disabled = array_map('trim', explode(',', (string) ini_get('disable_functions')));
+
+        return ! in_array('proc_open', $disabled, true);
+    }
 }

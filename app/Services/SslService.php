@@ -21,10 +21,17 @@ class SslService
 
     public const GROUP = 'ssl';
 
-    /** آیا دستیار روی سرور نصب است؟ (روی ویندوز/توسعه نصب نیست) */
+    /** آیا دستیار روی سرور نصب است؟ (روی ویندوز/توسعه یا هاستِ اشتراکی نصب نیست) */
     public function isHelperInstalled(): bool
     {
-        return is_file(self::BIN);
+        // بدونِ دسترسیِ شل (هاستِ اشتراکی)، دستیارِ SSL بی‌معناست؛ ضمناً is_file روی
+        // مسیرِ خارج از open_basedir هشدار می‌دهد که لاراول آن را به خطای ۵۰۰ تبدیل
+        // می‌کند — پس اول شل را چک و بعد با @ هشدار را خاموش می‌کنیم.
+        if (! \App\Support\AppVersion::hasShell()) {
+            return false;
+        }
+
+        return @is_file(self::BIN);
     }
 
     /**

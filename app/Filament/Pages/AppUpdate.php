@@ -90,13 +90,21 @@ class AppUpdate extends Page
 
     protected function getHeaderActions(): array
     {
-        return [
+        $actions = [
             $this->checkAction(),
             $this->updatePackageAction(),
-            $this->updateFromGitAction(),
             $this->updateFromZipAction(),
-            $this->linkToGitAction(),
         ];
+
+        // قابلیت‌های مبتنی بر git/شل (اتصال و به‌روزرسانی از گیت‌هاب) فقط روی سرورِ دارای
+        // دسترسیِ شل کار می‌کنند. روی هاستِ اشتراکی (بدونِ proc_open) پنهان می‌شوند تا
+        // به‌جای خطای زشتِ «proc_open در دسترس نیست»، فقط راه‌های مانیفست/فایل نشان داده شوند.
+        if (\App\Support\AppVersion::hasShell()) {
+            $actions[] = $this->updateFromGitAction();
+            $actions[] = $this->linkToGitAction();
+        }
+
+        return $actions;
     }
 
     /**

@@ -77,6 +77,6 @@ return [
     'profile'       => 'پروفایل',
     'logout'        => 'خروج',
     'theme'         => 'تم',
-    'theme_ocean'   => 'آبی نفتی',
-    'theme_night'   => 'شب',
+    'theme_ocean'   => 'حالت روز',
+    'theme_night'   => 'حالت شب',
 ];

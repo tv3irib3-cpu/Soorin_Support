@@ -18,8 +18,17 @@
         </div>
     </x-filament::section>
 
-    @if (! $helperInstalled)
-        {{-- دستیار نصب نیست --}}
+    @if (! $shellAvailable)
+        {{-- هاستِ اشتراکی: بدونِ دسترسیِ شل، SSL از پنلِ هاست گرفته می‌شود --}}
+        <x-filament::section>
+            <x-slot name="heading">
+                <span class="text-primary-600 dark:text-primary-400">{{ __('ssl.shared_host_title') }}</span>
+            </x-slot>
+
+            <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{{ __('ssl.shared_host_body') }}</p>
+        </x-filament::section>
+    @elseif (! $helperInstalled)
+        {{-- سرورِ اختصاصی ولی دستیار نصب نیست --}}
         <x-filament::section>
             <x-slot name="heading">
                 <span class="text-warning-600 dark:text-warning-400">{{ __('ssl.helper_missing_title') }}</span>

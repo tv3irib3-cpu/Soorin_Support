@@ -29,6 +29,9 @@ class SslSettings extends Page
 
     public bool $helperInstalled = false;
 
+    /** آیا سرور دسترسیِ شل دارد؟ روی هاستِ اشتراکی SSL از پنلِ هاست گرفته می‌شود. */
+    public bool $shellAvailable = true;
+
     public static function getNavigationLabel(): string
     {
         return __('ssl.label');
@@ -63,9 +66,18 @@ class SslSettings extends Page
 
     public function refreshStatus(): void
     {
-        $service = app(SslService::class);
-        $this->helperInstalled = $service->isHelperInstalled();
-        $this->status = $service->status();
+        $this->shellAvailable = \App\Support\AppVersion::hasShell();
+
+        try {
+            $service = app(SslService::class);
+            $this->helperInstalled = $service->isHelperInstalled();
+            $this->status = $service->status();
+        } catch (\Throwable) {
+            // روی هاستِ اشتراکی (بدونِ شل / open_basedir) نباید صفحه ۵۰۰ شود؛
+            // فقط حالتِ «در دسترس نیست» را نشان می‌دهیم.
+            $this->helperInstalled = false;
+            $this->status = ['installed' => false];
+        }
     }
 
     /** دستور نصبِ دستیار برای نمایش در صفحه (وقتی نصب نیست) — همراه مسیر پروژه. */
