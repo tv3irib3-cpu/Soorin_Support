@@ -299,11 +299,26 @@ class AppUpdateService
         return ! empty($status['available']) ? ($status['latest'] ?? null) : null;
     }
 
+    /**
+     * روشِ فعلیِ به‌روزرسانی بر پایهٔ وضعیتِ واقعیِ همین لحظه:
+     *  - «package» اگر مانیفست تنظیم شده باشد (آپدیتِ آنلاین/تک‌کلیکی، حتی روی هاستِ اشتراکی)،
+     *  - «git» اگر با گیت کلون شده باشد،
+     *  - «offline» فقط وقتی هیچ‌کدام نباشد (تنها آپلودِ فایل).
+     */
+    public function currentMethod(): string
+    {
+        if ($this->manifestConfigured()) {
+            return 'package';
+        }
+
+        return AppVersion::isGitRepo() ? 'git' : 'offline';
+    }
+
     /** پس از به‌روزرسانیِ موفق، کش را «به‌روز» علامت می‌زند تا نشان قرمز فوراً برود. */
     private function markUpToDate(string $version): void
     {
         Cache::forever(self::CACHE_KEY, [
-            'method'     => AppVersion::isGitRepo() ? 'git' : 'offline',
+            'method'     => $this->currentMethod(),
             'current'    => $version,
             'latest'     => $version,
             'available'  => false,

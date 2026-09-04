@@ -77,15 +77,20 @@ class AppUpdate extends Page
         // نتیجهٔ آخرین بررسیِ روزانه (کش) را نشان می‌دهیم تا کاربر بدون کلیک هم
         // بداند نسخهٔ جدیدی هست؛ اگر کشی نبود، فقط نسخهٔ فعلی. بررسیِ زندهٔ گیت‌هاب
         // با دکمهٔ «بررسی به‌روزرسانی» انجام می‌شود تا صفحه معطل شبکه نماند.
-        $cached = app(AppUpdateService::class)->cached();
+        $service = app(AppUpdateService::class);
+        $cached = $service->cached();
 
         $this->status = $cached !== [] ? ($cached + ['checked' => true]) : [
-            'method'    => AppVersion::isGitRepo() ? 'git' : 'offline',
+            'method'    => $service->currentMethod(),
             'current'   => AppVersion::current(),
             'latest'    => null,
             'available' => false,
             'checked'   => false,
         ];
+
+        // روشِ به‌روزرسانی همیشه از وضعیتِ فعلی خوانده می‌شود، نه از کشِ کهنه — تا اگر
+        // مانیفست تنظیم شده باشد، نشانِ اشتباهِ «فقط به‌روزرسانی با فایل» نماند.
+        $this->status['method'] = $service->currentMethod();
     }
 
     protected function getHeaderActions(): array
