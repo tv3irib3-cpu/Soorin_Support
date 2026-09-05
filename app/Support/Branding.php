@@ -196,8 +196,8 @@ class Branding
     private static function defaultLogo(string $variant): string
     {
         return match ($variant) {
-            // فاوآیکونِ اختصاصی نداریم؛ به نشانِ مربعی برند برمی‌گردیم.
-            'favicon' => config('branding.logo.mark', 'images/logo-mark.svg'),
+            // فاوآیکونِ اختصاصی (PNG) — آیکونِ تبِ مرورگر.
+            'favicon' => config('branding.logo.favicon', 'images/favicon.png'),
             'mark'    => config('branding.logo.mark', 'images/logo-mark.svg'),
             'dark'    => config('branding.logo.dark', 'images/logo-white.svg'),
             default   => config('branding.logo.light', 'images/logo-navy.svg'),

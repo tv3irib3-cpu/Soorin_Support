@@ -26,9 +26,10 @@ return [
     ],
 
     'logo' => [
-        'light'  => 'images/logo-navy.svg',   // روی پس‌زمینه روشن و فاکتور
-        'dark'   => 'images/logo-white.svg',  // روی منوی سرمه‌ای و تم شب
-        'mark'   => 'images/logo-mark.svg',   // نشان مربعی — favicon و منوی جمع‌شده
+        'light'   => 'images/logo-navy.svg',   // روی پس‌زمینه روشن و فاکتور
+        'dark'    => 'images/logo-white.svg',  // روی منوی سرمه‌ای و تم شب
+        'mark'    => 'images/logo-mark.svg',   // نشان مربعی — منوی جمع‌شده
+        'favicon' => 'images/favicon.png',     // آیکونِ تبِ مرورگر (پیش‌فرض)
     ],
 
     /*
