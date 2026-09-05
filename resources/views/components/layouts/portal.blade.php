@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ?? __('portal.title') }} — {{ \App\Support\Branding::companyName() }}</title>
     <x-favicon />
-    <link rel="stylesheet" href="{{ route('theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v={{ \App\Support\AppVersion::current() }}">
     <style>
         * { box-sizing: border-box; }
         body {
@@ -122,6 +122,18 @@
 
         .empty { text-align: center; padding: 46px 20px; color: var(--muted); }
         .empty svg { width: 46px; height: 46px; opacity: .4; margin-bottom: 10px; }
+
+        /* گفتگوی تیکت — حباب‌های چت */
+        .thread { display: flex; flex-direction: column; gap: 12px; }
+        .msg { max-width: 82%; padding: 11px 15px; border-radius: 15px; font-size: 13.5px; line-height: 1.75; }
+        .msg__meta { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+        .msg--them { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); border-bottom-right-radius: 5px; }
+        .msg--us { align-self: flex-end; background: var(--accent-soft); color: var(--accent-text); border-bottom-left-radius: 5px; }
+        .msg--us .msg__meta { color: var(--accent-text); opacity: .85; }
+
+        .meta-list { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 13.5px; }
+        .meta-list dt { color: var(--muted); }
+        .meta-list dd { margin: 0; font-weight: 600; }
 
         @media (max-width: 680px) {
             .portal-header { flex-direction: column; align-items: stretch; padding: 12px 16px; gap: 10px; }

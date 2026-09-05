@@ -1,49 +1,55 @@
 <x-layouts.portal :title="$ticket->number">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-        <h2 style="margin:0;">{{ $ticket->subject }}</h2>
-        <span class="badge gray">{{ __('tickets.statuses.' . $ticket->status) }}</span>
+    @php
+        $badge = match ($ticket->status) {
+            'new', 'waiting_customer', 'waiting_payment' => 'warning',
+            'in_progress', 'resolved'                    => 'success',
+            default                                      => 'gray',
+        };
+    @endphp
+
+    <div class="page-head">
+        <div>
+            <h1>{{ $ticket->subject }}</h1>
+            <div class="sub" dir="ltr" style="text-align:right;">{{ $ticket->number }}</div>
+        </div>
+        <span class="badge {{ $badge }}">{{ __('tickets.statuses.' . $ticket->status) }}</span>
     </div>
 
     <div class="card">
-        <table class="simple" style="margin-bottom:0;">
-            <tr>
-                <td style="width:120px; color:var(--muted);">{{ __('tickets.number') }}</td>
-                <td style="font-family:monospace;">{{ $ticket->number }}</td>
-            </tr>
+        <dl class="meta-list">
             @if ($ticket->category)
-            <tr>
-                <td style="color:var(--muted);">{{ __('tickets.category') }}</td>
-                <td>{{ $ticket->category->fullName() }}</td>
-            </tr>
+                <dt>{{ __('tickets.category') }}</dt><dd>{{ $ticket->category->fullName() }}</dd>
             @endif
             @if ($ticket->project)
-            <tr>
-                <td style="color:var(--muted);">{{ __('tickets.project') }}</td>
-                <td>{{ $ticket->project->name }}</td>
-            </tr>
+                <dt>{{ __('tickets.project') }}</dt><dd>{{ $ticket->project->name }}</dd>
             @endif
-        </table>
+            <dt>{{ __('tickets.date') }}</dt><dd>{{ \App\Support\Jalali::formatDateTime($ticket->created_at) }}</dd>
+        </dl>
+
+        <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+            <div style="color:var(--muted); font-size:12px; margin-bottom:6px;">{{ __('tickets.description') }}</div>
+            <div style="line-height:1.8; white-space:pre-wrap;">{{ $ticket->description }}</div>
+        </div>
     </div>
 
-    <div class="card">
-        <div style="color:var(--muted); font-size:12px; margin-bottom:6px;">{{ __('tickets.description') }}</div>
-        <div>{{ $ticket->description }}</div>
-    </div>
-
-    <h3>{{ __('tickets.conversation') }}</h3>
+    <h3 style="margin:22px 0 12px;">{{ __('tickets.conversation') }}</h3>
 
     <div class="card">
-        @forelse ($ticket->publicMessages as $message)
-            <div style="padding:10px 0; {{ ! $loop->last ? 'border-bottom:1px solid var(--border);' : '' }}">
-                <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">
-                    {{ $message->user?->name ?? __('customers.label') }} —
-                    {{ \App\Support\Jalali::formatDateTime($message->created_at) }}
-                </div>
-                <div>{{ $message->body }}</div>
-            </div>
-        @empty
+        @if ($ticket->publicMessages->isEmpty())
             <div class="empty">{{ __('tickets.no_messages') }}</div>
-        @endforelse
+        @else
+            <div class="thread">
+                @foreach ($ticket->publicMessages as $message)
+                    @php $isSupport = $message->user?->isSupportUser() ?? true; @endphp
+                    <div class="msg {{ $isSupport ? 'msg--them' : 'msg--us' }}">
+                        <div class="msg__meta">
+                            {{ $message->user?->name ?? __('customers.label') }} · {{ \App\Support\Jalali::formatDateTime($message->created_at) }}
+                        </div>
+                        <div style="white-space:pre-wrap;">{{ $message->body }}</div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
     </div>
 
     @if ($ticket->is_locked)
@@ -52,10 +58,13 @@
         <div class="card">
             <form method="POST" action="{{ route('portal.tickets.reply', $ticket) }}">
                 @csrf
-                <div class="field">
+                <div class="field" style="margin-bottom:12px;">
                     <textarea name="body" rows="3" placeholder="{{ __('portal.reply_placeholder') }}" required></textarea>
                 </div>
-                <button type="submit" class="btn">{{ __('tickets.reply') }}</button>
+                <button type="submit" class="btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                    {{ __('tickets.reply') }}
+                </button>
             </form>
         </div>
     @endif

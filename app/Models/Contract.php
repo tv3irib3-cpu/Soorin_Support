@@ -62,6 +62,22 @@ class Contract extends Model
         return $this->hasMany(Invoice::class);
     }
 
+    /**
+     * وضعیتِ مؤثرِ قرارداد. اگر قراردادِ «جاری» از تاریخِ پایانش گذشته باشد، عملاً
+     * «منقضی» است — حتی اگر دستورِ شبانهٔ contracts:expire هنوز آن را در دیتابیس
+     * به‌روز نکرده باشد (مثلاً زمان‌بندِ سرور فعال نباشد). برای نمایش استفاده می‌شود.
+     */
+    public function effectiveStatus(): string
+    {
+        if ($this->status === self::STATUS_ACTIVE
+            && $this->end_date
+            && $this->end_date->toDateString() < now()->toDateString()) {
+            return self::STATUS_EXPIRED;
+        }
+
+        return $this->status;
+    }
+
     /** آیا قرارداد در تاریخ داده‌شده معتبر است؟ */
     public function isValidOn(?string $date = null): bool
     {

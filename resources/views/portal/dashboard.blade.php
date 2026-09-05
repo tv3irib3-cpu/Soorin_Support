@@ -23,6 +23,9 @@
 
     @if ($user->customer && ! $user->customer->canReceiveService())
         <div class="status-banner warning">{{ $user->customer->suspensionNotice() }}</div>
+    @elseif (! $user->canCreateTicket())
+        {{-- سرویس فعال است ولی ثبتِ تیکت برای این حساب خاموش است — علت را شفاف بگو --}}
+        <div class="status-banner warning">{{ __('portal.no_access_new_ticket') }}</div>
     @endif
 
     {{-- کارت‌های آمار --}}

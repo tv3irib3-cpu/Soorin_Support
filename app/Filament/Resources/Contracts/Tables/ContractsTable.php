@@ -45,6 +45,9 @@ class ContractsTable
                 TextColumn::make('status')
                     ->label(__('contracts.status'))
                     ->badge()
+                    // وضعیتِ مؤثر: قراردادِ گذشته از تاریخِ پایان بلافاصله «منقضی» نشان داده
+                    // می‌شود، حتی پیش از اجرای دستورِ شبانه.
+                    ->state(fn ($record) => $record->effectiveStatus())
                     ->formatStateUsing(fn (string $state) => __("contracts.statuses.$state"))
                     ->color(fn (string $state) => match ($state) {
                         'active'    => 'success',
