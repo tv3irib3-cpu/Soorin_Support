@@ -228,10 +228,19 @@ class AppUpdateService
         $entries = array_values(array_diff(scandir($tmp) ?: [], ['.', '..']));
         $source = (count($entries) === 1 && is_dir($tmp . '/' . $entries[0])) ? $tmp . '/' . $entries[0] : $tmp;
 
-        if (! is_file($source . '/artisan') || ! is_dir($source . '/vendor')) {
+        // بسته باید artisan داشته باشد. vendor «اختیاری» است: بسته‌های «فقط-کد» (سبک و
+        // سریع) vendor ندارند و vendorِ فعلیِ نصب حفظ می‌شود؛ فقط وقتی وابستگی‌ها عوض
+        // شده باشند، بستهٔ کامل (همراه vendor) منتشر می‌شود.
+        if (! is_file($source . '/artisan')) {
             $this->rrmdir($tmp);
 
-            throw new RuntimeException('این بسته کامل نیست (باید شاملِ artisan و پوشهٔ vendor باشد).');
+            throw new RuntimeException('این بسته معتبر نیست (artisan ندارد).');
+        }
+
+        if (! is_dir($source . '/vendor') && ! is_dir(base_path('vendor'))) {
+            $this->rrmdir($tmp);
+
+            throw new RuntimeException('این بستهٔ «فقط-کد» است ولی نصبِ فعلی هم vendor ندارد — از بستهٔ کامل استفاده کن.');
         }
 
         $backup = $this->safetyBackup();

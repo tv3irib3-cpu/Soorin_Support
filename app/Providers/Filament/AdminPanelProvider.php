@@ -58,8 +58,8 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 // ?v=نسخه تا بعد از هر به‌روزرسانی مرورگر CSSِ تازه را بگیرد.
-                // فایلِ فیزیکی (نه مسیرِ زنده) — چون هاست‌هایی مثلِ LiteSpeed مسیرِ .css زنده را ۴۰۴ می‌دهند.
-                fn () => '<link rel="stylesheet" href="' . asset('css/theme.css') . '?v=' . \App\Support\AppVersion::current() . '">',
+                // مستقیم inline (نه لینک به فایل) — چون روی LiteSpeed مسیر/فایلِ .css گاهی ۴۰۴ می‌شد.
+                fn (): string => '<style>' . (string) @file_get_contents(resource_path('css/theme.css')) . '</style>',
             )
             ->renderHook(
                 PanelsRenderHook::FOOTER,

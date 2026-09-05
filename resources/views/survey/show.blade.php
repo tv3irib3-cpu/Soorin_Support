@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ __('survey.title') }} — {{ config('branding.company.name') }}</title>
     <link rel="icon" href="{{ \App\Support\Branding::logo('favicon') }}">
-    <link rel="stylesheet" href="{{ asset('css/theme.css') }}?v={{ \App\Support\AppVersion::current() }}">
+    <x-theme-css />
     <style>
         * { box-sizing: border-box; }
         body {
