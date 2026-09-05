@@ -236,8 +236,23 @@ class AppUpdateService
 
         $backup = $this->safetyBackup();
 
-        // بسته کامل است؛ همه‌چیز جز داده و تنظیماتِ محلی بازنویسی می‌شود (شاملِ vendor).
-        $this->copyOver($source, base_path(), ['.env', 'storage', '.git']);
+        // وب‌روتِ واقعی: روی هاستِ اشتراکی «public_html» است (APP_PUBLIC_PATH)، نه «public».
+        $publicName = filled(env('APP_PUBLIC_PATH')) ? (string) env('APP_PUBLIC_PATH') : 'public';
+
+        // بسته کامل است؛ همه‌چیز جز داده، تنظیماتِ محلی و پوشهٔ public بازنویسی می‌شود.
+        // «public» را جدا مدیریت می‌کنیم تا asset‌های تازه به وب‌روتِ واقعی برسند و
+        // پوشهٔ اضافیِ «public» کنارِ «public_html» ساخته نشود.
+        $this->copyOver($source, base_path(), ['.env', 'storage', '.git', 'public']);
+
+        if (is_dir($source . '/public')) {
+            @mkdir(base_path($publicName), 0775, true);
+            $this->copyOver($source . '/public', base_path($publicName), []);
+        }
+
+        // پاک‌سازیِ پوشهٔ اضافیِ «public» که آپدیت‌های بیمارِ قبلی کنارِ «public_html» ساخته بودند.
+        if ($publicName !== 'public' && is_dir(base_path('public'))) {
+            $this->rrmdir(base_path('public'));
+        }
 
         $this->rrmdir($tmp);
 

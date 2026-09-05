@@ -15,6 +15,8 @@ return [
     'service_history' => 'تاریخچه خدمات',
 
     'open_tickets'      => 'تیکت‌های باز',
+    'recent_tickets'    => 'تیکت‌های اخیر',
+    'view_all'          => 'مشاهدهٔ همه',
     'closed_tickets'    => 'تیکت‌های بسته‌شده',
     'unpaid_invoices'   => 'فاکتورهای پرداخت‌نشده',
 

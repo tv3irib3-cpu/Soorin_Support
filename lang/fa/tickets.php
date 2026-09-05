@@ -43,6 +43,7 @@ return [
         'critical' => 'بحرانی',
     ],
 
+    'date'      => 'تاریخ',
     'status'    => 'وضعیت',
     'statuses'  => [
         'new'              => 'جدید',

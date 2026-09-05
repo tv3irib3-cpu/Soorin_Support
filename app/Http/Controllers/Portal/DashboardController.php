@@ -21,6 +21,8 @@ class DashboardController extends Controller
                 ->count()
             : 0;
 
-        return view('portal.dashboard', compact('openTickets', 'closedTickets', 'unpaidInvoices'));
+        $recentTickets = Ticket::visibleTo($user)->latest()->limit(5)->get();
+
+        return view('portal.dashboard', compact('openTickets', 'closedTickets', 'unpaidInvoices', 'recentTickets'));
     }
 }
