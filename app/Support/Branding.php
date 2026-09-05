@@ -82,7 +82,16 @@ class Branding
         $path = Setting::get(self::key('logo_' . $variant));
 
         if (filled($path) && Storage::disk(self::DISK)->exists($path)) {
-            // نسخه‌دهی با زمانِ تغییر فایل تا مرورگر نسخهٔ قدیمی را کش نکند.
+            // لوگوی آپلودشده را به‌صورتِ base64 جاسازی می‌کنیم تا همیشه نمایش داده شود —
+            // مستقلِ از اینکه پوشهٔ branding روی وب‌روت (public_html) سرو می‌شود یا نه.
+            // (روی هاستِ اشتراکی، URLِ فایلِ آپلودی گاهی سرو نمی‌شد و لوگو غیب می‌شد.)
+            $data = self::logoData($variant);
+
+            if ($data !== null) {
+                return $data;
+            }
+
+            // اگر خواندنِ فایل ممکن نبود، به URLِ نسخه‌دار برگرد.
             $version = Storage::disk(self::DISK)->lastModified($path);
 
             return asset(ltrim(Storage::disk(self::DISK)->url($path), '/')) . '?v=' . $version;
