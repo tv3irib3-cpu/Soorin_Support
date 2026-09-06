@@ -8,7 +8,6 @@ use App\Filament\Resources\Tickets\Pages\EditTicket;
 use App\Filament\Resources\Tickets\Pages\ListTickets;
 use App\Filament\Resources\Tickets\Pages\ViewTicket;
 use App\Filament\Resources\Tickets\RelationManagers\AttachmentsRelationManager;
-use App\Filament\Resources\Tickets\RelationManagers\MessagesRelationManager;
 use App\Filament\Resources\Tickets\Schemas\TicketForm;
 use App\Filament\Resources\Tickets\Tables\TicketsTable;
 use App\Models\Ticket;
@@ -53,8 +52,10 @@ class TicketResource extends Resource
 
     public static function getRelations(): array
     {
+        // گفتگو دیگر به‌صورتِ جدولِ RelationManager نیست؛ در صفحهٔ نمایشِ تیکت
+        // به شکلِ حباب‌های چت + دکمهٔ «پاسخ» آمده (ViewTicket) تا برای پشتیبان
+        // واضح و در دسترس باشد. پیام‌ها append-only می‌مانند (بدونِ ویرایش).
         return [
-            MessagesRelationManager::class,
             AttachmentsRelationManager::class,
         ];
     }

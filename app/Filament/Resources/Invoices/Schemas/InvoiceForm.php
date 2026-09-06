@@ -64,6 +64,30 @@ class InvoiceForm
                         ->label(__('invoices.notes'))
                         ->columnSpanFull(),
                 ]),
+
+            // ورودِ سریعِ «هزینهٔ کارِ انجام‌شده» — فقط هنگامِ صدورِ فاکتور.
+            // با این مبلغ، یک ردیفِ «خدمت» خودکار ساخته می‌شود (CreateInvoice)
+            // و پوششِ قرارداد/تخفیف روی آن اعمال می‌گردد. برای فاکتورهای
+            // پیچیده‌تر می‌توان بعداً از بخشِ «ردیف‌های فاکتور» ردیف‌های بیشتر افزود.
+            Section::make(__('invoices.quick_service'))
+                ->description(__('invoices.quick_service_hint'))
+                ->visibleOn('create')
+                ->columns(2)
+                ->schema([
+                    TextInput::make('first_item_title')
+                        ->label(__('invoices.item_title'))
+                        ->default(__('invoices.default_service_title'))
+                        ->maxLength(255)
+                        ->dehydrated(false),
+
+                    TextInput::make('first_item_amount')
+                        ->label(__('invoices.service_amount_field'))
+                        ->helperText(__('invoices.service_amount_hint'))
+                        ->numeric()
+                        ->minValue(0)
+                        ->suffix(__('common.currency'))
+                        ->dehydrated(false),
+                ]),
         ]);
     }
 }

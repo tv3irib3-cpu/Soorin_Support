@@ -22,11 +22,19 @@ class ReportExcelService
         $this->summarySheet($spreadsheet, $report);
         $this->tableSheet(
             $spreadsheet, 'مشتریان', $report['by_customer'],
-            ['customer' => 'مشتری', 'tickets' => 'تعداد تیکت', 'minutes' => 'زمان کارکرد (دقیقه)', 'invoiced' => 'مبلغ فاکتورشده (ریال)', 'warranty' => 'سهم قرارداد (ریال)'],
+            ['customer' => 'مشتری', 'created' => 'تیکت ثبت‌شده', 'tickets' => 'تیکت حل‌شده', 'minutes' => 'زمان کارکرد (دقیقه)', 'invoiced' => 'مبلغ فاکتورشده (ریال)', 'warranty' => 'سهم قرارداد (ریال)'],
+        );
+        $this->tableSheet(
+            $spreadsheet, 'پروژه‌ها', $report['by_project'] ?? collect(),
+            ['project' => 'پروژه', 'customer' => 'مشتری', 'created' => 'تیکت ثبت‌شده', 'resolved' => 'تیکت حل‌شده'],
         );
         $this->tableSheet(
             $spreadsheet, 'دسته‌بندی', $report['by_category'],
             ['category' => 'دسته‌بندی', 'count' => 'تعداد'],
+        );
+        $this->tableSheet(
+            $spreadsheet, 'وضعیت', $report['by_status'] ?? collect(),
+            ['label' => 'وضعیت', 'count' => 'تعداد'],
         );
         $this->tableSheet(
             $spreadsheet, 'کارشناسان', $report['by_staff'],
@@ -49,13 +57,21 @@ class ReportExcelService
         $sheet->setTitle('خلاصه');
         $sheet->setRightToLeft(true);
 
+        $sum = $report['summary'];
+
         $rows = [
             ['بازه گزارش', Jalali::format($report['from']) . ' تا ' . Jalali::format($report['to'])],
-            ['درآمد دوره (ریال)', $report['summary']['revenue']],
-            ['ارزش خدمات رایگان تحت قرارداد (ریال)', $report['summary']['warranty_value']],
-            ['تعداد خدمات ارائه‌شده', $report['summary']['service_count']],
-            ['مجموع زمان کارکرد (دقیقه)', $report['summary']['work_minutes']],
-            ['میانگین رضایت (از ۵)', $report['summary']['avg_rating'] ? round($report['summary']['avg_rating'], 2) : '—'],
+            ['تعداد تیکت ثبت‌شده', $sum['tickets_created'] ?? '—'],
+            ['تعداد تیکت حل‌شده', $sum['service_count']],
+            ['تیکت‌های هنوز باز', $sum['tickets_still_open'] ?? '—'],
+            ['میانگین زمان حل (ساعت)', $sum['avg_resolution_hours'] ?? '—'],
+            ['نقض تعهد پاسخ (SLA)', $sum['sla_breaches'] ?? '—'],
+            ['درآمد دوره (ریال)', $sum['revenue']],
+            ['ارزش کل خدمات صادرشده (ریال)', $sum['service_value'] ?? '—'],
+            ['ارزش خدمات رایگان تحت قرارداد (ریال)', $sum['warranty_value']],
+            ['تعداد فاکتور', $sum['invoice_count'] ?? '—'],
+            ['مجموع زمان کارکرد (دقیقه)', $sum['work_minutes']],
+            ['میانگین رضایت (از ۵)', $sum['avg_rating'] ? round($sum['avg_rating'], 2) : '—'],
         ];
 
         foreach ($rows as $i => [$label, $value]) {

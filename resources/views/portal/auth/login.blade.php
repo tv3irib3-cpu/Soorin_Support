@@ -10,7 +10,10 @@
         * { box-sizing: border-box; }
         body {
             margin: 0; font-family: Vazirmatn, system-ui, sans-serif; color: var(--text);
-            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+            min-height: 100vh; padding: 24px;
+            /* ستونی و وسط‌چین — کارت بالا، فوتر زیرِ آن. قبلاً flex-row بود و روی
+               موبایل کارت و فوتر کنارِ هم می‌افتادند (کارت راست، متنِ فوتر چپ). */
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
             /* پس‌زمینهٔ برند با درخششِ فیروزه‌ای — مثلِ حال‌وهوای ورودِ پشتیبان */
             background:
                 radial-gradient(1100px 560px at 100% -10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%),
@@ -52,8 +55,12 @@
         }
         button.submit:hover { filter: brightness(1.06); }
         button.submit:active { transform: translateY(1px); }
-        .login-footer { margin-top: 20px; }
+        .login-footer { margin-top: 18px; width: 100%; max-width: 400px; text-align: center; }
         .login-footer .app-footer { border-top: none; margin-top: 0; }
+        .login-footer .app-footer__inner { justify-content: center; padding-inline: 0; }
+        /* روی موبایل هم فوترِ ورود وسط‌چین بماند (نه چپ‌چین مثلِ فوترِ داخلِ برنامه) */
+        .login-footer .app-footer__inner,
+        .login-footer .app-footer__meta { align-items: center; justify-content: center; flex-wrap: wrap; }
         .login-footer .app-footer__copy,
         .login-footer .app-footer__meta { color: rgba(255,255,255,.6); }
         .login-footer .app-footer__meta a { color: rgba(255,255,255,.9); }

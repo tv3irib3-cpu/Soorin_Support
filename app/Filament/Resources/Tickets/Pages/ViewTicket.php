@@ -7,6 +7,7 @@ use App\Filament\Resources\Invoices\InvoiceResource;
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Models\ActivityLog;
 use App\Models\Ticket;
+use App\Models\TicketMessage;
 use App\Models\User;
 use App\Support\Jalali;
 use Filament\Actions\Action;
@@ -14,7 +15,9 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Section;
@@ -67,6 +70,18 @@ class ViewTicket extends ViewRecord
                     TextEntry::make('description')->hiddenLabel(),
                 ]),
 
+            // گفتگو با مشتری — حباب‌های چت + دکمهٔ «پاسخ» در هدرِ همین بخش
+            Section::make(__('tickets.conversation'))
+                ->icon('heroicon-o-chat-bubble-left-right')
+                ->headerActions([
+                    $this->replyAction('replyInline'),
+                ])
+                ->schema([
+                    ViewEntry::make('conversation')
+                        ->hiddenLabel()
+                        ->view('filament.tickets.conversation'),
+                ]),
+
             Section::make(__('tickets.resolution'))
                 ->visible(fn () => filled($ticket->resolution))
                 ->schema([
@@ -109,12 +124,63 @@ class ViewTicket extends ViewRecord
         ]);
     }
 
+    /**
+     * اکشنِ «پاسخ به مشتری» — هم مدیرِ پشتیبان و هم کارشناسِ پشتیبان می‌توانند
+     * پاسخ عمومی بدهند یا یادداشتِ داخلی بگذارند. ساختِ پیام، ثبتِ first_response_at
+     * و ایمیل به مشتری در TicketMessageObserver متمرکز است (هر مسیر یکسان).
+     */
+    protected function replyAction(string $name = 'reply'): Action
+    {
+        /** @var Ticket $ticket */
+        $ticket = $this->getRecord();
+
+        return Action::make($name)
+            ->label(__('tickets.reply'))
+            ->icon('heroicon-o-paper-airplane')
+            ->visible(fn () => ! $ticket->is_locked
+                && (auth()->user()?->can(Permission::ViewTickets->value) ?? false))
+            ->modalHeading(__('tickets.reply'))
+            ->modalSubmitActionLabel(__('tickets.reply'))
+            ->schema([
+                Textarea::make('body')
+                    ->label(__('tickets.reply'))
+                    ->placeholder(__('tickets.reply_placeholder'))
+                    ->required()
+                    ->rows(4),
+
+                Toggle::make('is_internal')
+                    ->label(__('tickets.internal_note'))
+                    ->helperText(__('tickets.internal_note_hint'))
+                    ->default(false),
+            ])
+            ->action(function (array $data) use ($ticket) {
+                if ($ticket->is_locked) {
+                    Notification::make()->danger()->title(__('tickets.locked_notice'))->send();
+
+                    return;
+                }
+
+                TicketMessage::create([
+                    'ticket_id'   => $ticket->id,
+                    'user_id'     => auth()->id(),
+                    'body'        => $data['body'],
+                    'is_internal' => (bool) ($data['is_internal'] ?? false),
+                ]);
+
+                Notification::make()->success()->title(__('common.saved'))->send();
+            });
+    }
+
     protected function getHeaderActions(): array
     {
         /** @var Ticket $ticket */
         $ticket = $this->getRecord();
 
         return [
+            $this->replyAction()
+                ->button()
+                ->color('primary'),
+
             Action::make('changeStatus')
                 ->label(__('tickets.change_status'))
                 ->icon('heroicon-o-arrow-path')
@@ -136,6 +202,7 @@ class ViewTicket extends ViewRecord
 
                     TextInput::make('work_minutes')
                         ->label(__('tickets.work_minutes'))
+                        ->helperText(__('tickets.work_minutes_hint'))
                         ->numeric()
                         ->default($ticket->work_minutes),
                 ])

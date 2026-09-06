@@ -27,6 +27,12 @@ class TicketObserver
         if (blank($ticket->number)) {
             $ticket->number = $this->nextNumber();
         }
+
+        // تخصیصِ خودکار به کارشناسِ کم‌بارتر اگر مدیر دستی کسی را انتخاب نکرده باشد.
+        // مدیر همچنان می‌تواند بعداً از اکشنِ «تخصیص» تیکت را جابه‌جا کند.
+        if (blank($ticket->assigned_to)) {
+            $ticket->assigned_to = $this->leastLoadedSupportUserId();
+        }
     }
 
     public function created(Ticket $ticket): void
@@ -87,6 +93,35 @@ class TicketObserver
                 $this->notifyCustomerBySms($ticket);
             }
         }
+    }
+
+    /**
+     * شناسهٔ کارشناسِ پشتیبانِ کم‌بارتر برای تخصیصِ خودکار.
+     *
+     * معیار: کمترین تعدادِ تیکتِ **باز** (نه بسته/لغوشده). اولویت با کارشناسِ
+     * پشتیبان (support_staff) است؛ اگر هیچ کارشناسِ فعالی نبود، به مدیرِ پشتیبان
+     * برمی‌گردد تا تیکت بی‌صاحب نماند. مساوی؟ کسی که زودتر ساخته شده (id کمتر).
+     */
+    private function leastLoadedSupportUserId(): ?int
+    {
+        $openStatuses = [
+            Ticket::STATUS_NEW,
+            Ticket::STATUS_IN_PROGRESS,
+            Ticket::STATUS_WAITING_CUSTOMER,
+            Ticket::STATUS_WAITING_PAYMENT,
+            Ticket::STATUS_RESOLVED,
+        ];
+
+        $pick = function (string $type) use ($openStatuses): ?int {
+            return User::where('user_type', $type)
+                ->where('is_active', true)
+                ->withCount(['assignedTickets as open_tickets_count' => fn ($q) => $q->whereIn('status', $openStatuses)])
+                ->orderBy('open_tickets_count')
+                ->orderBy('id')
+                ->value('id');
+        };
+
+        return $pick(User::TYPE_SUPPORT_STAFF) ?? $pick(User::TYPE_SUPPORT_ADMIN);
     }
 
     /** پیامک ثبت تیکت جدید به مدیر پشتیبان و کارشناسان — نه به مشتری. */

@@ -46,6 +46,8 @@
             transition: background .15s, color .15s;
         }
         .portal-header__user form button:hover { background: rgba(255,255,255,.12); color: #fff; }
+        .portal-header__theme button { display: inline-grid; place-items: center; padding: 8px; border-radius: 9px; }
+        .portal-header__theme svg { width: 17px; height: 17px; }
 
         /* ---------- بدنه ---------- */
         .portal-main { max-width: 1000px; margin: 26px auto 40px; padding: 0 18px; min-height: 55vh; }
@@ -163,6 +165,24 @@
                 <span class="avatar">{{ mb_substr(auth()->user()->name, 0, 1) }}</span>
                 {{ auth()->user()->name }}
             </span>
+
+            {{-- دکمهٔ تعویضِ روز/شب — به تمِ مخالفِ تمِ فعلی سوییچ می‌کند. --}}
+            @php $__isNight = ($activeTheme ?? config('branding.default_theme')) === 'night'; @endphp
+            <form method="POST" action="{{ route('portal.theme') }}" class="portal-header__theme">
+                @csrf
+                <input type="hidden" name="theme" value="{{ $__isNight ? 'ocean' : 'night' }}">
+                <button type="submit" title="{{ $__isNight ? __('common.theme_ocean') : __('common.theme_night') }}"
+                        aria-label="{{ $__isNight ? __('common.theme_ocean') : __('common.theme_night') }}">
+                    @if ($__isNight)
+                        {{-- الان شب است → دکمهٔ خورشید (رفتن به روز) --}}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                    @else
+                        {{-- الان روز است → دکمهٔ ماه (رفتن به شب) --}}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                    @endif
+                </button>
+            </form>
+
             <form method="POST" action="{{ route('portal.logout') }}">
                 @csrf
                 <button type="submit">{{ __('auth.logout') }}</button>

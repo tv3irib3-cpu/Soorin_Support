@@ -15,7 +15,13 @@ class ApplyUserTheme
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $theme = $request->user()?->theme ?? config('branding.default_theme');
+        // اولویت با انتخابِ لحظه‌ایِ کاربر از دکمهٔ شب/روزِ پرتال (کوکی) است؛
+        // اگر کوکی نبود، تمِ ذخیره‌شده روی حسابِ کاربر؛ وگرنه پیش‌فرضِ برند.
+        $cookieTheme = $request->cookie('portal_theme');
+
+        $theme = $cookieTheme
+            ?? $request->user()?->theme
+            ?? config('branding.default_theme');
 
         if (! array_key_exists($theme, config('branding.themes'))) {
             $theme = config('branding.default_theme');

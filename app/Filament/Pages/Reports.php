@@ -69,14 +69,27 @@ class Reports extends Page
                     ->columns(3)
                     ->schema([
                         Select::make('preset')
-                            ->label(__('common.select'))
+                            ->label(__('reports.period_label'))
                             ->options([
-                                'this_month'    => 'این ماه',
-                                'last_month'    => 'ماه گذشته',
-                                'last_3_months' => 'سه ماه اخیر',
-                                'this_year'     => 'امسال',
-                                'custom'        => 'بازه دلخواه',
+                                'this_week'     => __('reports.presets.this_week'),
+                                'this_month'    => __('reports.presets.this_month'),
+                                'last_month'    => __('reports.presets.last_month'),
+                                'last_3_months' => __('reports.presets.last_3_months'),
+                                'this_year'     => __('reports.presets.this_year'),
+                                'last_year'     => __('reports.presets.last_year'),
+                                'year'          => __('reports.presets.year'),
+                                'all_time'      => __('reports.presets.all_time'),
+                                'custom'        => __('reports.presets.custom'),
                             ])
+                            ->native(false)
+                            ->live()
+                            ->afterStateUpdated(fn () => $this->applyPreset()),
+
+                        Select::make('year')
+                            ->label(__('reports.select_year'))
+                            ->options($this->yearOptions())
+                            ->default((int) Verta::now()->format('Y'))
+                            ->visible(fn ($get) => $get('preset') === 'year')
                             ->native(false)
                             ->live()
                             ->afterStateUpdated(fn () => $this->applyPreset()),
@@ -103,9 +116,13 @@ class Reports extends Page
         $m      = (int) $now->format('m');
 
         [$from, $to] = match ($preset) {
+            'this_week'     => [Carbon::now()->startOfWeek(Carbon::SATURDAY), Carbon::today()->endOfDay()],
             'last_month'    => $this->monthBoundsAgo($y, $m, 1),
             'last_3_months' => [$this->monthBoundsAgo($y, $m, 2)[0], Carbon::today()->endOfDay()],
             'this_year'     => [Carbon::instance(Verta::createJalali($y, 1, 1, 0, 0, 0)->datetime()), Carbon::today()->endOfDay()],
+            'last_year'     => $this->jalaliYearBounds($y - 1),
+            'year'          => $this->jalaliYearBounds((int) ($this->data['year'] ?? $y)),
+            'all_time'      => [Carbon::create(2000, 1, 1)->startOfDay(), Carbon::today()->endOfDay()],
             'custom'        => [
                 filled($this->data['from'] ?? null) ? Carbon::parse($this->data['from']) : Carbon::today()->startOfMonth(),
                 filled($this->data['to'] ?? null) ? Carbon::parse($this->data['to'])->endOfDay() : Carbon::today()->endOfDay(),
@@ -121,6 +138,34 @@ class Reports extends Page
         }
 
         $this->report = app(ReportService::class)->generate($from, $to);
+    }
+
+    /**
+     * بازهٔ یک سالِ کاملِ شمسی (از ۱ فروردین تا پایانِ اسفند).
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function jalaliYearBounds(int $year): array
+    {
+        $start = Carbon::instance(Verta::createJalali($year, 1, 1, 0, 0, 0)->datetime());
+        $end   = Carbon::instance(Verta::createJalali($year + 1, 1, 1, 0, 0, 0)->datetime())->subSecond();
+
+        return [$start, $end];
+    }
+
+    /**
+     * فهرستِ سال‌های شمسی برای انتخابگرِ «سالِ خاص» — از امسال تا ۷ سالِ قبل.
+     * @return array<int, string>
+     */
+    private function yearOptions(): array
+    {
+        $current = (int) Verta::now()->format('Y');
+        $options = [];
+
+        for ($y = $current; $y >= $current - 7; $y--) {
+            $options[$y] = \App\Support\Jalali::digits((string) $y);
+        }
+
+        return $options;
     }
 
     /**

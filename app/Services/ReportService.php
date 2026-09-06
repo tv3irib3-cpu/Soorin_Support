@@ -8,16 +8,20 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 /**
- * محاسبه گزارش‌های فاز ۲ برای یک بازه تاریخی.
+ * محاسبه گزارش‌های مدیریتی برای یک بازه تاریخی.
  *
  * یک منبع واحد برای صفحه گزارش‌ها، خروجی اکسل و خروجی PDF — هر سه از
  * همین کلاس داده می‌گیرند تا اعداد همیشه یکی باشند.
  *
- * قرارداد اعداد:
- *   - «درآمد» بر مبنای مبلغ قابل‌پرداخت فاکتورهای صادرشده (نه پیش‌نویس/لغوشده)
- *     با تاریخ صدور داخل بازه است.
- *   - «حجم خدمات» بر مبنای تیکت‌های حل‌شده (resolved_at) داخل بازه است،
- *     نه تیکت‌های ثبت‌شده — چون «ارائه‌شده» یعنی تحویل داده شده.
+ * دو نگاه به تیکت داریم و نباید قاطی شوند:
+ *   - «حجمِ خدماتِ ارائه‌شده» بر مبنای تیکت‌های **حل‌شده** (resolved_at) در بازه
+ *     است — یعنی کاری که واقعاً تحویل داده شده.
+ *   - «تعدادِ تیکت‌های ثبت‌شده» بر مبنای تیکت‌های **ساخته‌شده** (created_at) در
+ *     بازه است — یعنی حجمِ ورودیِ درخواست‌ها. کاربر برای «تعداد تیکت‌های این
+ *     ماه/هفته/سال» این نگاه را می‌خواهد.
+ *
+ * «درآمد» بر مبنای مبلغِ قابل‌پرداختِ فاکتورهای صادرشده (نه پیش‌نویس/لغوشده) با
+ * تاریخِ صدورِ داخلِ بازه است.
  */
 class ReportService
 {
@@ -28,57 +32,124 @@ class ReportService
             ->with('customer')
             ->get();
 
-        $tickets = Ticket::whereBetween('resolved_at', [$from, $to])
+        // تیکت‌های حل‌شده در بازه — «خدماتِ تحویل‌شده»
+        $resolved = Ticket::whereBetween('resolved_at', [$from, $to])
             ->with(['customer', 'category.parent', 'assignee'])
+            ->get();
+
+        // تیکت‌های ثبت‌شده در بازه — «حجمِ ورودی»
+        $created = Ticket::whereBetween('created_at', [$from, $to])
+            ->with(['customer', 'project', 'category.parent', 'assignee'])
             ->get();
 
         return [
             'from'        => $from,
             'to'          => $to,
-            'summary'     => $this->summary($invoices, $tickets),
-            'by_customer' => $this->byCustomer($invoices, $tickets),
-            'by_category' => $this->byCategory($tickets),
-            'by_staff'    => $this->byStaff($tickets),
+            'summary'     => $this->summary($invoices, $resolved, $created),
+            'by_customer' => $this->byCustomer($invoices, $resolved, $created),
+            'by_project'  => $this->byProject($created, $resolved),
+            'by_category' => $this->byCategory($resolved),
+            'by_status'   => $this->byStatus($created),
+            'by_priority' => $this->byPriority($created),
+            'by_staff'    => $this->byStaff($resolved),
         ];
     }
 
-    private function summary(Collection $invoices, Collection $tickets): array
+    private function summary(Collection $invoices, Collection $resolved, Collection $created): array
     {
+        // میانگینِ زمانِ حل (از ثبت تا حل) به ساعت
+        $resolutionHours = $resolved
+            ->filter(fn (Ticket $t) => $t->resolved_at !== null)
+            ->map(fn (Ticket $t) => $t->created_at->diffInMinutes($t->resolved_at) / 60);
+
         return [
-            'revenue'         => (int) $invoices->sum('payable_amount'),
-            'warranty_value'  => (int) $invoices->sum('contract_amount'),
-            'service_count'   => $tickets->count(),
-            'work_minutes'    => (int) $tickets->sum('work_minutes'),
-            'avg_rating'      => $tickets->whereNotNull('rating')->avg('rating'),
+            'revenue'              => (int) $invoices->sum('payable_amount'),
+            'warranty_value'       => (int) $invoices->sum('contract_amount'),
+            'service_value'        => (int) $invoices->sum('service_amount'),
+            'invoice_count'        => $invoices->count(),
+            'service_count'        => $resolved->count(),       // تیکت‌های حل‌شده
+            'tickets_created'      => $created->count(),         // تیکت‌های ثبت‌شده
+            'tickets_still_open'   => $created->filter(fn (Ticket $t) => $t->isOpen())->count(),
+            'work_minutes'         => (int) $resolved->sum('work_minutes'),
+            'avg_resolution_hours' => $resolutionHours->isNotEmpty() ? round($resolutionHours->avg(), 1) : null,
+            'sla_breaches'         => $resolved->filter(fn (Ticket $t) => $this->wasSlaBreached($t))->count(),
+            'avg_rating'           => $resolved->whereNotNull('rating')->avg('rating'),
         ];
     }
 
-    /** خدمات دریافتی هر مشتری — تعداد تیکت، زمان کارکرد، مبلغ فاکتورشده، سهم قرارداد. */
-    private function byCustomer(Collection $invoices, Collection $tickets): Collection
+    /** آیا اولین پاسخ به این تیکت دیرتر از مهلتِ SLA بوده؟ */
+    private function wasSlaBreached(Ticket $ticket): bool
     {
-        $byInvoice = $invoices->groupBy('customer_id');
-        $byTicket  = $tickets->groupBy('customer_id');
+        $deadline = $ticket->slaDeadline();
 
-        $customerIds = $byInvoice->keys()->merge($byTicket->keys())->unique();
+        if ($deadline === null) {
+            return false;
+        }
 
-        return $customerIds->map(function ($customerId) use ($byInvoice, $byTicket) {
-            $customerInvoices = $byInvoice->get($customerId, collect());
-            $customerTickets  = $byTicket->get($customerId, collect());
-            $customer         = $customerInvoices->first()?->customer ?? $customerTickets->first()?->customer;
+        // یا اصلاً پاسخی نبوده، یا پاسخ بعد از مهلت آمده
+        return $ticket->first_response_at === null
+            || $ticket->first_response_at->greaterThan($deadline);
+    }
+
+    /**
+     * خدماتِ هر مشتری — تعدادِ تیکتِ ثبت‌شده و حل‌شده، زمانِ کارکرد، مبلغِ
+     * فاکتورشده و سهمِ قرارداد. برای «تعدادِ کلِ تیکت‌های یک مشتری».
+     */
+    private function byCustomer(Collection $invoices, Collection $resolved, Collection $created): Collection
+    {
+        $byInvoice  = $invoices->groupBy('customer_id');
+        $byResolved = $resolved->groupBy('customer_id');
+        $byCreated  = $created->groupBy('customer_id');
+
+        $ids = $byInvoice->keys()
+            ->merge($byResolved->keys())
+            ->merge($byCreated->keys())
+            ->unique();
+
+        return $ids->map(function ($customerId) use ($byInvoice, $byResolved, $byCreated) {
+            $cInvoices = $byInvoice->get($customerId, collect());
+            $cResolved = $byResolved->get($customerId, collect());
+            $cCreated  = $byCreated->get($customerId, collect());
+            $customer  = $cInvoices->first()?->customer
+                ?? $cResolved->first()?->customer
+                ?? $cCreated->first()?->customer;
 
             return [
-                'customer'  => $customer?->name ?? '—',
-                'tickets'   => $customerTickets->count(),
-                'minutes'   => (int) $customerTickets->sum('work_minutes'),
-                'invoiced'  => (int) $customerInvoices->sum('payable_amount'),
-                'warranty'  => (int) $customerInvoices->sum('contract_amount'),
+                'customer' => $customer?->name ?? '—',
+                'created'  => $cCreated->count(),
+                'tickets'  => $cResolved->count(),   // حل‌شده (کلیدِ سازگار با اکسل)
+                'minutes'  => (int) $cResolved->sum('work_minutes'),
+                'invoiced' => (int) $cInvoices->sum('payable_amount'),
+                'warranty' => (int) $cInvoices->sum('contract_amount'),
             ];
         })
-            ->sortByDesc('invoiced')
+            ->sortByDesc('created')
             ->values();
     }
 
-    /** آمار خرابی به تفکیک دسته‌بندی دولایه تیکت. */
+    /** تعدادِ تیکت به تفکیکِ پروژهٔ مشتری — برای «تعدادِ تیکت‌های یک پروژهٔ خاص». */
+    private function byProject(Collection $created, Collection $resolved): Collection
+    {
+        $resolvedByProject = $resolved->groupBy('customer_project_id');
+
+        return $created
+            ->filter(fn (Ticket $t) => $t->customer_project_id !== null)
+            ->groupBy('customer_project_id')
+            ->map(function (Collection $group, $projectId) use ($resolvedByProject) {
+                $first = $group->first();
+
+                return [
+                    'project'  => $first->project?->name ?? '—',
+                    'customer' => $first->customer?->name ?? '—',
+                    'created'  => $group->count(),
+                    'resolved' => $resolvedByProject->get($projectId, collect())->count(),
+                ];
+            })
+            ->sortByDesc('created')
+            ->values();
+    }
+
+    /** آمار خرابی به تفکیکِ دسته‌بندیِ دولایهٔ تیکت (تیکت‌های حل‌شده). */
     private function byCategory(Collection $tickets): Collection
     {
         return $tickets
@@ -95,7 +166,35 @@ class ReportService
             ->values();
     }
 
-    /** عملکرد کارشناسان — تعداد تیکت حل‌شده و میانگین زمان پاسخ اولیه به ساعت. */
+    /** توزیعِ تیکت‌های ثبت‌شده روی وضعیت‌ها. */
+    private function byStatus(Collection $created): Collection
+    {
+        return $created
+            ->groupBy('status')
+            ->map(fn (Collection $group, $status) => [
+                'status' => $status,
+                'label'  => __("tickets.statuses.$status"),
+                'count'  => $group->count(),
+            ])
+            ->sortByDesc('count')
+            ->values();
+    }
+
+    /** توزیعِ تیکت‌های ثبت‌شده روی اولویت‌ها. */
+    private function byPriority(Collection $created): Collection
+    {
+        return $created
+            ->groupBy('priority')
+            ->map(fn (Collection $group, $priority) => [
+                'priority' => $priority,
+                'label'    => __("tickets.priorities.$priority"),
+                'count'    => $group->count(),
+            ])
+            ->sortByDesc('count')
+            ->values();
+    }
+
+    /** عملکردِ کارشناسان — تعدادِ تیکتِ حل‌شده و میانگینِ زمانِ پاسخِ اولیه به ساعت. */
     private function byStaff(Collection $tickets): Collection
     {
         return $tickets
