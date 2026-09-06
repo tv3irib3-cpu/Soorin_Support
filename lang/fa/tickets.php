@@ -49,6 +49,7 @@ return [
         'new'              => 'جدید',
         'in_progress'      => 'در حال بررسی',
         'waiting_customer' => 'منتظر پاسخ مشتری',
+        'waiting_support'  => 'در انتظار پاسخ پشتیبان',
         'waiting_payment'  => 'منتظر پرداخت',
         'resolved'         => 'حل‌شده',
         'closed'           => 'بسته‌شده',
@@ -75,6 +76,10 @@ return [
     'internal_note_hint'=> 'یادداشت داخلی برای مشتری نمایش داده نمی‌شود.',
     'is_internal'       => 'یادداشت داخلی',
     'no_messages'       => 'هنوز پیامی ثبت نشده است.',
+    'messages_count'    => 'پیام',
+    'attach_hint'       => 'می‌توانید عکس، فیلم یا PDF پیوست کنید (هر فایل تا ۵۰ مگابایت).',
+    'attachments'       => 'پیوست‌ها',
+    'unread'            => 'خوانده‌نشده',
 
     // اقدام‌ها و پیام‌ها
     'change_status'     => 'تغییر وضعیت',

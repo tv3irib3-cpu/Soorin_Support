@@ -23,6 +23,8 @@ class DashboardController extends Controller
 
         $recentTickets = Ticket::visibleTo($user)->latest()->limit(5)->get();
 
-        return view('portal.dashboard', compact('openTickets', 'closedTickets', 'unpaidInvoices', 'recentTickets'));
+        $unreadCount = \App\Models\TicketRead::unreadCountFor($user);
+
+        return view('portal.dashboard', compact('openTickets', 'closedTickets', 'unpaidInvoices', 'recentTickets', 'unreadCount'));
     }
 }

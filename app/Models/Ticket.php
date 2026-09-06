@@ -21,6 +21,7 @@ class Ticket extends Model
     public const STATUS_NEW              = 'new';
     public const STATUS_IN_PROGRESS      = 'in_progress';
     public const STATUS_WAITING_CUSTOMER = 'waiting_customer';
+    public const STATUS_WAITING_SUPPORT  = 'waiting_support';
     public const STATUS_WAITING_PAYMENT  = 'waiting_payment';
     public const STATUS_RESOLVED         = 'resolved';
     public const STATUS_CLOSED           = 'closed';
@@ -29,14 +30,18 @@ class Ticket extends Model
     /**
      * چرخه مجاز وضعیت. هر تغییری که در این نقشه نباشد رد می‌شود.
      *
-     *   جدید → در حال بررسی → منتظر پاسخ مشتری → منتظر پرداخت → حل‌شده → بسته‌شده
-     *                                                              ↘ لغوشده
+     *   جدید → در حال بررسی ⇄ منتظر پاسخ مشتری ⇄ در انتظار پاسخ پشتیبان → حل‌شده → بسته‌شده
+     *                                                                        ↘ لغوشده
+     *
+     * پاسخِ پشتیبان تیکت را خودکار به «منتظر پاسخ مشتری» و پاسخِ مشتری آن را به
+     * «در انتظار پاسخ پشتیبان» می‌برد (TicketMessageObserver).
      */
     public const TRANSITIONS = [
         self::STATUS_NEW              => [self::STATUS_IN_PROGRESS, self::STATUS_CANCELLED],
-        self::STATUS_IN_PROGRESS      => [self::STATUS_WAITING_CUSTOMER, self::STATUS_WAITING_PAYMENT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
-        self::STATUS_WAITING_CUSTOMER => [self::STATUS_IN_PROGRESS, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
-        self::STATUS_WAITING_PAYMENT  => [self::STATUS_IN_PROGRESS, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
+        self::STATUS_IN_PROGRESS      => [self::STATUS_WAITING_CUSTOMER, self::STATUS_WAITING_SUPPORT, self::STATUS_WAITING_PAYMENT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
+        self::STATUS_WAITING_CUSTOMER => [self::STATUS_IN_PROGRESS, self::STATUS_WAITING_SUPPORT, self::STATUS_WAITING_PAYMENT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
+        self::STATUS_WAITING_SUPPORT  => [self::STATUS_IN_PROGRESS, self::STATUS_WAITING_CUSTOMER, self::STATUS_WAITING_PAYMENT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
+        self::STATUS_WAITING_PAYMENT  => [self::STATUS_IN_PROGRESS, self::STATUS_WAITING_CUSTOMER, self::STATUS_WAITING_SUPPORT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
         self::STATUS_RESOLVED         => [self::STATUS_CLOSED, self::STATUS_IN_PROGRESS],
         self::STATUS_CLOSED           => [],   // پایان راه — قفل می‌شود
         self::STATUS_CANCELLED        => [],
@@ -153,6 +158,20 @@ class Ticket extends Model
     public function isOpen(): bool
     {
         return ! in_array($this->status, [self::STATUS_CLOSED, self::STATUS_CANCELLED], true);
+    }
+
+    /**
+     * آیا هنوز می‌توان روی این تیکت پیام گذاشت؟
+     * تیکتِ «حل‌شده» یعنی موضوع تمام شده — برای ادامه باید تیکتِ تازه باز شود.
+     * بسته‌شده/لغوشده هم پیام نمی‌پذیرند.
+     */
+    public function canReceiveMessages(): bool
+    {
+        return ! in_array($this->status, [
+            self::STATUS_RESOLVED,
+            self::STATUS_CLOSED,
+            self::STATUS_CANCELLED,
+        ], true);
     }
 
     // ------------------------------------------------------------------ SLA

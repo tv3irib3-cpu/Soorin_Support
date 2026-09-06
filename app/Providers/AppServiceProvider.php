@@ -12,6 +12,7 @@ use App\Models\TicketMessage;
 use App\Models\User;
 use App\Observers\AuditObserver;
 use App\Observers\ContractObserver;
+use App\Observers\InvoiceObserver;
 use App\Observers\TicketMessageObserver;
 use App\Observers\TicketObserver;
 use App\Services\Sms\LogSmsGateway;
@@ -51,6 +52,7 @@ class AppServiceProvider extends ServiceProvider
 
         Ticket::observe(TicketObserver::class);
         Contract::observe(ContractObserver::class);
+        Invoice::observe(InvoiceObserver::class);
         TicketMessage::observe(TicketMessageObserver::class);
 
         // سیاههٔ حسابرسیِ عمومی برای مدل‌های کلیدی — ساخت/ویرایش/حذف در تاریخچهٔ تغییرات

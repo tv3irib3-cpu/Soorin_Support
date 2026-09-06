@@ -35,12 +35,25 @@ class Customer extends Model
     ];
 
     protected $fillable = [
-        'code', 'name', 'entity_type', 'national_id', 'economic_code',
+        'code', 'name', 'color', 'entity_type', 'national_id', 'economic_code',
         'phone', 'mobile', 'email', 'city', 'address', 'postal_code',
         'service_status', 'suspension_message',
         'can_create_ticket', 'can_view_history', 'can_view_invoices',
         'can_print_invoices', 'notes',
     ];
+
+    /** رنگِ نمایشیِ مشتری — اگر تنظیم نشده باشد، رنگی پایدار از روی شناسه ساخته می‌شود. */
+    public function displayColor(): string
+    {
+        if (filled($this->color)) {
+            return $this->color;
+        }
+
+        // رنگِ پایدار بر پایهٔ id تا هر مشتری همیشه یک رنگ داشته باشد.
+        $palette = ['#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#22c55e', '#6366f1', '#f97316', '#06b6d4'];
+
+        return $palette[(int) $this->id % count($palette)];
+    }
 
     protected function casts(): array
     {

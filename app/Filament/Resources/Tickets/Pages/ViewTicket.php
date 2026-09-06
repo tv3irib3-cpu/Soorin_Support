@@ -8,10 +8,13 @@ use App\Filament\Resources\Tickets\TicketResource;
 use App\Models\ActivityLog;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
+use App\Models\TicketRead;
 use App\Models\User;
+use App\Services\TicketAttachmentService;
 use App\Support\Jalali;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -30,6 +33,16 @@ use Filament\Schemas\Schema;
 class ViewTicket extends ViewRecord
 {
     protected static string $resource = TicketResource::class;
+
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        // باز کردنِ تیکت = خوانده‌شدنِ گفتگو برای این کاربر (شمارندهٔ خوانده‌نشده صفر شود).
+        if ($user = auth()->user()) {
+            TicketRead::markRead($this->getRecord(), $user);
+        }
+    }
 
     public function infolist(Schema $schema): Schema
     {
@@ -137,7 +150,7 @@ class ViewTicket extends ViewRecord
         return Action::make($name)
             ->label(__('tickets.reply'))
             ->icon('heroicon-o-paper-airplane')
-            ->visible(fn () => ! $ticket->is_locked
+            ->visible(fn () => $ticket->canReceiveMessages()
                 && (auth()->user()?->can(Permission::ViewTickets->value) ?? false))
             ->modalHeading(__('tickets.reply'))
             ->modalSubmitActionLabel(__('tickets.reply'))
@@ -148,24 +161,39 @@ class ViewTicket extends ViewRecord
                     ->required()
                     ->rows(4),
 
+                FileUpload::make('attachments')
+                    ->label(__('tickets.attachments'))
+                    ->helperText(__('tickets.attach_hint'))
+                    ->multiple()
+                    ->storeFiles(false)   // به‌جای ذخیرهٔ خودکار، خودمان با کدِ اختصاصی ذخیره می‌کنیم
+                    ->maxSize(TicketAttachmentService::MAX_KB)
+                    ->acceptedFileTypes(['image/*', 'video/*', 'application/pdf']),
+
                 Toggle::make('is_internal')
                     ->label(__('tickets.internal_note'))
                     ->helperText(__('tickets.internal_note_hint'))
                     ->default(false),
             ])
             ->action(function (array $data) use ($ticket) {
-                if ($ticket->is_locked) {
+                if (! $ticket->canReceiveMessages()) {
                     Notification::make()->danger()->title(__('tickets.locked_notice'))->send();
 
                     return;
                 }
 
-                TicketMessage::create([
+                $message = TicketMessage::create([
                     'ticket_id'   => $ticket->id,
                     'user_id'     => auth()->id(),
                     'body'        => $data['body'],
                     'is_internal' => (bool) ($data['is_internal'] ?? false),
                 ]);
+
+                $service = app(TicketAttachmentService::class);
+                foreach ((array) ($data['attachments'] ?? []) as $file) {
+                    if ($file) {
+                        $service->store($file, $ticket, $message, auth()->user());
+                    }
+                }
 
                 Notification::make()->success()->title(__('common.saved'))->send();
             });

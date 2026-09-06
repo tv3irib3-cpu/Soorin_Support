@@ -82,7 +82,12 @@
                 <tbody>
                     @foreach ($r['by_customer'] as $row)
                         <tr class="border-b">
-                            <td class="p-2">{{ $row['customer'] }}</td>
+                            <td class="p-2">
+                                <span style="display:inline-flex;align-items:center;gap:7px;">
+                                    <span style="width:10px;height:10px;border-radius:50%;background:{{ $row['color'] ?? '#94a3b8' }};flex:none;"></span>
+                                    {{ $row['customer'] }}
+                                </span>
+                            </td>
                             <td class="p-2">{{ $digits($row['created'] ?? 0) }}</td>
                             <td class="p-2">{{ $digits($row['tickets']) }}</td>
                             <td class="p-2">{{ $digits($row['minutes']) }}</td>

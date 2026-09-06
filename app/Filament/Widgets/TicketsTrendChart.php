@@ -38,6 +38,19 @@ class TicketsTrendChart extends ChartWidget
         return 'bar';
     }
 
+    /** محورِ عمودی فقط عددِ صحیح — تعدادِ تیکت اعشاری نمی‌شود (۰٫۱ اشتباه بود). */
+    protected function getOptions(): array
+    {
+        return [
+            'scales' => [
+                'y' => [
+                    'beginAtZero' => true,
+                    'ticks'       => ['precision' => 0, 'stepSize' => 1],
+                ],
+            ],
+        ];
+    }
+
     protected function getData(): array
     {
         $labels = [];

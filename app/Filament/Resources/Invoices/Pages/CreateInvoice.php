@@ -66,8 +66,8 @@ class CreateInvoice extends CreateRecord
 
         $item->recalculate(
             plan: $invoice->effectiveContractPlan(),
-            serviceType: $ticket->service_type ?? 'hardware',
-            method: $ticket->method ?? null,
+            serviceType: $ticket?->service_type ?? 'hardware',
+            method: $ticket?->method,
         );
 
         $invoice->recalculate();

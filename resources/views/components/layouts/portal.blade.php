@@ -22,8 +22,16 @@
             padding: 0 22px; display: flex; align-items: center; justify-content: space-between;
             gap: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.18); position: sticky; top: 0; z-index: 20;
         }
-        .portal-header__brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; padding: 12px 0; }
-        .portal-header__brand img { height: 34px; width: auto; }
+        .portal-header__brand { display: flex; align-items: center; gap: 11px; padding: 10px 0; }
+        .portal-header__brand img { height: 42px; width: auto; }
+        .portal-header__brand-text { display: flex; flex-direction: column; line-height: 1.25; }
+        .portal-header__company { font-weight: 800; font-size: 14.5px; color: var(--nav-on); }
+        .portal-header__app { font-size: 11px; font-weight: 600; color: var(--nav-text); }
+        .nav-badge {
+            display: inline-flex; min-width: 18px; height: 18px; padding: 0 5px; align-items: center; justify-content: center;
+            background: #ef4444; color: #fff; border-radius: 999px; font-size: 11px; font-weight: 700; margin-inline-start: 6px;
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--nav) 70%, transparent);
+        }
         .portal-header__nav { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
         .portal-header__nav a {
             color: var(--nav-text); text-decoration: none; font-size: 13.5px; font-weight: 600;
@@ -147,15 +155,25 @@
 </head>
 <body>
 
+    @auth
+        @php $portalUnread = \App\Models\TicketRead::unreadCountFor(auth()->user()); @endphp
+    @endauth
     <header class="portal-header">
         <div class="portal-header__brand">
-            <img src="{{ \App\Support\Branding::logo('mark') }}" alt="{{ \App\Support\Branding::companyName() }}" onerror="this.style.display='none'">
-            <span>{{ \App\Support\Branding::companyName() }}</span>
+            {{-- لوگوی سفیدِ برند روی نوارِ تیره (هم در روز و هم در شب نوار تیره است). --}}
+            <img src="{{ \App\Support\Branding::logo('dark') }}" alt="{{ \App\Support\Branding::companyName() }}" onerror="this.style.display='none'">
+            <span class="portal-header__brand-text">
+                <span class="portal-header__company">{{ \App\Support\Branding::companyName() }}</span>
+                <span class="portal-header__app">{{ \App\Support\Branding::appTitle() }}</span>
+            </span>
         </div>
         @auth
         <nav class="portal-header__nav">
             <a href="{{ route('portal.dashboard') }}" class="{{ request()->routeIs('portal.dashboard') ? 'active' : '' }}">{{ __('portal.home') }}</a>
-            <a href="{{ route('portal.tickets.index') }}" class="{{ request()->routeIs('portal.tickets.*') ? 'active' : '' }}">{{ __('portal.my_tickets') }}</a>
+            <a href="{{ route('portal.tickets.index') }}" class="{{ request()->routeIs('portal.tickets.*') ? 'active' : '' }}">
+                {{ __('portal.my_tickets') }}
+                <span id="portal-unread-badge" class="nav-badge" @if ($portalUnread <= 0) style="display:none" @endif>{{ \App\Support\Jalali::digits((string) $portalUnread) }}</span>
+            </a>
             @if (auth()->user()->canViewInvoices())
                 <a href="{{ route('portal.invoices.index') }}" class="{{ request()->routeIs('portal.invoices.*') ? 'active' : '' }}">{{ __('portal.my_invoices') }}</a>
             @endif
@@ -200,6 +218,27 @@
     </main>
 
     <x-footer />
+
+    @auth
+    <script>
+        // به‌روزرسانیِ سبکِ شمارندهٔ پیام‌های خوانده‌نشده هر ۳۰ ثانیه (بدون رفرشِ صفحه).
+        (function () {
+            var el = document.getElementById('portal-unread-badge');
+            if (!el) return;
+            function refresh() {
+                fetch('{{ route('portal.unread') }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (d) {
+                        if (!d) return;
+                        if ((d.count || 0) > 0) { el.textContent = d.display; el.style.display = ''; }
+                        else { el.style.display = 'none'; }
+                    })
+                    .catch(function () {});
+            }
+            setInterval(refresh, 30000);
+        })();
+    </script>
+    @endauth
 
 </body>
 </html>

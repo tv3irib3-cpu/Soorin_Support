@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Customers\Schemas;
 
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -27,6 +28,10 @@ class CustomerForm
                         ->label(__('customers.name'))
                         ->required()
                         ->maxLength(255),
+
+                    ColorPicker::make('color')
+                        ->label(__('customers.color'))
+                        ->helperText(__('customers.color_hint')),
 
                     Select::make('entity_type')
                         ->label(__('customers.entity_type'))

@@ -2,8 +2,11 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\Invoices\InvoiceResource;
+use App\Filament\Resources\Tickets\TicketResource;
 use App\Models\Invoice;
 use App\Models\Ticket;
+use App\Models\TicketRead;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -40,26 +43,44 @@ class DashboardStats extends StatsOverviewWidget
             ->filter(fn (Ticket $t) => $t->isSlaBreached())
             ->count();
 
-        return [
-            Stat::make(__('portal.open_tickets'), (string) $openTickets)
-                ->icon('heroicon-o-ticket')
-                ->color('info'),
+        $unread     = auth()->user() ? TicketRead::unreadCountFor(auth()->user()) : 0;
+        $ticketsUrl = TicketResource::getUrl('index');
 
-            Stat::make(__('tickets.statuses.resolved'), (string) $resolvedThisMonth)
-                ->icon('heroicon-o-check-circle')
-                ->color('success'),
+        $stats = [];
 
-            Stat::make(__('invoices.plural'), (string) $unpaidInvoices)
-                ->icon('heroicon-o-banknotes')
-                ->color('warning'),
+        // نشانِ پیام‌های خوانده‌نشده — فقط وقتی بزرگ‌تر از صفر است، با رنگِ قرمز و کلیک‌پذیر.
+        if ($unread > 0) {
+            $stats[] = Stat::make(__('portal.unread_messages'), (string) $unread)
+                ->icon('heroicon-o-chat-bubble-left-right')
+                ->description(__('tickets.unread'))
+                ->color('danger')
+                ->url($ticketsUrl);
+        }
 
-            Stat::make(__('tickets.sla_breached'), (string) $slaBreached)
-                ->icon('heroicon-o-exclamation-triangle')
-                ->color($slaBreached > 0 ? 'danger' : 'gray'),
+        $stats[] = Stat::make(__('portal.open_tickets'), (string) $openTickets)
+            ->icon('heroicon-o-ticket')
+            ->color('info')
+            ->url($ticketsUrl);
 
-            Stat::make(__('tickets.rating'), $avgRating ? number_format($avgRating, 1) . ' / ۵' : '—')
-                ->icon('heroicon-o-star')
-                ->color('warning'),
-        ];
+        $stats[] = Stat::make(__('tickets.statuses.resolved'), (string) $resolvedThisMonth)
+            ->icon('heroicon-o-check-circle')
+            ->color('success')
+            ->url($ticketsUrl);
+
+        $stats[] = Stat::make(__('invoices.plural'), (string) $unpaidInvoices)
+            ->icon('heroicon-o-banknotes')
+            ->color('warning')
+            ->url(InvoiceResource::getUrl('index'));
+
+        $stats[] = Stat::make(__('tickets.sla_breached'), (string) $slaBreached)
+            ->icon('heroicon-o-exclamation-triangle')
+            ->color($slaBreached > 0 ? 'danger' : 'gray')
+            ->url($ticketsUrl);
+
+        $stats[] = Stat::make(__('tickets.rating'), $avgRating ? number_format($avgRating, 1) . ' / ۵' : '—')
+            ->icon('heroicon-o-star')
+            ->color('warning');
+
+        return $stats;
     }
 }

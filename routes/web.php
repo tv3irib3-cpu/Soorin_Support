@@ -43,6 +43,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/export/excel', [ReportController::class, 'excel'])->name('reports.export.excel');
     Route::get('/reports/export/pdf', [ReportController::class, 'pdf'])->name('reports.export.pdf');
 
+    // دانلودِ پیوستِ تیکت (چت) — دسترسی داخلِ کنترلر بررسی می‌شود.
+    Route::get('/ticket-attachments/{attachment}', [\App\Http\Controllers\TicketAttachmentController::class, 'download'])
+        ->name('ticket-attachments.download');
+
     // دانلود مستقیم فایل پشتیبان — لینک ساده به‌جای اکشن Livewire، تا روی
     // گوشی هم مطمئن کار کند. اعتبارسنجی نام و دسترسی همین‌جا انجام می‌شود.
     Route::get('/backups/download/{name}', function (string $name) {
@@ -71,6 +75,8 @@ Route::prefix('portal')->name('portal.')->group(function () {
 
     Route::middleware([PortalAuthenticate::class, ApplyUserTheme::class])->group(function () {
         Route::get('/', [PortalDashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/unread-count', [PortalTicketController::class, 'unreadCount'])->name('unread');
 
         Route::get('/tickets', [PortalTicketController::class, 'index'])->name('tickets.index');
         Route::get('/tickets/create', [PortalTicketController::class, 'create'])->name('tickets.create');

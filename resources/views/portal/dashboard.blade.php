@@ -2,11 +2,17 @@
     @php
         $user = auth()->user();
         $badge = fn (string $s) => match ($s) {
-            'new', 'waiting_customer', 'waiting_payment' => 'warning',
-            'in_progress', 'resolved'                    => 'success',
-            default                                      => 'gray',
+            'new', 'waiting_customer', 'waiting_support', 'waiting_payment' => 'warning',
+            'in_progress', 'resolved'                                       => 'success',
+            default                                                         => 'gray',
         };
     @endphp
+
+    <style>
+        a.stat { text-decoration: none; color: inherit; transition: transform .08s, box-shadow .15s, border-color .15s; }
+        a.stat:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,.09); border-color: var(--accent); }
+        .stat__icon.danger { background: color-mix(in srgb, #ef4444 16%, transparent); color: #ef4444; }
+    </style>
 
     <div class="page-head">
         <div>
@@ -28,9 +34,20 @@
         <div class="status-banner warning">{{ __('portal.no_access_new_ticket') }}</div>
     @endif
 
-    {{-- کارت‌های آمار --}}
+    {{-- کارت‌های آمار — کلیک‌پذیر --}}
     <div class="stat-grid">
-        <div class="stat">
+        @if ($unreadCount > 0)
+        <a class="stat" href="{{ route('portal.tickets.index') }}">
+            <span class="stat__icon danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <div>
+                <div class="stat__num">{{ \App\Support\Jalali::digits((string) $unreadCount) }}</div>
+                <div class="stat__label">{{ __('portal.unread_messages') }}</div>
+            </div>
+        </a>
+        @endif
+        <a class="stat" href="{{ route('portal.tickets.index') }}">
             <span class="stat__icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
             </span>
@@ -38,8 +55,8 @@
                 <div class="stat__num">{{ \App\Support\Jalali::digits((string) $openTickets) }}</div>
                 <div class="stat__label">{{ __('portal.open_tickets') }}</div>
             </div>
-        </div>
-        <div class="stat">
+        </a>
+        <a class="stat" href="{{ route('portal.tickets.index') }}">
             <span class="stat__icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
             </span>
@@ -47,9 +64,9 @@
                 <div class="stat__num">{{ \App\Support\Jalali::digits((string) $closedTickets) }}</div>
                 <div class="stat__label">{{ __('portal.closed_tickets') }}</div>
             </div>
-        </div>
+        </a>
         @if ($user->canViewInvoices())
-        <div class="stat">
+        <a class="stat" href="{{ route('portal.invoices.index') }}">
             <span class="stat__icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
             </span>
@@ -57,7 +74,7 @@
                 <div class="stat__num">{{ \App\Support\Jalali::digits((string) $unpaidInvoices) }}</div>
                 <div class="stat__label">{{ __('portal.unpaid_invoices') }}</div>
             </div>
-        </div>
+        </a>
         @endif
     </div>
 

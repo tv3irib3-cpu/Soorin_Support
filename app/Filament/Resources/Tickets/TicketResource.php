@@ -40,6 +40,30 @@ class TicketResource extends Resource
         return __('tickets.nav_group');
     }
 
+    /** نشانِ قرمزِ تعدادِ پیام‌های خوانده‌نشده کنارِ «تیکت‌ها» در منو. */
+    public static function getNavigationBadge(): ?string
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return null;
+        }
+
+        $count = \App\Models\TicketRead::unreadCountFor($user);
+
+        return $count > 0 ? \App\Support\Jalali::digits((string) $count) : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'danger';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return __('tickets.unread');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return TicketForm::configure($schema);

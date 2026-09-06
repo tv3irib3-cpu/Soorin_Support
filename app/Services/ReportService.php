@@ -116,6 +116,7 @@ class ReportService
 
             return [
                 'customer' => $customer?->name ?? '—',
+                'color'    => $customer?->displayColor() ?? '#94a3b8',
                 'created'  => $cCreated->count(),
                 'tickets'  => $cResolved->count(),   // حل‌شده (کلیدِ سازگار با اکسل)
                 'minutes'  => (int) $cResolved->sum('work_minutes'),

@@ -6,7 +6,7 @@
             <div class="status-banner warning">{{ $errors->first() }}</div>
         @endif
 
-        <form method="POST" action="{{ route('portal.tickets.store') }}">
+        <form method="POST" action="{{ route('portal.tickets.store') }}" enctype="multipart/form-data">
             @csrf
 
             @if ($projects->isNotEmpty())
@@ -53,6 +53,13 @@
                         <option value="{{ $value }}" {{ old('priority', 'normal') === $value ? 'selected' : '' }}>{{ $label }}</option>
                     @endforeach
                 </select>
+            </div>
+
+            <div class="field">
+                <label for="attachments">{{ __('tickets.attachments') }}</label>
+                <input type="file" id="attachments" name="attachments[]" multiple accept="image/*,video/*,.pdf"
+                       style="width:100%; font-family:inherit; font-size:13px; padding:8px; border:1px dashed var(--border); border-radius:10px; background:var(--bg); color:var(--muted);">
+                <div style="font-size:11.5px; color:var(--muted); margin-top:4px;">{{ __('tickets.attach_hint') }}</div>
             </div>
 
             <button type="submit" class="btn">{{ __('common.save') }}</button>

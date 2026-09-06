@@ -17,6 +17,7 @@ class TicketsTable
         'new'              => 'info',
         'in_progress'      => 'warning',
         'waiting_customer' => 'gray',
+        'waiting_support'  => 'warning',
         'waiting_payment'  => 'danger',
         'resolved'         => 'success',
         'closed'           => 'gray',
@@ -47,7 +48,17 @@ class TicketsTable
                 TextColumn::make('customer.name')
                     ->label(__('tickets.customer'))
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    // نقطهٔ رنگیِ مشتری برای تشخیصِ سریع در جدول.
+                    ->html()
+                    ->formatStateUsing(function ($state, Ticket $record) {
+                        $color = e($record->customer?->displayColor() ?? '#94a3b8');
+                        $name  = e($state ?? '—');
+
+                        return '<span style="display:inline-flex;align-items:center;gap:7px;">'
+                            . '<span style="width:10px;height:10px;border-radius:50%;background:' . $color . ';flex:none;"></span>'
+                            . $name . '</span>';
+                    }),
 
                 TextColumn::make('project.name')
                     ->label(__('tickets.project'))

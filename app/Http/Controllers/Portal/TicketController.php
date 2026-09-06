@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
+use App\Models\TicketMessage;
+use App\Models\User;
+use App\Services\TicketAttachmentService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,6 +32,17 @@ class TicketController extends Controller
             ->paginate(15);
 
         return view('portal.tickets.index', compact('tickets'));
+    }
+
+    /** شمارندهٔ پیام‌های خوانده‌نشده — برای به‌روزرسانیِ زندهٔ نشانِ منو (JSON). */
+    public function unreadCount(): \Illuminate\Http\JsonResponse
+    {
+        $count = \App\Models\TicketRead::unreadCountFor(auth()->user());
+
+        return response()->json([
+            'count'   => $count,
+            'display' => \App\Support\Jalali::digits((string) $count),
+        ]);
     }
 
     public function create(): View|RedirectResponse
@@ -69,6 +83,11 @@ class TicketController extends Controller
             ? TicketCategory::find($data['ticket_category_id'])
             : null;
 
+        $request->validate([
+            'attachments'   => ['nullable', 'array', 'max:10'],
+            'attachments.*' => TicketAttachmentService::validationRule(),
+        ]);
+
         $ticket = Ticket::create([
             'customer_id'         => $user->customer_id,
             'customer_project_id' => $data['customer_project_id'] ?? null,
@@ -79,6 +98,9 @@ class TicketController extends Controller
             'priority'            => $data['priority'] ?? 'normal',
             'created_by'          => $user->id,
         ]);
+
+        // پیوست‌های تیکتِ جدید مستقیم به تیکت وصل می‌شوند (نه به پیام).
+        $this->storeAttachments($request, $ticket, null, $user);
 
         $message = __('portal.ticket_submitted', ['number' => $ticket->number]);
 
@@ -102,9 +124,15 @@ class TicketController extends Controller
             404,
         );
 
-        $ticket->load(['publicMessages.user', 'category', 'project']);
+        $ticket->load(['publicMessages.user', 'publicMessages.attachments', 'category', 'project']);
 
-        return view('portal.tickets.show', compact('ticket'));
+        // پیوست‌هایی که مستقیم به خودِ تیکت وصل‌اند (هنگام ثبتِ تیکت آپلود شده‌اند)
+        $ticketAttachments = $ticket->attachments()->whereNull('ticket_message_id')->get();
+
+        // علامت‌گذاریِ خواندهٔ گفتگو برای این کاربر (شمارندهٔ خوانده‌نشده صفر شود)
+        \App\Models\TicketRead::markRead($ticket, $user);
+
+        return view('portal.tickets.show', compact('ticket', 'ticketAttachments'));
     }
 
     public function reply(Request $request, Ticket $ticket): RedirectResponse
@@ -112,20 +140,41 @@ class TicketController extends Controller
         $user = auth()->user();
 
         abort_unless(Ticket::visibleTo($user)->whereKey($ticket->id)->exists(), 404);
-        abort_if($ticket->is_locked, 403, __('tickets.locked_notice'));
+        // تیکتِ حل‌شده/بسته‌شده دیگر پیام نمی‌پذیرد — برای موضوعِ جدید تیکتِ تازه.
+        abort_unless($ticket->canReceiveMessages(), 403, __('portal.ticket_resolved_notice'));
 
-        $data = $request->validate(['body' => ['required', 'string']]);
+        $data = $request->validate([
+            'body'          => ['required', 'string'],
+            'attachments'   => ['nullable', 'array', 'max:10'],
+            'attachments.*' => TicketAttachmentService::validationRule(),
+        ]);
 
         // اطلاع‌رسانی ایمیل به کارشناس مسئول در App\Observers\TicketMessageObserver
         // متمرکز است — همان مسیری که پنل مدیریت هم از آن استفاده می‌کند.
-        $ticket->messages()->create([
+        $message = $ticket->messages()->create([
             'user_id'     => $user->id,
             'body'        => $data['body'],
             'is_internal' => false,
         ]);
 
+        $this->storeAttachments($request, $ticket, $message, $user);
+
         ActivityLog::record('portal_reply', $ticket);
 
         return back();
+    }
+
+    /** ذخیرهٔ فایل‌های آپلودشده (اگر باشند) با کدِ اختصاصی. */
+    private function storeAttachments(Request $request, Ticket $ticket, ?TicketMessage $message, User $user): void
+    {
+        if (! $request->hasFile('attachments')) {
+            return;
+        }
+
+        $service = app(TicketAttachmentService::class);
+
+        foreach ($request->file('attachments') as $file) {
+            $service->store($file, $ticket, $message, $user);
+        }
     }
 }

@@ -39,10 +39,12 @@ class AdminPanelProvider extends PanelProvider
             ->login(\App\Filament\Auth\Login::class)
             // نام و لوگو از App\Support\Branding خوانده می‌شوند تا شخصی‌سازیِ مدیر
             // (صفحهٔ «شخصی‌سازی») همه‌جا اعمال شود، نه فقط پیش‌فرضِ config.
-            ->brandName(fn () => \App\Support\Branding::appTitle())
-            ->brandLogo(fn () => \App\Support\Branding::logo('light'))
-            ->darkModeBrandLogo(fn () => \App\Support\Branding::logo('dark'))
-            ->favicon(fn () => \App\Support\Branding::logo('favicon'))
+            ->brandName(fn () => \App\Support\Branding::companyName())
+            // برندِ سفارشی: لوگوی بزرگ‌تر + نامِ شرکت و سامانه (روز/شب) — نمای filament.brand.
+            ->brandLogo(fn () => view('filament.brand'))
+            ->brandLogoHeight('2.5rem')
+            // فاوآیکون به‌صورتِ base64 تا روی هاستِ اشتراکی هم قطعاً نمایش داده شود.
+            ->favicon(fn () => \App\Support\Branding::logoData('favicon') ?? \App\Support\Branding::logo('favicon'))
             ->colors([
                 'primary' => $ocean['accent'],   // فیروزه‌ای برند
                 'gray'    => '#5f7d8c',
