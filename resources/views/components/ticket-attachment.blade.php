@@ -1,8 +1,8 @@
 @props(['attachment'])
 
 @php
-    $isImage  = str_starts_with((string) $attachment->mime, 'image/');
-    $isVideo  = str_starts_with((string) $attachment->mime, 'video/');
+    $isImage  = $attachment->isImage();
+    $isVideo  = $attachment->isVideo();
     $viewUrl  = route('ticket-attachments.download', $attachment) . '?view=1';
     $dlUrl    = route('ticket-attachments.download', $attachment);
 @endphp

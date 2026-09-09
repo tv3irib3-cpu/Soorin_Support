@@ -1,9 +1,9 @@
 <x-layouts.portal :title="__('portal.my_tickets')">
     @php
         $badge = fn (string $s) => match ($s) {
-            'new', 'waiting_customer', 'waiting_payment' => 'warning',
-            'in_progress', 'resolved'                    => 'success',
-            default                                      => 'gray',
+            'new', 'waiting_customer', 'waiting_support', 'waiting_payment' => 'warning',
+            'in_progress', 'resolved'                                       => 'success',
+            default                                                         => 'gray',
         };
     @endphp
 
@@ -36,9 +36,10 @@
                 </thead>
                 <tbody>
                     @foreach ($tickets as $ticket)
-                    <tr>
-                        <td style="font-family:monospace;" dir="ltr">{{ $ticket->number }}</td>
-                        <td><a href="{{ route('portal.tickets.show', $ticket) }}">{{ $ticket->subject }}</a></td>
+                    @php $__url = route('portal.tickets.show', $ticket); @endphp
+                    <tr onclick="window.location='{{ $__url }}'" style="cursor:pointer;">
+                        <td style="font-family:monospace;" dir="ltr"><a href="{{ $__url }}">{{ $ticket->number }}</a></td>
+                        <td><a href="{{ $__url }}">{{ $ticket->subject }}</a></td>
                         <td class="col-hide-mobile">{{ $ticket->category?->name ?? '—' }}</td>
                         <td class="col-hide-mobile">{{ \App\Support\Jalali::format($ticket->created_at) }}</td>
                         <td><span class="badge {{ $badge($ticket->status) }}">{{ __('tickets.statuses.' . $ticket->status) }}</span></td>

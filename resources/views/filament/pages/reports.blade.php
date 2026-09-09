@@ -75,6 +75,7 @@
                         <th class="p-2 text-right">{{ __('reports.col_created') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_tickets') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_minutes') }}</th>
+                        <th class="p-2 text-right">{{ __('reports.col_service') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_invoiced') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_warranty') }}</th>
                     </tr>
@@ -91,6 +92,7 @@
                             <td class="p-2">{{ $digits($row['created'] ?? 0) }}</td>
                             <td class="p-2">{{ $digits($row['tickets']) }}</td>
                             <td class="p-2">{{ $digits($row['minutes']) }}</td>
+                            <td class="p-2">{{ $money($row['service'] ?? 0) }}</td>
                             <td class="p-2">{{ $money($row['invoiced']) }}</td>
                             <td class="p-2">{{ $money($row['warranty']) }}</td>
                         </tr>

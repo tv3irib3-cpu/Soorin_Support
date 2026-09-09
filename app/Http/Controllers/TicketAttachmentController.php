@@ -43,7 +43,7 @@ class TicketAttachmentController extends Controller
         return Storage::disk(TicketAttachmentService::DISK)->response(
             $attachment->path,
             $attachment->original_name,
-            ['Content-Type' => $attachment->mime ?: 'application/octet-stream'],
+            ['Content-Type' => $attachment->displayMime()],
             $disposition,
         );
     }

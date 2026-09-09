@@ -78,6 +78,8 @@ Route::prefix('portal')->name('portal.')->group(function () {
 
         Route::get('/unread-count', [PortalTicketController::class, 'unreadCount'])->name('unread');
 
+        Route::post('/tickets/{ticket}/rate', [PortalTicketController::class, 'rate'])->name('tickets.rate');
+
         Route::get('/tickets', [PortalTicketController::class, 'index'])->name('tickets.index');
         Route::get('/tickets/create', [PortalTicketController::class, 'create'])->name('tickets.create');
         Route::post('/tickets', [PortalTicketController::class, 'store'])->name('tickets.store');

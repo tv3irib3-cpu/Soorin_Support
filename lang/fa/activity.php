@@ -27,6 +27,8 @@ return [
         'status_changed' => 'تغییر وضعیت',
         'assigned'       => 'تخصیص کارشناس',
         'portal_reply'   => 'پاسخ در پرتال',
+        'ticket_rated'   => 'ثبت نظر مشتری',
+        'rating_reset'   => 'نظرخواهی مجدد',
         'backup_created' => 'ساخت پشتیبان',
         'backup_restored'=> 'بازیابی پشتیبان',
         'backup_deleted' => 'حذف پشتیبان',

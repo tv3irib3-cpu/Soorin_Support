@@ -49,6 +49,7 @@ return [
         'partially_paid' => 'پرداخت جزئی',
         'cancelled'      => 'لغوشده',
     ],
+    'cancel_action' => 'لغو فاکتور',
 
     'is_warranty'       => 'تحت پوشش قرارداد',
     'is_warranty_badge' => 'رایگان تحت قرارداد',

@@ -24,7 +24,8 @@ class DashboardStats extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        $openTickets = Ticket::whereNotIn('status', ['closed', 'cancelled'])->count();
+        // «باز» یعنی هنوز در جریان است — حل‌شده/بسته/لغو دیگر باز حساب نمی‌شود.
+        $openTickets = Ticket::whereNotIn('status', ['resolved', 'closed', 'cancelled'])->count();
 
         $resolvedThisMonth = Ticket::whereIn('status', ['resolved', 'closed'])
             ->whereMonth('resolved_at', now()->month)

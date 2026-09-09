@@ -15,9 +15,9 @@
     .info-table td { padding: 3px 0; font-size: 10pt; }
     .info-label { color: #5f7d8c; width: 90px; }
     .items-table { margin-top: 14px; }
-    .items-table th { background: #0f2d4d; color: #fff; padding: 6px 8px; font-size: 9.5pt; text-align: right; }
-    .items-table td { padding: 6px 8px; font-size: 9.5pt; border-bottom: 1px solid #dde8ec; }
-    .items-table .num { text-align: left; direction: ltr; }
+    .items-table th { background: #0f2d4d; color: #fff; padding: 6px 8px; font-size: 9.5pt; text-align: center; vertical-align: middle; }
+    .items-table td { padding: 6px 8px; font-size: 9.5pt; border-bottom: 1px solid #dde8ec; text-align: center; vertical-align: middle; }
+    .items-table .num { text-align: center; direction: ltr; }
     .summary-table { margin-top: 14px; width: 55%; margin-inline-start: auto; }
     .summary-table td { padding: 5px 8px; font-size: 10pt; }
     .summary-table .label { color: #5f7d8c; }

@@ -17,15 +17,21 @@
                 </thead>
                 <tbody>
                     @foreach ($invoices as $invoice)
+                    @php $__cancelled = $invoice->status === \App\Models\Invoice::STATUS_CANCELLED; @endphp
                     <tr>
                         <td style="font-family:monospace;">{{ $invoice->number }}</td>
                         <td class="col-hide-mobile">{{ \App\Support\Jalali::format($invoice->issue_date) }}</td>
                         <td>{{ \App\Support\Jalali::money($invoice->payable_amount) }} {{ __('common.currency') }}</td>
-                        <td><span class="badge gray">{{ __('invoices.statuses.' . $invoice->status) }}</span></td>
+                        <td><span class="badge {{ $__cancelled ? 'gray' : 'success' }}">{{ __('invoices.statuses.' . $invoice->status) }}</span></td>
                         <td>
-                            <a href="{{ route('invoices.pdf.view', $invoice) }}" target="_blank">{{ __('invoices.pdf') }}</a>
-                            @if ($canPrint)
-                                · <a href="{{ route('invoices.pdf.download', $invoice) }}">{{ __('invoices.print') }}</a>
+                            @if ($__cancelled)
+                                {{-- فاکتورِ لغوشده فقط وضعیت را نشان می‌دهد و باز نمی‌شود --}}
+                                <span style="color:var(--muted); font-size:12px;">—</span>
+                            @else
+                                <a href="{{ route('invoices.pdf.view', $invoice) }}" target="_blank">{{ __('invoices.pdf') }}</a>
+                                @if ($canPrint)
+                                    · <a href="{{ route('invoices.pdf.download', $invoice) }}">{{ __('invoices.print') }}</a>
+                                @endif
                             @endif
                         </td>
                     </tr>

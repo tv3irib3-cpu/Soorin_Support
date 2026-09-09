@@ -157,7 +157,13 @@ class Ticket extends Model
 
     public function isOpen(): bool
     {
-        return ! in_array($this->status, [self::STATUS_CLOSED, self::STATUS_CANCELLED], true);
+        // «باز» یعنی هنوز در جریان — حل‌شده/بسته/لغو باز حساب نمی‌شود
+        // (هم‌راستا با داشبورد و گزارش‌ها).
+        return ! in_array($this->status, [
+            self::STATUS_RESOLVED,
+            self::STATUS_CLOSED,
+            self::STATUS_CANCELLED,
+        ], true);
     }
 
     /**
@@ -172,6 +178,23 @@ class Ticket extends Model
             self::STATUS_CLOSED,
             self::STATUS_CANCELLED,
         ], true);
+    }
+
+    /** آیا مشتری به این تیکت امتیاز داده است؟ */
+    public function isRated(): bool
+    {
+        return $this->rating !== null;
+    }
+
+    /**
+     * آیا الان می‌توان به این تیکت امتیاز داد؟ فقط تیکتِ حل‌شده/بسته‌شده که
+     * هنوز امتیاز نگرفته. (بعد از ثبت، مشتری دیگر نمی‌تواند ویرایش کند مگر
+     * پشتیبان «نظرخواهی مجدد» را فعال کند که امتیاز را پاک می‌کند.)
+     */
+    public function canBeRated(): bool
+    {
+        return $this->rating === null
+            && in_array($this->status, [self::STATUS_RESOLVED, self::STATUS_CLOSED], true);
     }
 
     // ------------------------------------------------------------------ SLA

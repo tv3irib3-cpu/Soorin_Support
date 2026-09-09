@@ -55,12 +55,15 @@
                     <div class="tk-atts">
                         @foreach ($message->attachments as $att)
                             @php
-                                $isImg = str_starts_with((string) $att->mime, 'image/');
+                                $isImg = $att->isImage();
+                                $isVid = $att->isVideo();
                                 $view  = route('ticket-attachments.download', $att) . '?view=1';
                                 $dl    = route('ticket-attachments.download', $att);
                             @endphp
                             @if ($isImg)
                                 <a href="{{ $view }}" target="_blank" rel="noopener"><img class="tk-att-img" src="{{ $view }}" alt="{{ $att->original_name }}" loading="lazy"></a>
+                            @elseif ($isVid)
+                                <video class="tk-att-img" controls preload="metadata" src="{{ $view }}"></video>
                             @else
                                 <a class="tk-att-chip" href="{{ $dl }}" target="_blank" rel="noopener">📎 {{ $att->original_name }} <span style="opacity:.6">({{ $att->humanSize() }})</span></a>
                             @endif

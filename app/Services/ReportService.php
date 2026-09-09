@@ -120,8 +120,9 @@ class ReportService
                 'created'  => $cCreated->count(),
                 'tickets'  => $cResolved->count(),   // حل‌شده (کلیدِ سازگار با اکسل)
                 'minutes'  => (int) $cResolved->sum('work_minutes'),
-                'invoiced' => (int) $cInvoices->sum('payable_amount'),
-                'warranty' => (int) $cInvoices->sum('contract_amount'),
+                'service'  => (int) $cInvoices->sum('service_amount'),   // ارزشِ واقعیِ خدمت
+                'invoiced' => (int) $cInvoices->sum('payable_amount'),   // پرداختیِ مشتری
+                'warranty' => (int) $cInvoices->sum('contract_amount'),  // سهمِ گارانتی/قرارداد
             ];
         })
             ->sortByDesc('created')

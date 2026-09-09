@@ -22,7 +22,7 @@ class ReportExcelService
         $this->summarySheet($spreadsheet, $report);
         $this->tableSheet(
             $spreadsheet, 'مشتریان', $report['by_customer'],
-            ['customer' => 'مشتری', 'created' => 'تیکت ثبت‌شده', 'tickets' => 'تیکت حل‌شده', 'minutes' => 'زمان کارکرد (دقیقه)', 'invoiced' => 'مبلغ فاکتورشده (ریال)', 'warranty' => 'سهم قرارداد (ریال)'],
+            ['customer' => 'مشتری', 'created' => 'تیکت ثبت‌شده', 'tickets' => 'تیکت حل‌شده', 'minutes' => 'زمان کارکرد (دقیقه)', 'service' => 'ارزش خدمت (ریال)', 'invoiced' => 'پرداختی مشتری (ریال)', 'warranty' => 'سهم قرارداد/گارانتی (ریال)'],
         );
         $this->tableSheet(
             $spreadsheet, 'پروژه‌ها', $report['by_project'] ?? collect(),

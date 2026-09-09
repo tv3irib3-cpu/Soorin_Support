@@ -54,13 +54,24 @@ class TicketAttachmentService
 
         $path = Storage::disk(self::DISK)->putFileAs(self::DIR, $file, $code);
 
+        // mime را از محتوای فایل تشخیص بده (قابل‌اعتمادتر از getClientMimeType که در
+        // آپلودِ Livewireِ پشتیبان گاهی application/octet-stream می‌داد و باعث می‌شد
+        // عکس به‌جای پیش‌نمایش، فقط لینکِ دانلود شود).
+        $mime = null;
+        try {
+            $mime = $file->getMimeType();
+        } catch (\Throwable $e) {
+            // بعضی درایورها متد را ندارند
+        }
+        $mime = $mime ?: $file->getClientMimeType() ?: null;
+
         return TicketAttachment::create([
             'ticket_id'         => $ticket->id,
             'ticket_message_id' => $message?->id,
             'user_id'           => $user->id,
             'path'              => $path,
             'original_name'     => $file->getClientOriginalName(),
-            'mime'              => $file->getClientMimeType(),
+            'mime'              => $mime,
             'size'              => $file->getSize(),
         ]);
     }

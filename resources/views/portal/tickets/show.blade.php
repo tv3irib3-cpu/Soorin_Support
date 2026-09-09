@@ -24,6 +24,12 @@
         }
         .file-field input[type=file] { width: 100%; font-family: inherit; font-size: 13px; padding: 8px; border: 1px dashed var(--border); border-radius: 10px; background: var(--bg); color: var(--muted); }
         .file-hint { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+        .stars-view span { font-size: 24px; color: #cbd5e1; }
+        .stars-view span.on { color: #f59e0b; }
+        .stars-input { display: inline-flex; gap: 4px; }
+        .stars-input input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .stars-input label { font-size: 30px; line-height: 1; color: #cbd5e1; cursor: pointer; transition: color .1s; }
+        .stars-input label.on { color: #f59e0b; }
     </style>
 
     <div class="page-head">
@@ -91,6 +97,58 @@
             </div>
         @endif
     </div>
+
+    {{-- نظرسنجی رضایت — روی تیکتِ حل‌شده --}}
+    @if ($ticket->isRated())
+        <div class="card">
+            <div style="font-weight:800; margin-bottom:8px;">{{ __('portal.rating_your') }}</div>
+            <div class="stars-view">
+                @for ($i = 1; $i <= 5; $i++)
+                    <span class="{{ $i <= $ticket->rating ? 'on' : '' }}">★</span>
+                @endfor
+            </div>
+            @if (filled($ticket->rating_comment))
+                <div style="margin-top:10px; line-height:1.8; white-space:pre-wrap;">{{ $ticket->rating_comment }}</div>
+            @endif
+            <div style="margin-top:8px; font-size:11.5px; color:var(--muted);">{{ __('portal.rating_locked_note') }}</div>
+        </div>
+    @elseif ($ticket->canBeRated())
+        <div class="card">
+            <div style="font-weight:800; margin-bottom:4px;">{{ __('portal.rating_title') }}</div>
+            <div style="color:var(--muted); font-size:13px; margin-bottom:10px;">{{ __('portal.rating_prompt') }}</div>
+            <form method="POST" action="{{ route('portal.tickets.rate', $ticket) }}">
+                @csrf
+                <div class="stars-input" id="starInput">
+                    @for ($i = 1; $i <= 5; $i++)
+                        <input type="radio" name="rating" id="star{{ $i }}" value="{{ $i }}" required>
+                        <label for="star{{ $i }}" data-v="{{ $i }}" title="{{ $i }}">★</label>
+                    @endfor
+                </div>
+                @error('rating')<div class="error" style="margin-top:6px;">{{ $message }}</div>@enderror
+                <div class="field" style="margin-top:12px;">
+                    <label for="rating_comment">{{ __('portal.rating_comment_label') }}</label>
+                    <textarea id="rating_comment" name="rating_comment" rows="3" placeholder="{{ __('portal.rating_comment_ph') }}">{{ old('rating_comment') }}</textarea>
+                </div>
+                <button type="submit" class="btn" style="margin-top:8px;">{{ __('portal.rating_submit') }}</button>
+            </form>
+        </div>
+        <script>
+            (function () {
+                var wrap = document.getElementById('starInput');
+                if (!wrap) return;
+                var labels = [].slice.call(wrap.querySelectorAll('label'));
+                function paint(v) { labels.forEach(function (l) { l.classList.toggle('on', parseInt(l.dataset.v) <= v); }); }
+                labels.forEach(function (l) {
+                    l.addEventListener('mouseenter', function () { paint(parseInt(l.dataset.v)); });
+                    l.addEventListener('click', function () { paint(parseInt(l.dataset.v)); });
+                });
+                wrap.addEventListener('mouseleave', function () {
+                    var checked = wrap.querySelector('input:checked');
+                    paint(checked ? parseInt(checked.value) : 0);
+                });
+            })();
+        </script>
+    @endif
 
     @if (! $canReply)
         <div class="status-banner warning">{{ __('portal.ticket_resolved_notice') }}</div>

@@ -291,6 +291,24 @@ class ViewTicket extends ViewRecord
                 ->visible(fn () => auth()->user()?->can(Permission::ManageInvoices->value) ?? false)
                 ->url(fn () => InvoiceResource::getUrl('create', ['ticket' => $ticket->id])),
 
+            // نظرخواهی مجدد — نظرِ قبلیِ مشتری را پاک می‌کند تا دوباره امکانِ ثبت باشد
+            // (اگر مشتری اشتباهی امتیاز داد و خواست اصلاح شود). فقط مدیرِ پشتیبان.
+            Action::make('resetRating')
+                ->label(__('tickets.reset_rating'))
+                ->icon('heroicon-o-star')
+                ->color('warning')
+                ->visible(fn () => $ticket->rating !== null
+                    && (auth()->user()?->can(Permission::ManageTickets->value) ?? false))
+                ->requiresConfirmation()
+                ->modalHeading(__('tickets.reset_rating'))
+                ->modalDescription(__('tickets.reset_rating_confirm'))
+                ->action(function () use ($ticket) {
+                    $ticket->update(['rating' => null, 'rating_comment' => null]);
+                    ActivityLog::record('rating_reset', $ticket);
+
+                    Notification::make()->success()->title(__('tickets.reset_rating_done'))->send();
+                }),
+
             EditAction::make(),
         ];
     }

@@ -164,6 +164,33 @@ class TicketController extends Controller
         return back();
     }
 
+    /**
+     * ثبتِ امتیاز و نظرِ مشتری روی تیکتِ حل‌شده. بعد از ثبت دیگر قابلِ ویرایش
+     * نیست (canBeRated فقط وقتی امتیاز خالی است true می‌شود). هم مدیرِ مشتری و
+     * هم کارشناسِ مشتری اگر تیکت را ببینند می‌توانند ثبت کنند.
+     */
+    public function rate(Request $request, Ticket $ticket): RedirectResponse
+    {
+        $user = auth()->user();
+
+        abort_unless(Ticket::visibleTo($user)->whereKey($ticket->id)->exists(), 404);
+        abort_unless($ticket->canBeRated(), 403, __('portal.rating_closed'));
+
+        $data = $request->validate([
+            'rating'         => ['required', 'integer', 'min:1', 'max:5'],
+            'rating_comment' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $ticket->update([
+            'rating'         => $data['rating'],
+            'rating_comment' => $data['rating_comment'] ?? null,
+        ]);
+
+        ActivityLog::record('ticket_rated', $ticket);
+
+        return back()->with('status', __('portal.rating_thanks'));
+    }
+
     /** ذخیرهٔ فایل‌های آپلودشده (اگر باشند) با کدِ اختصاصی. */
     private function storeAttachments(Request $request, Ticket $ticket, ?TicketMessage $message, User $user): void
     {

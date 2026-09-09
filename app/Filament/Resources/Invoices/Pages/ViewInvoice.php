@@ -109,19 +109,24 @@ class ViewInvoice extends ViewRecord
                 ->openUrlInNewTab(),
 
             Action::make('cancel')
-                ->label(__('invoices.statuses.cancelled'))
+                ->label(__('invoices.cancel_action'))
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->visible(fn () => ! in_array($invoice->status, [Invoice::STATUS_DRAFT, Invoice::STATUS_CANCELLED], true)
                     && (auth()->user()?->can(Permission::ManageInvoices->value) ?? false))
                 ->requiresConfirmation()
+                ->modalHeading(__('invoices.cancel_action'))
                 ->action(function () use ($invoice) {
                     $invoice->cancel();
 
                     Notification::make()->success()->title(__('common.saved'))->send();
                 }),
 
-            EditAction::make(),
+            // فقط فاکتورِ پیش‌نویس قابلِ ویرایش است؛ برای صادرشده/لغوشده دکمه پنهان
+            // می‌شود تا خطای ۴۰۳ رخ ندهد (اصلاح = لغو + صدور فاکتور تازه).
+            EditAction::make()
+                ->visible(fn () => $invoice->status === Invoice::STATUS_DRAFT
+                    && (auth()->user()?->can(Permission::ManageInvoices->value) ?? false)),
         ];
     }
 }
