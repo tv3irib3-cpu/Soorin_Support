@@ -123,8 +123,10 @@
 
         /* ---------- جدول ---------- */
         table.simple { width: 100%; border-collapse: collapse; }
-        table.simple th { text-align: right; font-size: 12px; color: var(--muted); font-weight: 600; padding: 10px 8px; border-bottom: 1px solid var(--border); }
-        table.simple td { padding: 12px 8px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+        table.simple th { text-align: center; font-size: 12px; color: var(--muted); font-weight: 600; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+        table.simple td { padding: 12px 8px; border-bottom: 1px solid var(--border); font-size: 13.5px; text-align: center; }
+        /* شمارهٔ تیکت/عددها ltr هستند ولی باید وسط‌چین بمانند */
+        table.simple td[dir="ltr"] { direction: ltr; unicode-bidi: isolate; }
         table.simple tr:last-child td { border-bottom: none; }
         table.simple tbody tr { transition: background .12s; }
         table.simple tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }

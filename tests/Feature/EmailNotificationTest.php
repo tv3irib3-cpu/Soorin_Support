@@ -99,6 +99,8 @@ class EmailNotificationTest extends TestCase
     public function test_customer_reply_with_no_assignee_sends_no_email(): void
     {
         $ticket = $this->ticket();
+        // تخصیصِ خودکار ممکن است کارشناسی گذاشته باشد؛ برای این سناریو صریحاً بدونِ مسئول.
+        $ticket->update(['assigned_to' => null]);
 
         $customerUser = User::create([
             'name' => 'مشتری', 'email' => 'user@aria.test', 'password' => 'secret123',

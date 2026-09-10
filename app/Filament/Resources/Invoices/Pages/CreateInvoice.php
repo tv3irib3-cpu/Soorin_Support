@@ -38,39 +38,52 @@ class CreateInvoice extends CreateRecord
     }
 
     /**
-     * اگر کاربر «هزینهٔ کارِ انجام‌شده» را در فرم وارد کرده باشد، یک ردیفِ
-     * «خدمت» خودکار ساخته می‌شود و جمعِ فاکتور (پوششِ قرارداد + تخفیف) دوباره
-     * محاسبه می‌گردد — دقیقاً مثلِ افزودنِ دستیِ ردیف از بخشِ «ردیف‌های فاکتور».
+     * برای هر «ردیفِ خدمت» که کاربر در فرم وارد کرده (یک یا چند تا)، یک
+     * InvoiceItem خودکار ساخته می‌شود و در پایان جمعِ کلِ فاکتور (پوششِ قرارداد
+     * + تخفیف) یک‌بار محاسبه می‌گردد — دقیقاً مثلِ افزودنِ دستیِ ردیف‌ها.
      */
     protected function afterCreate(): void
     {
-        $amount = (int) ($this->data['first_item_amount'] ?? 0);
+        $lines = $this->data['service_items'] ?? [];
 
-        if ($amount <= 0) {
+        if (! is_array($lines) || $lines === []) {
             return;
         }
 
         /** @var Invoice $invoice */
         $invoice = $this->getRecord();
+        $ticket  = $invoice->ticket;
+        $plan    = $invoice->effectiveContractPlan();
+        $created = false;
 
-        $item = $invoice->items()->create([
-            'item_type'  => 'service',
-            'title'      => filled($this->data['first_item_title'] ?? null)
-                ? $this->data['first_item_title']
-                : __('invoices.default_service_title'),
-            'quantity'   => 1,
-            'unit_price' => $amount,
-        ]);
+        foreach ($lines as $line) {
+            $amount = (int) ($line['amount'] ?? 0);
 
-        $ticket = $invoice->ticket;
+            if ($amount <= 0) {
+                continue;
+            }
 
-        $item->recalculate(
-            plan: $invoice->effectiveContractPlan(),
-            serviceType: $ticket?->service_type ?? 'hardware',
-            method: $ticket?->method,
-        );
+            $item = $invoice->items()->create([
+                'item_type'  => 'service',
+                'title'      => filled($line['title'] ?? null)
+                    ? $line['title']
+                    : __('invoices.default_service_title'),
+                'quantity'   => 1,
+                'unit_price' => $amount,
+            ]);
 
-        $invoice->recalculate();
+            $item->recalculate(
+                plan: $plan,
+                serviceType: $ticket?->service_type ?? 'hardware',
+                method: $ticket?->method,
+            );
+
+            $created = true;
+        }
+
+        if ($created) {
+            $invoice->recalculate();   // جمعِ همهٔ ردیف‌ها در جدولِ فاکتور
+        }
     }
 
     protected function getRedirectUrl(): string

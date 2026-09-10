@@ -107,7 +107,9 @@ class ViewTicket extends ViewRecord
                 ->schema([
                     TextEntry::make('rating')
                         ->label(__('tickets.rating'))
-                        ->formatStateUsing(fn (?int $state) => $state ? str_repeat('★', $state) . ' (' . $state . '/۵)' : '—')
+                        ->formatStateUsing(fn (?int $state) => $state
+                            ? str_repeat('★', $state) . ' (' . Jalali::digits((string) $state) . '/۵)'
+                            : '—')
                         ->color('warning'),
                     TextEntry::make('rating_comment')
                         ->label(__('tickets.rating_comment'))

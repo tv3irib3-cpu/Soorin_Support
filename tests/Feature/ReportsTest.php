@@ -176,14 +176,15 @@ class ReportsTest extends TestCase
         $this->actingAs($customerUser)->get('/admin/reports')->assertForbidden();
     }
 
-    public function test_excel_service_builds_spreadsheet_with_four_sheets(): void
+    public function test_excel_service_builds_spreadsheet_with_all_sheets(): void
     {
         $this->resolvedTicket();
         $report = app(ReportService::class)->generate(now()->subDay(), now()->addDay());
 
         $spreadsheet = app(ReportExcelService::class)->build($report);
 
-        $this->assertSame(4, $spreadsheet->getSheetCount());
+        // مشتریان، پروژه، دسته‌بندی، وضعیت، کارشناسان، خلاصه
+        $this->assertSame(6, $spreadsheet->getSheetCount());
     }
 
     public function test_pdf_service_has_no_untranslated_lang_keys(): void

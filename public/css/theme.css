@@ -61,7 +61,11 @@
     --shadow:       0 1px 3px rgba(11, 43, 63, .07);
 }
 
-[data-theme="night"] {
+/* .dark = حالتِ شبِ پنلِ Filament (کلاس روی <html>). با نگاشتِ آن به همین پالتِ
+   شب، متغیرِ --bg تیره می‌شود و بک‌گراندِ اصلیِ پنلِ پشتیبان هم در نایت‌مود تیره
+   می‌گردد (قبلاً روشن می‌ماند چون Filament از data-theme استفاده نمی‌کند). */
+[data-theme="night"],
+.dark {
     --nav:          #0b1220;
     --nav-text:     #7b8ca3;
     --nav-on:       #ffffff;
@@ -95,10 +99,12 @@ body { background: var(--bg); color: var(--text); }
 }
 .app-footer__inner {
     display: flex;
+    flex-direction: column;      /* وسط‌چین و ستونی: کپی‌رایت بالا، خطِ نسخه/سامانه/سایت زیرِ آن */
     flex-wrap: wrap;
-    gap: 8px 18px;
+    gap: 6px;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    text-align: center;
     max-width: 1400px;
     margin-inline: auto;
     padding-inline: 22px;
@@ -122,7 +128,7 @@ body { background: var(--bg); color: var(--text); }
 .app-footer__meta a:hover { text-decoration: underline; }
 
 @media (max-width: 640px) {
-    .app-footer__inner { flex-direction: column; align-items: flex-start; }
+    .app-footer__inner { flex-direction: column; align-items: center; }
 }
 
 /* ---------- دسترس‌پذیری ---------- */
