@@ -388,8 +388,10 @@ class Backups extends Page
             return 'sudo systemctl enable --now soorin-scheduler.timer';
         }
 
-        // مسیرِ کاملِ artisan تا نیازی به cd و PATH نباشد (روی cronِ هاستِ اشتراکی امن‌تر است).
-        return '* * * * * php ' . base_path('artisan') . ' schedule:run >/dev/null 2>&1';
+        // فرمِ کرانِ DirectAdmin/cPanel فیلدِ زمان جداست، پس بدونِ «* * * * *»؛ و مسیرِ
+        // کاملِ php لازم است (این هاست‌ها «php» تنها را «Invalid command» می‌دهند).
+        // مسیرِ کاملِ artisan تا نیازی به cd و PATH نباشد.
+        return '/usr/local/bin/php ' . base_path('artisan') . ' schedule:run >/dev/null 2>&1';
     }
 
     /**
