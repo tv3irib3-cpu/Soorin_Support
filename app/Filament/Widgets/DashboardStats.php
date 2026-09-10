@@ -47,38 +47,44 @@ class DashboardStats extends StatsOverviewWidget
         $unread     = auth()->user() ? TicketRead::unreadCountFor(auth()->user()) : 0;
         $ticketsUrl = TicketResource::getUrl('index');
 
+        // اعداد به فارسی نمایش داده می‌شوند (قاعدهٔ پروژه: اعداد فارسی در نمایش).
+        $fa = fn (int $n) => \App\Support\Jalali::digits((string) $n);
+
         $stats = [];
 
         // نشانِ پیام‌های خوانده‌نشده — فقط وقتی بزرگ‌تر از صفر است، با رنگِ قرمز و کلیک‌پذیر.
         if ($unread > 0) {
-            $stats[] = Stat::make(__('portal.unread_messages'), (string) $unread)
+            $stats[] = Stat::make(__('portal.unread_messages'), $fa($unread))
                 ->icon('heroicon-o-chat-bubble-left-right')
                 ->description(__('tickets.unread'))
                 ->color('danger')
                 ->url($ticketsUrl);
         }
 
-        $stats[] = Stat::make(__('portal.open_tickets'), (string) $openTickets)
+        $stats[] = Stat::make(__('portal.open_tickets'), $fa($openTickets))
             ->icon('heroicon-o-ticket')
             ->color('info')
             ->url($ticketsUrl);
 
-        $stats[] = Stat::make(__('tickets.statuses.resolved'), (string) $resolvedThisMonth)
+        $stats[] = Stat::make(__('tickets.statuses.resolved'), $fa($resolvedThisMonth))
             ->icon('heroicon-o-check-circle')
             ->color('success')
             ->url($ticketsUrl);
 
-        $stats[] = Stat::make(__('invoices.plural'), (string) $unpaidInvoices)
+        $stats[] = Stat::make(__('invoices.plural'), $fa($unpaidInvoices))
             ->icon('heroicon-o-banknotes')
             ->color('warning')
             ->url(InvoiceResource::getUrl('index'));
 
-        $stats[] = Stat::make(__('tickets.sla_breached'), (string) $slaBreached)
+        $stats[] = Stat::make(__('tickets.sla_breached'), $fa($slaBreached))
             ->icon('heroicon-o-exclamation-triangle')
             ->color($slaBreached > 0 ? 'danger' : 'gray')
             ->url($ticketsUrl);
 
-        $stats[] = Stat::make(__('tickets.rating'), $avgRating ? number_format($avgRating, 1) . ' / ۵' : '—')
+        $stats[] = Stat::make(
+            __('tickets.rating'),
+            $avgRating ? \App\Support\Jalali::digits(number_format($avgRating, 1)) . ' / ۵' : '—'
+        )
             ->icon('heroicon-o-star')
             ->color('warning');
 

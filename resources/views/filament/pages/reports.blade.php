@@ -58,7 +58,7 @@
         </x-filament::section>
         <x-filament::section>
             <div class="text-sm text-gray-500">{{ __('reports.avg_rating') }}</div>
-            <div class="text-lg font-bold">{{ ($s['avg_rating'] ?? null) ? number_format($s['avg_rating'], 1) . ' / ۵' : '—' }}</div>
+            <div class="text-lg font-bold">{{ ($s['avg_rating'] ?? null) ? \App\Support\Jalali::digits(number_format($s['avg_rating'], 1)) . ' / ۵' : '—' }}</div>
         </x-filament::section>
     </div>
 
