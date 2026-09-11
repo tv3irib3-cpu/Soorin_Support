@@ -95,8 +95,10 @@ class TicketsTable
                 IconColumn::make('sla')
                     ->label(__('tickets.sla_breached'))
                     ->getStateUsing(fn (Ticket $record) => $record->isSlaBreached())
-                    ->icon(fn (bool $state) => $state ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-circle')
-                    ->color(fn (bool $state) => $state ? 'danger' : 'gray')
+                    // فقط وقتی واقعاً پاسخ معطل است علامتِ قرمز بخورد؛ در حالتِ عادی
+                    // خالی می‌ماند تا با «چکِ» قبلی به‌اشتباه «معطل = بله» خوانده نشود.
+                    ->icon(fn (bool $state) => $state ? 'heroicon-o-exclamation-triangle' : null)
+                    ->color('danger')
                     ->tooltip(fn (bool $state) => $state ? __('tickets.sla_breached_hint') : null),
 
                 TextColumn::make('rating')
