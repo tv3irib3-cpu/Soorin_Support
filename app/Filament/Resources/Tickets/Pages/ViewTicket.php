@@ -214,13 +214,15 @@ class ViewTicket extends ViewRecord
             Action::make('changeStatus')
                 ->label(__('tickets.change_status'))
                 ->icon('heroicon-o-arrow-path')
-                ->visible(fn () => ! empty($ticket->availableTransitions())
-                    && (auth()->user()?->can(Permission::ManageTickets->value) ?? false))
+                // مدیرِ پشتیبان کنترلِ کاملِ دستی دارد؛ همیشه در دسترس است.
+                ->visible(fn () => auth()->user()?->can(Permission::ManageTickets->value) ?? false)
                 ->schema(fn () => [
                     Select::make('status')
                         ->label(__('tickets.status'))
-                        ->options(collect($ticket->availableTransitions())
-                            ->mapWithKeys(fn ($s) => [$s => __("tickets.statuses.$s")]))
+                        // همهٔ وضعیت‌ها به‌جز وضعیتِ فعلی — مدیر می‌تواند هر وضعیتی را دستی بگذارد.
+                        ->options(collect(__('tickets.statuses'))
+                            ->except($this->getRecord()->status)
+                            ->all())
                         ->required()
                         ->native(false),
 
@@ -241,7 +243,10 @@ class ViewTicket extends ViewRecord
                     $ticket->refresh();
                     $from = $ticket->status;
 
-                    if (! $ticket->canTransitionTo($data['status'])) {
+                    // فقط باید یک وضعیتِ معتبر و متفاوت با وضعیتِ فعلی باشد (بدونِ محدودیتِ
+                    // نقشهٔ گذار — مدیر آزادیِ کامل دارد). TicketObserver خودش قفل/تاریخ‌ها
+                    // را بر اساس وضعیتِ جدید تنظیم می‌کند.
+                    if (! array_key_exists($data['status'], __('tickets.statuses')) || $data['status'] === $from) {
                         Notification::make()
                             ->danger()
                             ->title(__('tickets.invalid_transition', ['from' => $from, 'to' => $data['status']]))
