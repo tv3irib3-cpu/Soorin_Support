@@ -108,8 +108,10 @@ class TicketResource extends Resource
 
     public static function canEdit(mixed $record): bool
     {
-        // تیکت قفل‌شده حتی با مجوز مدیریت هم قابل ویرایش نیست
-        return ! $record->is_locked && (auth()->user()?->can(Permission::ManageTickets->value) ?? false);
+        // مدیرِ پشتیبان (مجوزِ مدیریتِ تیکت) می‌تواند تیکتِ بسته‌شده را هم ویرایش کند —
+        // برای اصلاحِ اطلاعات. قفلِ تیکت جلوی افزودنِ پیام/تغییرِ وضعیت را می‌گیرد،
+        // ولی ویرایشِ رکورد توسط مدیر مجاز است. (تیکت هرگز حذف نمی‌شود.)
+        return auth()->user()?->can(Permission::ManageTickets->value) ?? false;
     }
 
     /** تیکت هرگز حذف نمی‌شود — فقط قفل می‌شود. جدول اصلاً ستون حذف نرم ندارد. */
