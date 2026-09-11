@@ -116,14 +116,35 @@ class TicketWorkflowTest extends TestCase
         $this->assertNotNull($ticket->resolved_at);
     }
 
-    public function test_locked_ticket_rejects_further_transitions(): void
+    public function test_closed_ticket_can_be_reopened_to_in_progress_only(): void
     {
         $ticket = $this->newTicket();
         $ticket->update(['status' => Ticket::STATUS_IN_PROGRESS]);
         $ticket->update(['status' => Ticket::STATUS_RESOLVED]);
         $ticket->update(['status' => Ticket::STATUS_CLOSED]);
+        $ticket->refresh();
 
-        $this->assertFalse($ticket->fresh()->canTransitionTo(Ticket::STATUS_IN_PROGRESS));
+        // مدیرِ پشتیبان می‌تواند تیکتِ بسته را دوباره باز کند (به «در حال بررسی»)
+        $this->assertTrue($ticket->canTransitionTo(Ticket::STATUS_IN_PROGRESS));
+        $this->assertSame([Ticket::STATUS_IN_PROGRESS], $ticket->availableTransitions());
+        // ولی مستقیم به هیچ وضعیتِ دیگری نمی‌رود
+        $this->assertFalse($ticket->canTransitionTo(Ticket::STATUS_RESOLVED));
+        $this->assertFalse($ticket->canTransitionTo(Ticket::STATUS_CANCELLED));
+    }
+
+    public function test_reopening_closed_ticket_clears_the_lock(): void
+    {
+        $ticket = $this->newTicket();
+        $ticket->update(['status' => Ticket::STATUS_IN_PROGRESS]);
+        $ticket->update(['status' => Ticket::STATUS_RESOLVED]);
+        $ticket->update(['status' => Ticket::STATUS_CLOSED]);
+        $this->assertTrue($ticket->fresh()->is_locked);
+
+        // بازگشایی → قفل خودکار برداشته می‌شود
+        $ticket->update(['status' => Ticket::STATUS_IN_PROGRESS]);
+        $ticket->refresh();
+        $this->assertFalse($ticket->is_locked);
+        $this->assertSame(Ticket::STATUS_IN_PROGRESS, $ticket->status);
     }
 
     public function test_internal_note_is_excluded_from_public_messages(): void

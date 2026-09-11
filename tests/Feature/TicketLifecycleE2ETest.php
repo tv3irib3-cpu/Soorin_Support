@@ -144,7 +144,8 @@ class TicketLifecycleE2ETest extends TestCase
 
         $this->assertTrue($ticket->is_locked, 'تیکتِ بسته باید قفل شود');
         $this->assertNotNull($ticket->closed_at);
-        $this->assertSame([], $ticket->availableTransitions());
+        // تیکتِ بسته فقط قابلِ بازگشایی به «در حال بررسی» است (توسط مدیرِ پشتیبان).
+        $this->assertSame([Ticket::STATUS_IN_PROGRESS], $ticket->availableTransitions());
 
         // مشتری دیگر نمی‌تواند روی تیکتِ قفل‌شده پاسخ بگذارد
         $this->actingAs($this->creator)

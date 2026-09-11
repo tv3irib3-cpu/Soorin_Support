@@ -43,7 +43,10 @@ class Ticket extends Model
         self::STATUS_WAITING_SUPPORT  => [self::STATUS_IN_PROGRESS, self::STATUS_WAITING_CUSTOMER, self::STATUS_WAITING_PAYMENT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
         self::STATUS_WAITING_PAYMENT  => [self::STATUS_IN_PROGRESS, self::STATUS_WAITING_CUSTOMER, self::STATUS_WAITING_SUPPORT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
         self::STATUS_RESOLVED         => [self::STATUS_CLOSED, self::STATUS_IN_PROGRESS],
-        self::STATUS_CLOSED           => [],   // پایان راه — قفل می‌شود
+        // تیکتِ بسته قابلِ «بازگشایی» به «در حال بررسی» است (فقط مدیرِ پشتیبان از
+        // اکشنِ تغییر وضعیت). با بازگشایی، TicketObserver قفل را برمی‌دارد. تغییر در
+        // ticket_status_logs ثبت می‌شود، پس تاریخچه دست‌نخورده می‌ماند.
+        self::STATUS_CLOSED           => [self::STATUS_IN_PROGRESS],
         self::STATUS_CANCELLED        => [],
     ];
 
@@ -139,20 +142,20 @@ class Ticket extends Model
 
     // -------------------------------------------------------- چرخه وضعیت
 
-    /** آیا تغییر وضعیت به مقصد داده‌شده مجاز است؟ */
+    /**
+     * آیا تغییر وضعیت به مقصد داده‌شده مجاز است؟
+     * نقشهٔ TRANSITIONS مرجعِ نهایی است؛ تیکتِ بسته فقط می‌تواند به «در حال بررسی»
+     * بازگشایی شود (قفل مانعِ بازگشایی نیست — با بازگشایی خودکار برداشته می‌شود).
+     */
     public function canTransitionTo(string $status): bool
     {
-        if ($this->is_locked) {
-            return false;
-        }
-
         return in_array($status, self::TRANSITIONS[$this->status] ?? [], true);
     }
 
-    /** وضعیت‌هایی که از وضعیت فعلی می‌توان به آن‌ها رفت. */
+    /** وضعیت‌هایی که از وضعیت فعلی می‌توان به آن‌ها رفت (طبق نقشهٔ TRANSITIONS). */
     public function availableTransitions(): array
     {
-        return $this->is_locked ? [] : (self::TRANSITIONS[$this->status] ?? []);
+        return self::TRANSITIONS[$this->status] ?? [];
     }
 
     public function isOpen(): bool
