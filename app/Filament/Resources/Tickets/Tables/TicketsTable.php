@@ -114,6 +114,14 @@ class TicketsTable
                     ->sortable()
                     ->extraHeaderAttributes(['class' => 'hidden xl:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden xl:table-cell']),
+
+                TextColumn::make('closed_at')
+                    ->label(__('tickets.closed_at'))
+                    ->formatStateUsing(fn ($state) => $state ? \App\Support\Jalali::format($state) : '—')
+                    ->placeholder('—')
+                    ->sortable()
+                    ->extraHeaderAttributes(['class' => 'hidden xl:table-cell'])
+                    ->extraCellAttributes(['class' => 'hidden xl:table-cell']),
             ])
             ->filters([
                 SelectFilter::make('status')
