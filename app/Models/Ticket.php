@@ -43,11 +43,11 @@ class Ticket extends Model
         self::STATUS_WAITING_SUPPORT  => [self::STATUS_IN_PROGRESS, self::STATUS_WAITING_CUSTOMER, self::STATUS_WAITING_PAYMENT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
         self::STATUS_WAITING_PAYMENT  => [self::STATUS_IN_PROGRESS, self::STATUS_WAITING_CUSTOMER, self::STATUS_WAITING_SUPPORT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
         self::STATUS_RESOLVED         => [self::STATUS_CLOSED, self::STATUS_IN_PROGRESS],
-        // تیکتِ بسته قابلِ «بازگشایی» به «در حال بررسی» است (فقط مدیرِ پشتیبان از
-        // اکشنِ تغییر وضعیت). با بازگشایی، TicketObserver قفل را برمی‌دارد. تغییر در
-        // ticket_status_logs ثبت می‌شود، پس تاریخچه دست‌نخورده می‌ماند.
+        // تیکتِ بسته یا لغوشده قابلِ «بازگشایی» به «در حال بررسی» است (فقط مدیرِ
+        // پشتیبان از اکشنِ تغییر وضعیت). با بازگشاییِ تیکتِ بسته، TicketObserver قفل
+        // را برمی‌دارد. تغییر در ticket_status_logs ثبت می‌شود، پس تاریخچه می‌ماند.
         self::STATUS_CLOSED           => [self::STATUS_IN_PROGRESS],
-        self::STATUS_CANCELLED        => [],
+        self::STATUS_CANCELLED        => [self::STATUS_IN_PROGRESS],
     ];
 
     /**

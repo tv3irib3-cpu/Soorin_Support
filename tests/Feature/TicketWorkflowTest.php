@@ -132,6 +132,19 @@ class TicketWorkflowTest extends TestCase
         $this->assertFalse($ticket->canTransitionTo(Ticket::STATUS_CANCELLED));
     }
 
+    public function test_cancelled_ticket_can_be_reopened_to_in_progress(): void
+    {
+        $ticket = $this->newTicket();
+        $ticket->update(['status' => Ticket::STATUS_CANCELLED]);
+        $ticket->refresh();
+
+        $this->assertTrue($ticket->canTransitionTo(Ticket::STATUS_IN_PROGRESS));
+        $this->assertSame([Ticket::STATUS_IN_PROGRESS], $ticket->availableTransitions());
+
+        $ticket->update(['status' => Ticket::STATUS_IN_PROGRESS]);
+        $this->assertSame(Ticket::STATUS_IN_PROGRESS, $ticket->fresh()->status);
+    }
+
     public function test_reopening_closed_ticket_clears_the_lock(): void
     {
         $ticket = $this->newTicket();
