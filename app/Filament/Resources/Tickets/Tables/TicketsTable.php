@@ -117,9 +117,13 @@ class TicketsTable
 
                 TextColumn::make('closed_at')
                     ->label(__('tickets.closed_at'))
+                    // تیکتِ «حل‌شده» یعنی تمام‌شده؛ اگر هنوز رسماً بسته نشده، تاریخِ حل‌شدن
+                    // را نشان می‌دهیم تا ستون برای تیکتِ حل‌شده خالی (—) نماند.
+                    ->getStateUsing(fn (Ticket $record) => $record->closed_at ?? $record->resolved_at)
                     ->formatStateUsing(fn ($state) => $state ? \App\Support\Jalali::format($state) : '—')
                     ->placeholder('—')
-                    ->sortable()
+                    ->sortable(query: fn ($query, string $direction) => $query
+                        ->orderByRaw('COALESCE(closed_at, resolved_at) ' . $direction))
                     ->extraHeaderAttributes(['class' => 'hidden xl:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden xl:table-cell']),
             ])

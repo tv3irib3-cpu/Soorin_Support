@@ -64,7 +64,7 @@ return [
     'resolution'    => 'شرح راه‌حل',
     'first_response_at' => 'زمان اولین پاسخ',
     'resolved_at'   => 'زمان حل',
-    'closed_at'     => 'زمان بستن',
+    'closed_at'     => 'تاریخ بسته شدن',
     'is_locked'     => 'قفل‌شده',
 
     // گفتگو
