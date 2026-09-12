@@ -82,12 +82,13 @@ class ViewInvoice extends ViewRecord
 
         return [
             Action::make('issue')
-                ->label(__('invoices.statuses.issued'))
+                ->label(__('invoices.issue_action'))
                 ->icon('heroicon-o-paper-airplane')
                 ->color('success')
                 ->visible(fn () => $invoice->status === Invoice::STATUS_DRAFT
                     && (auth()->user()?->can(Permission::ManageInvoices->value) ?? false))
                 ->requiresConfirmation()
+                ->modalHeading(__('invoices.issue_action'))
                 ->action(function () use ($invoice) {
                     app(IssueInvoice::class)($invoice);
 

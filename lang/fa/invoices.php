@@ -51,6 +51,7 @@ return [
         'cancelled'      => 'لغوشده',
     ],
     'cancel_action' => 'لغو فاکتور',
+    'issue_action'  => 'صدور نهایی فاکتور',
 
     'is_warranty'       => 'تحت پوشش قرارداد',
     'is_warranty_badge' => 'رایگان تحت قرارداد',

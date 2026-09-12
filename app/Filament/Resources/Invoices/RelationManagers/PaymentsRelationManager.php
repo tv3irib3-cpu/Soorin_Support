@@ -27,6 +27,16 @@ class PaymentsRelationManager extends RelationManager
         return __('invoices.payments');
     }
 
+    /**
+     * به‌صورتِ پیش‌فرض، RelationManagerها روی صفحهٔ «مشاهده» فقط‌خواندنی‌اند، برای
+     * همین دکمهٔ «ثبت پرداخت» دیده نمی‌شد. اینجا برای کاربرِ دارای مجوزِ ثبتِ پرداخت
+     * قابلِ‌ویرایش می‌شود تا پرداخت‌ها از همان صفحهٔ فاکتور ثبت شوند.
+     */
+    public function isReadOnly(): bool
+    {
+        return ! (auth()->user()?->can(\App\Enums\Permission::ManagePayments->value) ?? false);
+    }
+
     public function form(Schema $schema): Schema
     {
         $invoice = $this->getOwnerRecord();

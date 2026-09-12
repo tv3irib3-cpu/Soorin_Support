@@ -91,6 +91,22 @@
 html { font-family: Vazirmatn, system-ui, sans-serif; }
 body { background: var(--bg); color: var(--text); }
 
+/* ---------- برندِ سفارشیِ پنل (لوگو + نامِ شرکت/سامانه) ----------
+   این قواعد اینجا (نه داخلِ بلیدِ برند) هستند چون این فایل قطعاً در <head>
+   پنل تزریق می‌شود (همان مکانیزمی که بک‌گراندِ نایت‌مود را درست کرد)؛ پس
+   وابسته به بارگذاریِ <style>ِ درون‌خطی نیست. حالتِ شبِ Filament کلاسِ .dark
+   را روی <html> می‌گذارد. */
+.soorin-brand { display: flex; align-items: center; gap: 10px; }
+.soorin-brand__logo { height: 2.5rem; width: auto; }
+.soorin-brand__logo--dark { display: none; }            /* روز: فقط لوگوی روشن */
+.dark .soorin-brand__logo--light { display: none; }     /* شب: لوگوی روشن پنهان */
+.dark .soorin-brand__logo--dark { display: inline-block; }
+.soorin-brand__text { display: flex; flex-direction: column; line-height: 1.2; }
+.soorin-brand__company { font-weight: 800; font-size: .95rem; color: #1f2937; }
+.soorin-brand__app { font-size: .7rem; opacity: .65; color: #1f2937; }
+.dark .soorin-brand__company,
+.dark .soorin-brand__app { color: #ffffff; }
+
 /* ---------- فوتر ---------- */
 .app-footer {
     border-top: 1px solid var(--border);
