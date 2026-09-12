@@ -15,7 +15,10 @@ use App\Observers\ContractObserver;
 use App\Observers\InvoiceObserver;
 use App\Observers\TicketMessageObserver;
 use App\Observers\TicketObserver;
+use App\Models\ActivityLog;
 use App\Services\Sms\LogSmsGateway;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
@@ -60,5 +63,27 @@ class AppServiceProvider extends ServiceProvider
         foreach ([Invoice::class, Customer::class, Contract::class, User::class, Payment::class] as $auditable) {
             $auditable::observe(AuditObserver::class);
         }
+
+        // ثبتِ «آخرین ورود» و سیاههٔ ورود — یک‌جا برای هر دو مسیرِ ورود: پنلِ ادمین
+        // (ورودِ Filament) و پرتال (LoginAttempt هر دو رویدادِ Login را می‌زنند). پیش‌تر
+        // فقط پرتال ثبت می‌کرد، پس آخرین ورودِ کاربرِ پشتیبان خالی می‌ماند.
+        Event::listen(Login::class, function (Login $event): void {
+            $user = $event->user;
+
+            if (! $user instanceof User || ! $user->is_active) {
+                return;
+            }
+
+            $user->forceFill([
+                'last_login_at' => now(),
+                'last_login_ip' => request()->ip(),
+            ])->saveQuietly();
+
+            try {
+                ActivityLog::record('login', $user);
+            } catch (\Throwable) {
+                // نبودِ جدولِ سیاهه نباید ورود را خراب کند
+            }
+        });
     }
 }

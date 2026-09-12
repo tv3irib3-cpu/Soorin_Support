@@ -10,6 +10,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class UsersTable
 {
@@ -17,11 +18,12 @@ class UsersTable
     {
         return $table
             ->columns([
-                TextColumn::make('name')->label(__('users.name'))->searchable()->weight('medium'),
-                TextColumn::make('email')->label(__('users.email_or_username'))->searchable(),
+                TextColumn::make('name')->label(__('users.name'))->searchable()->sortable()->weight('medium'),
+                TextColumn::make('email')->label(__('users.email_or_username'))->searchable()->sortable(),
                 TextColumn::make('user_type')
                     ->label(__('users.user_type'))
                     ->badge()
+                    ->sortable()
                     ->formatStateUsing(fn (string $state) => __("auth.types.$state"))
                     // مدیرِ پشتیبان آبی، کارشناسِ پشتیبان سبز؛ مدیر/کارشناسِ مشتری
                     // از یک خانواده (کهربایی/نارنجی) ولی متمایز از هم.
@@ -35,6 +37,7 @@ class UsersTable
                 TextColumn::make('customer.name')
                     ->label(__('users.customer'))
                     ->placeholder('—')
+                    ->sortable()
                     // نامِ مشتری با رنگِ اختصاصیِ خودش.
                     ->html()
                     ->formatStateUsing(function ($state, $record) {
@@ -50,11 +53,26 @@ class UsersTable
                     }),
                 TextColumn::make('last_login_at')
                     ->label(__('auth.last_login_at'))
+                    ->sortable()
                     ->formatStateUsing(fn ($state) => $state ? \App\Support\Jalali::formatDateTime($state) : '—')
                     ->extraHeaderAttributes(['class' => 'hidden lg:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden lg:table-cell']),
                 IconColumn::make('is_active')->label(__('users.active'))->boolean(),
             ])
+            // ترتیبِ پیش‌فرض: اول مدیرانِ پشتیبان، بعد کارشناسانِ پشتیبان، سپس هر مشتری
+            // زیرِ هم (اول مدیرانِ همان مشتری، بعد کارشناسانش). وقتی کاربر روی ستونی
+            // کلیک کند، این ترتیب کنار می‌رود و مرتب‌سازیِ همان ستون اعمال می‌شود.
+            ->defaultSort(fn (Builder $query): Builder => $query
+                ->orderByRaw("CASE `user_type`
+                    WHEN 'support_admin' THEN 0
+                    WHEN 'support_staff' THEN 1
+                    ELSE 2 END")
+                ->orderBy('customer_id')
+                ->orderByRaw("CASE `user_type`
+                    WHEN 'customer_admin' THEN 0
+                    WHEN 'customer_staff' THEN 1
+                    ELSE 0 END")
+                ->orderBy('name'))
             ->filters([
                 SelectFilter::make('user_type')->label(__('users.user_type'))->options(__('auth.types')),
             ])

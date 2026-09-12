@@ -2,7 +2,6 @@
 
 namespace App\Auth;
 
-use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -44,7 +43,9 @@ class LoginAttempt
             ]);
         }
 
-        $this->recordLogin($user);
+        // ثبتِ «آخرین ورود» و سیاههٔ ورود در AppServiceProvider روی رویدادِ Login
+        // انجام می‌شود (Auth::attempt بالا آن را زده) تا برای پنلِ ادمین و پرتال یکسان
+        // باشد و دوبار ثبت نشود.
 
         return $user;
     }
@@ -70,16 +71,6 @@ class LoginAttempt
         return $user->email
             ? ['email' => $user->email, 'password' => $this->password]
             : ['mobile' => $user->mobile, 'password' => $this->password];
-    }
-
-    private function recordLogin(User $user): void
-    {
-        $user->forceFill([
-            'last_login_at' => now(),
-            'last_login_ip' => request()->ip(),
-        ])->save();
-
-        ActivityLog::record('login', $user);
     }
 
     /**
