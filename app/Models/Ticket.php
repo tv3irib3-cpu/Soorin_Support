@@ -239,7 +239,13 @@ class Ticket extends Model
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
         if ($user->isSupportUser()) {
-            return $query;
+            // مدیرِ پشتیبان همهٔ تیکت‌ها را می‌بیند؛ کارشناس فقط تیکت‌هایی که به
+            // خودش تخصیص یافته (با تغییرِ تخصیص، از پنلِ کارشناسِ قبلی پنهان می‌شود).
+            if ($user->isSupportAdmin()) {
+                return $query;
+            }
+
+            return $query->where('assigned_to', $user->id);
         }
 
         // کاربر مشتری هرگز نباید داده مشتری دیگر را ببیند — این شرط همیشه اعمال می‌شود

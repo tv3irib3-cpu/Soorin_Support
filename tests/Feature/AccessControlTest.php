@@ -146,18 +146,39 @@ class AccessControlTest extends TestCase
         $this->assertFalse($limited->fresh()->canCreateTicket());
     }
 
-    public function test_support_user_sees_every_customer(): void
+    public function test_support_admin_sees_every_customer(): void
     {
-        $support = User::create([
-            'name'      => 'کارشناس پشتیبان',
-            'email'     => 'staff@dpst.ir',
+        $admin = User::create([
+            'name'      => 'مدیر پشتیبان',
+            'email'     => 'admin@dpst.ir',
             'password'  => 'secret123',
-            'user_type' => User::TYPE_SUPPORT_STAFF,
+            'user_type' => User::TYPE_SUPPORT_ADMIN,
         ]);
 
         $this->ticketFor($this->aria, $this->bushehr);
         $this->ticketFor($this->other);
 
-        $this->assertCount(2, Ticket::visibleTo($support)->get());
+        $this->assertCount(2, Ticket::visibleTo($admin)->get());
+    }
+
+    public function test_support_staff_sees_only_tickets_assigned_to_them(): void
+    {
+        $staff1 = User::create(['name' => 'کارشناس ۱', 'email' => 's1@dpst.ir', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_STAFF]);
+        $staff2 = User::create(['name' => 'کارشناس ۲', 'email' => 's2@dpst.ir', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_STAFF]);
+
+        $mine   = $this->ticketFor($this->aria, $this->bushehr);
+        $mine->update(['assigned_to' => $staff1->id]);
+        $theirs = $this->ticketFor($this->other);
+        $theirs->update(['assigned_to' => $staff2->id]);
+
+        $visible = Ticket::visibleTo($staff1)->pluck('id');
+
+        $this->assertContains($mine->id, $visible);
+        $this->assertNotContains($theirs->id, $visible);
+
+        // پس از تغییر تخصیص به کارشناس ۲، از دیدِ کارشناس ۱ پنهان می‌شود
+        $mine->update(['assigned_to' => $staff2->id]);
+        $this->assertNotContains($mine->id, Ticket::visibleTo($staff1)->pluck('id'));
+        $this->assertContains($mine->id, Ticket::visibleTo($staff2)->pluck('id'));
     }
 }

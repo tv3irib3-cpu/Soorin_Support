@@ -12,6 +12,9 @@ Artisan::command('inspire', function () {
 // هر شب ساعت ۰۲:۳۰ — روی هاست اشتراکی با کرون‌جاب هر دقیقه (schedule:run) فعال می‌شود
 Schedule::command('contracts:expire')->dailyAt('02:30');
 
+// تعلیقِ خودکارِ مشتریانِ دارای بدهیِ سررسیدشده — روزی یک‌بار (هر فاکتور فقط یک‌بار).
+Schedule::command('customers:suspend-overdue')->dailyAt('02:40');
+
 // بررسیِ روزانهٔ نسخهٔ جدید روی گیت‌هاب (نشانِ قرمزِ منوی «به‌روزرسانی» از کش می‌خواند).
 // اگر cron/زمان‌بند فعال نباشد، برنامه خودش با defer() روزی یک‌بار کش را تازه می‌کند.
 Schedule::command('soorin:check-update')->dailyAt('03:20')->runInBackground();

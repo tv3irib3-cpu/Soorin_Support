@@ -14,9 +14,10 @@
     .summary-table .label { color: #5f7d8c; background: #eef4f6; }
     .summary-table .value { font-weight: bold; }
     .section-title { font-size: 11.5pt; font-weight: bold; color: #0f2d4d; margin-top: 16px; margin-bottom: 6px; }
-    .data-table th { background: #0f2d4d; color: #fff; padding: 5px 8px; font-size: 9pt; text-align: right; }
-    .data-table td { padding: 5px 8px; font-size: 9pt; border-bottom: 1px solid #dde8ec; }
-    .data-table .num { text-align: left; direction: ltr; }
+    .data-table th { background: #0f2d4d; color: #fff; padding: 5px 8px; font-size: 9pt; text-align: center; vertical-align: middle; }
+    .data-table td { padding: 5px 8px; font-size: 9pt; border-bottom: 1px solid #dde8ec; text-align: center; vertical-align: middle; }
+    .data-table .num { text-align: center; direction: ltr; }
+    .summary-table .value { text-align: center; }
     .footer-note { margin-top: 20px; font-size: 8pt; color: #5f7d8c; text-align: center; }
 </style>
 </head>
@@ -42,6 +43,12 @@
             <td class="value">{{ $money($report['summary']['service_value'] ?? 0) }} {{ __('common.currency') }}</td>
         </tr>
         <tr>
+            <td class="label">{{ __('reports.paid') }}</td>
+            <td class="value">{{ $money($report['summary']['paid'] ?? 0) }} {{ __('common.currency') }}</td>
+            <td class="label">{{ __('reports.debt') }}</td>
+            <td class="value">{{ $money($report['summary']['debt'] ?? 0) }} {{ __('common.currency') }}</td>
+        </tr>
+        <tr>
             <td class="label">{{ __('reports.warranty_value') }}</td>
             <td class="value">{{ $money($report['summary']['warranty_value']) }} {{ __('common.currency') }}</td>
             <td class="label">{{ __('reports.service_count') }}</td>
@@ -63,7 +70,9 @@
             <th>{{ __('reports.col_tickets') }}</th>
             <th>{{ __('reports.col_minutes') }}</th>
             <th>{{ __('reports.col_service') }}</th>
-            <th>{{ __('reports.col_invoiced') }}</th>
+            <th>{{ __('reports.col_total') }}</th>
+            <th>{{ __('reports.col_paid') }}</th>
+            <th>{{ __('reports.col_debt') }}</th>
             <th>{{ __('reports.col_warranty') }}</th>
         </tr></thead>
         <tbody>
@@ -74,11 +83,13 @@
                 <td class="num">{{ $digits($row['tickets']) }}</td>
                 <td class="num">{{ $digits($row['minutes']) }}</td>
                 <td class="num">{{ $money($row['service'] ?? 0) }}</td>
-                <td class="num">{{ $money($row['invoiced']) }}</td>
+                <td class="num">{{ $money($row['total'] ?? 0) }}</td>
+                <td class="num">{{ $money($row['paid'] ?? 0) }}</td>
+                <td class="num">{{ $money($row['debt'] ?? 0) }}</td>
                 <td class="num">{{ $money($row['warranty']) }}</td>
             </tr>
         @empty
-            <tr><td colspan="7">{{ __('reports.empty') }}</td></tr>
+            <tr><td colspan="9">{{ __('reports.empty') }}</td></tr>
         @endforelse
         </tbody>
     </table>

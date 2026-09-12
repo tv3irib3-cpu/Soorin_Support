@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Contracts\Tables;
 
+use App\Enums\Permission;
 use App\Support\Jalali;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -61,7 +62,14 @@ class ContractsTable
                     ->label(__('contracts.status'))
                     ->options(__('contracts.statuses')),
             ])
-            ->recordActions([EditAction::make(), DeleteAction::make()])
+            ->recordActions([
+                // ویرایش و حذف فقط برای دارندهٔ مجوزِ مدیریتِ قرارداد (کارشناسِ بدونِ
+                // این مجوز نباید بتواند حذف کند — رفعِ باگِ حذفِ قرارداد توسطِ کارشناس).
+                EditAction::make()
+                    ->visible(fn () => auth()->user()?->can(Permission::ManageContracts->value) ?? false),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can(Permission::ManageContracts->value) ?? false),
+            ])
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading(__('contracts.empty_heading'))
             ->emptyStateDescription(__('contracts.empty_body'));

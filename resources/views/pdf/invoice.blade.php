@@ -21,12 +21,12 @@
     .summary-table { margin-top: 14px; width: 55%; margin-inline-start: auto; }
     .summary-table td { padding: 5px 8px; font-size: 10pt; }
     .summary-table .label { color: #5f7d8c; }
-    .summary-table .value { text-align: left; direction: ltr; font-weight: bold; }
+    .summary-table .value { text-align: center; direction: ltr; font-weight: bold; }
     .summary-table .payable-row { background: #ccfbf1; }
     .summary-table .payable-row .value { color: #0f766e; font-size: 12pt; }
     .warranty-badge { display: inline-block; background: #ccfbf1; color: #0f766e; padding: 2px 10px; border-radius: 10px; font-size: 9pt; }
-    .payments-table th { background: #eef4f6; padding: 5px 8px; font-size: 9pt; text-align: right; }
-    .payments-table td { padding: 5px 8px; font-size: 9pt; border-bottom: 1px solid #dde8ec; }
+    .payments-table th { background: #eef4f6; padding: 5px 8px; font-size: 9pt; text-align: center; vertical-align: middle; }
+    .payments-table td { padding: 5px 8px; font-size: 9pt; border-bottom: 1px solid #dde8ec; text-align: center; vertical-align: middle; }
     .footer-note { margin-top: 24px; font-size: 8.5pt; color: #5f7d8c; text-align: center; }
     .section-title { font-size: 11pt; font-weight: bold; color: #0f2d4d; margin-top: 16px; margin-bottom: 6px; }
 </style>
@@ -47,6 +47,9 @@
                 <div class="invoice-title">{{ __('invoices.invoice_title') }}</div>
                 <div class="invoice-meta">{{ __('invoices.number') }}: {{ $invoice->number }}</div>
                 <div class="invoice-meta">{{ __('invoices.issue_date') }}: {{ $date($invoice->issue_date) }}</div>
+                @if ($invoice->due_date)
+                    <div class="invoice-meta">{{ __('invoices.due_date') }}: {{ $date($invoice->due_date) }}</div>
+                @endif
             </td>
         </tr>
     </table>
@@ -80,7 +83,8 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th style="width: 40%;">{{ __('invoices.item_title') }}</th>
+                <th style="width: 8%;">{{ __('invoices.row') }}</th>
+                <th style="width: 36%;">{{ __('invoices.item_title') }}</th>
                 <th>{{ __('invoices.quantity') }}</th>
                 <th>{{ __('invoices.unit_price') }}</th>
                 <th>{{ __('invoices.cover_percent') }}</th>
@@ -90,6 +94,7 @@
         <tbody>
             @foreach ($invoice->items as $item)
             <tr>
+                <td class="num">{{ \App\Support\Jalali::digits((string) $loop->iteration) }}</td>
                 <td>{{ $item->title }}</td>
                 <td class="num">{{ \App\Support\Jalali::digits(rtrim(rtrim($item->quantity, '0'), '.') ?: '0') }}</td>
                 <td class="num">{{ $money($item->unit_price) }}</td>
@@ -121,9 +126,20 @@
             <td class="label">{{ __('invoices.contract_amount') }}</td>
             <td class="value">{{ $money($invoice->contract_amount) }} {{ __('common.currency') }}</td>
         </tr>
-        <tr class="payable-row">
-            <td class="label"><strong>{{ __('invoices.payable_amount') }}</strong></td>
+        <tr>
+            <td class="label">{{ __('invoices.payable_amount') }}</td>
             <td class="value">{{ $money($invoice->payable_amount) }} {{ __('common.currency') }}</td>
+        </tr>
+        @if ($invoice->paid_amount > 0)
+        <tr>
+            <td class="label">{{ __('invoices.paid_amount') }}</td>
+            <td class="value">{{ $money($invoice->paid_amount) }} {{ __('common.currency') }}</td>
+        </tr>
+        @endif
+        {{-- عددِ برجسته = ماندهٔ بدهیِ مشتری (نه کلِ فاکتور). --}}
+        <tr class="payable-row">
+            <td class="label"><strong>{{ __('invoices.balance') }}</strong></td>
+            <td class="value">{{ $money($invoice->balance()) }} {{ __('common.currency') }}</td>
         </tr>
     </table>
 
@@ -133,11 +149,17 @@
         </div>
     @endif
 
+    @if (filled($invoice->notes))
+        <div class="section-title">{{ __('invoices.notes') }}</div>
+        <div style="font-size: 9.5pt; line-height: 1.7;">{{ $invoice->notes }}</div>
+    @endif
+
     @if ($invoice->payments->isNotEmpty())
         <div class="section-title">{{ __('invoices.payments') }}</div>
         <table class="payments-table">
             <thead>
                 <tr>
+                    <th style="width: 8%;">{{ __('invoices.row') }}</th>
                     <th>{{ __('invoices.paid_at') }}</th>
                     <th>{{ __('invoices.method') }}</th>
                     <th>{{ __('invoices.reference') }}</th>
@@ -147,6 +169,7 @@
             <tbody>
                 @foreach ($invoice->payments as $payment)
                 <tr>
+                    <td class="num">{{ \App\Support\Jalali::digits((string) $loop->iteration) }}</td>
                     <td>{{ $date($payment->paid_at) }}</td>
                     <td>{{ __('invoices.methods.' . $payment->method) }}</td>
                     <td>{{ $payment->reference ?: '—' }}</td>

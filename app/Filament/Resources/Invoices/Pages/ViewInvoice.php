@@ -38,8 +38,18 @@ class ViewInvoice extends ViewRecord
                     TextEntry::make('issue_date')
                         ->label(__('invoices.issue_date'))
                         ->formatStateUsing(fn ($state) => Jalali::format($state)),
+                    TextEntry::make('due_date')
+                        ->label(__('invoices.due_date'))
+                        ->placeholder('—')
+                        ->formatStateUsing(fn ($state) => $state ? Jalali::format($state) : '—'),
                     TextEntry::make('ticket.number')->label(__('invoices.ticket'))->placeholder('—'),
                     TextEntry::make('contract.number')->label(__('invoices.contract'))->placeholder('—'),
+                ]),
+
+            Section::make(__('invoices.notes'))
+                ->visible(fn () => filled($invoice->notes))
+                ->schema([
+                    TextEntry::make('notes')->hiddenLabel(),
                 ]),
 
             // سه عدد کلیدی — قاعده ثابت پروژه
@@ -95,13 +105,6 @@ class ViewInvoice extends ViewRecord
                     Notification::make()->success()->title(__('common.saved'))->send();
                 }),
 
-            Action::make('viewPdf')
-                ->label(__('invoices.pdf'))
-                ->icon('heroicon-o-document-text')
-                ->visible(fn () => $invoice->status !== Invoice::STATUS_DRAFT)
-                ->url(fn () => route('invoices.pdf.view', $invoice))
-                ->openUrlInNewTab(),
-
             Action::make('downloadPdf')
                 ->label(__('invoices.print'))
                 ->icon('heroicon-o-printer')
@@ -128,6 +131,11 @@ class ViewInvoice extends ViewRecord
             EditAction::make()
                 ->visible(fn () => $invoice->status === Invoice::STATUS_DRAFT
                     && (auth()->user()?->can(Permission::ManageInvoices->value) ?? false)),
+
+            // حذفِ فاکتور — فقط مدیرِ پشتیبان.
+            \Filament\Actions\DeleteAction::make()
+                ->visible(fn () => auth()->user()?->isSupportAdmin() ?? false)
+                ->successRedirectUrl(fn () => InvoiceResource::getUrl('index')),
         ];
     }
 }

@@ -76,25 +76,34 @@ class ItemsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('title')
             ->columns([
+                TextColumn::make('rowIndex')
+                    ->label(__('invoices.row'))
+                    ->state(fn ($rowLoop) => \App\Support\Jalali::digits((string) $rowLoop->iteration))
+                    ->alignCenter(),
+
                 TextColumn::make('item_type')
                     ->label(__('invoices.item_type'))
                     ->badge()
+                    ->alignCenter()
                     ->formatStateUsing(fn (string $state) => __("invoices.item_types.$state")),
 
                 TextColumn::make('title')->label(__('invoices.item_title'))->weight(FontWeight::Medium),
 
-                TextColumn::make('quantity')->label(__('invoices.quantity')),
+                TextColumn::make('quantity')->label(__('invoices.quantity'))->alignCenter(),
 
                 TextColumn::make('unit_price')
                     ->label(__('invoices.unit_price'))
+                    ->alignCenter()
                     ->formatStateUsing(fn ($state) => \App\Support\Jalali::money($state)),
 
                 TextColumn::make('contract_cover_percent')
                     ->label(__('invoices.cover_percent'))
+                    ->alignCenter()
                     ->suffix('٪'),
 
                 TextColumn::make('line_total')
                     ->label(__('invoices.line_total'))
+                    ->alignCenter()
                     ->formatStateUsing(fn ($state) => \App\Support\Jalali::money($state))
                     ->weight(FontWeight::Bold),
             ])

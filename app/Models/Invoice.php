@@ -48,7 +48,7 @@ class Invoice extends Model
         'issue_date', 'due_date',
         'service_amount', 'parts_amount', 'discount_amount',
         'contract_amount', 'payable_amount', 'paid_amount',
-        'status', 'is_warranty', 'notes', 'created_by',
+        'status', 'is_warranty', 'notes', 'created_by', 'overdue_suspended_at',
     ];
 
     protected function casts(): array
@@ -56,6 +56,7 @@ class Invoice extends Model
         return [
             'issue_date'      => 'date',
             'due_date'        => 'date',
+            'overdue_suspended_at' => 'datetime',
             'service_amount'  => 'integer',
             'parts_amount'    => 'integer',
             'discount_amount' => 'integer',

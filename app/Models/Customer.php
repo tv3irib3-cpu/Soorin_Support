@@ -22,7 +22,9 @@ class Customer extends Model
 
     public const STATUS_ACTIVE    = 'active';
     public const STATUS_SUSPENDED = 'suspended';
-    public const STATUS_BLOCKED   = 'blocked';
+
+    /** پیامِ تعلیقِ خودکار به‌دلیلِ بدهیِ سررسیدشده. */
+    public const OVERDUE_SUSPENSION_MESSAGE = 'دسترسی شما به دلیل وجود بدهی سررسید شده به طور خودکار توسط سامانه معلق گردیده';
 
     /** پیش‌فرض روی خودِ مدل — وگرنه بلافاصله بعد از create() مقدار در حافظه null است. */
     protected $attributes = [

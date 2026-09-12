@@ -97,8 +97,8 @@ class CustomerForm
                         ->label(__('customers.suspension_message'))
                         ->rows(3)
                         ->columnSpanFull()
-                        // فقط وقتی معنی دارد که خدمات‌دهی متوقف باشد
-                        ->visible(fn ($get) => in_array($get('service_status'), ['suspended', 'blocked'], true)),
+                        // فقط وقتی معنی دارد که خدمات‌دهی متوقف (معلق) باشد
+                        ->visible(fn ($get) => $get('service_status') === 'suspended'),
                 ]),
 
             Section::make(__('customers.access'))

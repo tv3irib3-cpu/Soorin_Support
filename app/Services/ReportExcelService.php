@@ -22,7 +22,7 @@ class ReportExcelService
         $this->summarySheet($spreadsheet, $report);
         $this->tableSheet(
             $spreadsheet, 'مشتریان', $report['by_customer'],
-            ['customer' => 'مشتری', 'created' => 'تیکت ثبت‌شده', 'tickets' => 'تیکت حل‌شده', 'minutes' => 'زمان کارکرد (دقیقه)', 'service' => 'ارزش خدمت (ریال)', 'invoiced' => 'پرداختی مشتری (ریال)', 'warranty' => 'سهم قرارداد/گارانتی (ریال)'],
+            ['customer' => 'مشتری', 'created' => 'تیکت ثبت‌شده', 'tickets' => 'تیکت حل‌شده', 'minutes' => 'زمان کارکرد (دقیقه)', 'service' => 'ارزش خدمت (ریال)', 'total' => 'مبلغ کل فاکتور (ریال)', 'paid' => 'پرداختی مشتری (ریال)', 'debt' => 'بدهی مشتری (ریال)', 'warranty' => 'سهم قرارداد/گارانتی (ریال)'],
         );
         $this->tableSheet(
             $spreadsheet, 'پروژه‌ها', $report['by_project'] ?? collect(),
@@ -66,7 +66,9 @@ class ReportExcelService
             ['تیکت‌های هنوز باز', $sum['tickets_still_open'] ?? '—'],
             ['میانگین زمان حل (ساعت)', $sum['avg_resolution_hours'] ?? '—'],
             ['نقض تعهد پاسخ (SLA)', $sum['sla_breaches'] ?? '—'],
-            ['درآمد دوره (ریال)', $sum['revenue']],
+            ['مبلغ کل فاکتورها (ریال)', $sum['revenue']],
+            ['پرداختی مشتریان (ریال)', $sum['paid'] ?? '—'],
+            ['بدهی مشتریان (ریال)', $sum['debt'] ?? '—'],
             ['ارزش کل خدمات صادرشده (ریال)', $sum['service_value'] ?? '—'],
             ['ارزش خدمات رایگان تحت قرارداد (ریال)', $sum['warranty_value']],
             ['تعداد فاکتور', $sum['invoice_count'] ?? '—'],

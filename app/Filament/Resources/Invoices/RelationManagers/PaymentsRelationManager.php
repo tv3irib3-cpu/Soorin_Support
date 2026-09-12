@@ -73,21 +73,29 @@ class PaymentsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('amount')
             ->columns([
+                TextColumn::make('rowIndex')
+                    ->label(__('invoices.row'))
+                    ->state(fn ($rowLoop) => Jalali::digits((string) $rowLoop->iteration))
+                    ->alignCenter(),
+
                 TextColumn::make('amount')
                     ->label(__('invoices.amount'))
+                    ->alignCenter()
                     ->formatStateUsing(fn ($state) => Jalali::money($state)),
 
                 TextColumn::make('paid_at')
                     ->label(__('invoices.paid_at'))
+                    ->alignCenter()
                     ->formatStateUsing(fn ($state) => Jalali::format($state)),
 
                 TextColumn::make('method')
                     ->label(__('invoices.method'))
+                    ->alignCenter()
                     ->formatStateUsing(fn (string $state) => __("invoices.methods.$state")),
 
-                TextColumn::make('reference')->label(__('invoices.reference'))->placeholder('—'),
+                TextColumn::make('reference')->label(__('invoices.reference'))->placeholder('—')->alignCenter(),
 
-                TextColumn::make('registrar.name')->label(__('invoices.registered_by'))->placeholder('—'),
+                TextColumn::make('registrar.name')->label(__('invoices.registered_by'))->placeholder('—')->alignCenter(),
             ])
             ->headerActions([
                 CreateAction::make()

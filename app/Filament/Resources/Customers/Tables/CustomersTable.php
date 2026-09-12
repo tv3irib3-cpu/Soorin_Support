@@ -62,8 +62,7 @@ class CustomersTable
                     ->formatStateUsing(fn (string $state) => __("customers.service_statuses.$state"))
                     ->color(fn (string $state) => match ($state) {
                         'active'    => 'success',
-                        'suspended' => 'warning',
-                        'blocked'   => 'danger',
+                        'suspended' => 'danger',
                         default     => 'gray',
                     }),
 

@@ -16,10 +16,27 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class TicketResource extends Resource
 {
     protected static ?string $model = Ticket::class;
+
+    /**
+     * دامنهٔ دیدِ تیکت‌ها در پنل: مدیرِ پشتیبان همه را می‌بیند؛ کارشناس فقط تیکت‌های
+     * تخصیص‌یافته به خودش (با تغییرِ تخصیص، از پنلِ کارشناسِ قبلی پنهان می‌شود).
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user && $user->isSupportUser() && ! $user->isSupportAdmin()) {
+            $query->where('assigned_to', $user->id);
+        }
+
+        return $query;
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;
 

@@ -62,8 +62,13 @@ class ReportService
             ->filter(fn (Ticket $t) => $t->resolved_at !== null)
             ->map(fn (Ticket $t) => $t->created_at->diffInMinutes($t->resolved_at) / 60);
 
+        $payable = (int) $invoices->sum('payable_amount');
+        $paid    = (int) $invoices->sum('paid_amount');
+
         return [
-            'revenue'              => (int) $invoices->sum('payable_amount'),
+            'revenue'              => $payable,                 // مبلغِ کلِ فاکتورها (قابل‌پرداخت)
+            'paid'                 => $paid,                    // مجموعِ پرداختِ واقعی
+            'debt'                 => max(0, $payable - $paid), // بدهیِ باقی‌مانده
             'warranty_value'       => (int) $invoices->sum('contract_amount'),
             'service_value'        => (int) $invoices->sum('service_amount'),
             'invoice_count'        => $invoices->count(),
@@ -121,7 +126,10 @@ class ReportService
                 'tickets'  => $cResolved->count(),   // حل‌شده (کلیدِ سازگار با اکسل)
                 'minutes'  => (int) $cResolved->sum('work_minutes'),
                 'service'  => (int) $cInvoices->sum('service_amount'),   // ارزشِ واقعیِ خدمت
-                'invoiced' => (int) $cInvoices->sum('payable_amount'),   // پرداختیِ مشتری
+                'total'    => (int) $cInvoices->sum('payable_amount'),   // مبلغِ کلِ فاکتور (قابل‌پرداخت)
+                'paid'     => (int) $cInvoices->sum('paid_amount'),      // پرداختِ واقعیِ مشتری
+                'debt'     => max(0, (int) $cInvoices->sum('payable_amount') - (int) $cInvoices->sum('paid_amount')), // بدهی
+                'invoiced' => (int) $cInvoices->sum('payable_amount'),   // (سازگاری با اکسل قدیمی)
                 'warranty' => (int) $cInvoices->sum('contract_amount'),  // سهمِ گارانتی/قرارداد
             ];
         })

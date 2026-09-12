@@ -17,6 +17,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class InvoiceResource extends Resource
 {
@@ -85,10 +86,25 @@ class InvoiceResource extends Resource
             && (auth()->user()?->can(Permission::ManageInvoices->value) ?? false);
     }
 
-    /** فاکتور صادرشده هرگز حذف نمی‌شود — فقط لغو. پیش‌نویس قابل حذف است. */
+    /** حذفِ فاکتور فقط برای مدیرِ پشتیبان (هر وضعیتی) — طبقِ درخواستِ مالک. */
     public static function canDelete(mixed $record): bool
     {
-        return $record->status === Invoice::STATUS_DRAFT
-            && (auth()->user()?->can(Permission::ManageInvoices->value) ?? false);
+        return auth()->user()?->isSupportAdmin() ?? false;
+    }
+
+    /**
+     * دامنهٔ دیدِ فاکتورها: مدیرِ پشتیبان همه را می‌بیند؛ کارشناسِ پشتیبان فقط
+     * فاکتورهای تیکت‌هایی که به خودش تخصیص یافته. (فاکتورِ بدونِ تیکت فقط برای مدیر.)
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user && $user->isSupportUser() && ! $user->isSupportAdmin()) {
+            $query->whereHas('ticket', fn (Builder $q) => $q->where('assigned_to', $user->id));
+        }
+
+        return $query;
     }
 }

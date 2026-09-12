@@ -21,7 +21,7 @@
     {{-- ردیف‌های یک‌درمیانِ رنگی برای خواناترشدنِ جدول‌های گزارش. --}}
     <style>
         .rep tbody tr:nth-child(odd) { background: rgba(148,163,184,.08); }
-        .rep td, .rep th { padding: 8px 10px; }
+        .rep td, .rep th { padding: 8px 10px; text-align: center; }   /* همهٔ سلول‌ها وسط‌چین */
         .rep th { background: rgba(15,45,77,.06); }
         .dark .rep th { background: rgba(255,255,255,.06); }
         .rep .rownum { color: #64748b; font-variant-numeric: tabular-nums; text-align: center; width: 3rem; }
@@ -49,6 +49,14 @@
         <x-filament::section>
             <div class="text-sm text-gray-500">{{ __('reports.revenue') }}</div>
             <div class="text-xl font-bold">{{ $money($s['revenue'] ?? 0) }}</div>
+        </x-filament::section>
+        <x-filament::section>
+            <div class="text-sm text-gray-500">{{ __('reports.paid') }}</div>
+            <div class="text-xl font-bold" style="color:#16a34a">{{ $money($s['paid'] ?? 0) }}</div>
+        </x-filament::section>
+        <x-filament::section>
+            <div class="text-sm text-gray-500">{{ __('reports.debt') }}</div>
+            <div class="text-xl font-bold" style="color:#dc2626">{{ $money($s['debt'] ?? 0) }}</div>
         </x-filament::section>
         <x-filament::section>
             <div class="text-sm text-gray-500">{{ __('reports.service_value') }}</div>
@@ -94,7 +102,9 @@
                         <th class="p-2 text-right">{{ __('reports.col_tickets') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_minutes') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_service') }}</th>
-                        <th class="p-2 text-right">{{ __('reports.col_invoiced') }}</th>
+                        <th class="p-2 text-right">{{ __('reports.col_total') }}</th>
+                        <th class="p-2 text-right">{{ __('reports.col_paid') }}</th>
+                        <th class="p-2 text-right">{{ __('reports.col_debt') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_warranty') }}</th>
                     </tr>
                 </thead>
@@ -103,7 +113,7 @@
                         <tr class="border-b">
                             <td class="rownum">{{ $digits($loop->iteration) }}</td>
                             <td class="p-2">
-                                <span style="display:inline-flex;align-items:center;gap:7px;">
+                                <span style="display:inline-flex;align-items:center;gap:7px;justify-content:center;">
                                     <span style="width:10px;height:10px;border-radius:50%;background:{{ $row['color'] ?? '#94a3b8' }};flex:none;"></span>
                                     {{ $row['customer'] }}
                                 </span>
@@ -112,7 +122,9 @@
                             <td class="p-2">{{ $digits($row['tickets']) }}</td>
                             <td class="p-2">{{ $digits($row['minutes']) }}</td>
                             <td class="p-2">{{ $money($row['service'] ?? 0) }}</td>
-                            <td class="p-2">{{ $money($row['invoiced']) }}</td>
+                            <td class="p-2">{{ $money($row['total'] ?? 0) }}</td>
+                            <td class="p-2">{{ $money($row['paid'] ?? 0) }}</td>
+                            <td class="p-2" style="color:{{ ($row['debt'] ?? 0) > 0 ? '#dc2626' : 'inherit' }};font-weight:{{ ($row['debt'] ?? 0) > 0 ? '700' : '400' }};">{{ $money($row['debt'] ?? 0) }}</td>
                             <td class="p-2">{{ $money($row['warranty']) }}</td>
                         </tr>
                     @endforeach

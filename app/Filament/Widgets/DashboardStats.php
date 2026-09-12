@@ -34,6 +34,11 @@ class DashboardStats extends StatsOverviewWidget
 
         $unpaidInvoices = Invoice::whereNotIn('status', ['paid', 'cancelled', 'draft'])->count();
 
+        // مجموعِ بدهیِ وصول‌نشدهٔ همهٔ فاکتورها (قابل‌پرداخت منهای پرداخت‌شده).
+        $totalDebt = (int) Invoice::whereNotIn('status', ['draft', 'cancelled'])
+            ->selectRaw('COALESCE(SUM(GREATEST(payable_amount - paid_amount, 0)), 0) as d')
+            ->value('d');
+
         $avgRating = Ticket::whereNotNull('rating')->avg('rating');
 
         $slaBreached = Ticket::whereNull('first_response_at')
@@ -74,6 +79,12 @@ class DashboardStats extends StatsOverviewWidget
         $stats[] = Stat::make(__('invoices.plural'), $fa($unpaidInvoices))
             ->icon('heroicon-o-banknotes')
             ->color('warning')
+            ->url(InvoiceResource::getUrl('index'));
+
+        $stats[] = Stat::make(__('dashboard.total_debt'), \App\Support\Jalali::money($totalDebt) . ' ' . __('common.currency'))
+            ->description(__('dashboard.total_debt_hint'))
+            ->icon('heroicon-o-exclamation-circle')
+            ->color($totalDebt > 0 ? 'danger' : 'success')
             ->url(InvoiceResource::getUrl('index'));
 
         $stats[] = Stat::make(__('tickets.sla_breached'), $fa($slaBreached))
