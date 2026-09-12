@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Http\Middleware\ApplyUserTheme;
+use App\Http\Middleware\BackfillLastLogin;
 use App\Http\Middleware\EnsureSupportUser;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -86,6 +87,7 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
                 EnsureSupportUser::class,   // کاربر مشتری اینجا راه ندارد
+                BackfillLastLogin::class,    // پرکردنِ آخرین ورودِ نشست‌های قدیمی
                 ApplyUserTheme::class,
             ]);
     }
