@@ -119,6 +119,36 @@
         @if (empty($backups))
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('backups.empty') }}</p>
         @else
+            {{-- نوارِ حذفِ گروهی: دکمهٔ «حذفِ انتخاب‌شده‌ها» و کنارش تیکِ «انتخاب همه». --}}
+            @if ($this->canDeleteBackups())
+                <div class="mb-3 flex flex-wrap items-center gap-3 border-b border-gray-100 pb-3 dark:border-gray-800">
+                    <x-filament::button
+                        size="xs"
+                        color="danger"
+                        icon="heroicon-o-trash"
+                        wire:click="deleteSelected"
+                        wire:confirm="{{ __('backups.delete_selected_confirm') }}"
+                        x-bind:disabled="! $wire.selected.length"
+                    >
+                        {{ __('backups.delete_selected') }}
+                    </x-filament::button>
+
+                    <label class="flex cursor-pointer items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            wire:model.live="selectAll"
+                            class="fi-checkbox-input rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                        />
+                        <span class="font-medium">{{ __('backups.select_all') }}</span>
+                        @if (count($selected) > 0)
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                ({{ __('backups.selected_count', ['count' => \App\Support\Jalali::digits((string) count($selected))]) }})
+                            </span>
+                        @endif
+                    </label>
+                </div>
+            @endif
+
             {{-- چیدمان کارتی و واکنش‌گرا به‌جای جدول عریض: روی گوشی نام فایل در
                  چند خط می‌شکند و دکمه‌های دانلود/حذف زیرش می‌آیند و در دسترس‌اند؛
                  روی دسکتاپ همه در یک ردیف. --}}
@@ -138,8 +168,20 @@
                             نام فایل با {{ }} داخل رشته می‌آید، نه با @js — @js داخل
                             attribute کامپوننت Blade کامپایل نمی‌شود. نام در سرویس با
                             الگوی سخت‌گیرانه اعتبارسنجی شده، پس نقل‌قول داخلش راه ندارد.
+
+                            تیکِ انتخابِ گروهی کنارِ دکمه‌های دانلود/حذفِ همین سطر است.
                         --}}
-                        <div class="flex shrink-0 flex-wrap gap-2">
+                        <div class="flex shrink-0 flex-wrap items-center gap-2">
+                            @if ($this->canDeleteBackups())
+                                <input
+                                    type="checkbox"
+                                    wire:model.live="selected"
+                                    value="{{ $backup['name'] }}"
+                                    title="{{ __('backups.select_all') }}"
+                                    class="fi-checkbox-input me-1 shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                                />
+                            @endif
+
                             <x-filament::button
                                 size="xs"
                                 color="gray"

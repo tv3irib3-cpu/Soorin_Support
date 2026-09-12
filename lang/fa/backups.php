@@ -22,6 +22,11 @@ return [
     'delete'     => 'حذف',
     'deleted'    => 'فایل پشتیبان حذف شد.',
     'delete_confirm' => 'این فایل پشتیبان حذف شود؟',
+    'select_all'     => 'انتخاب همه',
+    'selected_count' => ':count مورد انتخاب شد',
+    'delete_selected' => 'حذفِ انتخاب‌شده‌ها',
+    'delete_selected_confirm' => 'فایل‌های پشتیبانِ انتخاب‌شده حذف شوند؟',
+    'deleted_selected' => ':count فایل پشتیبان حذف شد.',
     'megabyte'   => 'مگابایت',
     'kilobyte'   => 'کیلوبایت',
 

@@ -30,14 +30,25 @@ class DatabaseBackupService
     /**
      * ساخت فایل پشتیبان از کل دیتابیس.
      *
+     * نامِ فایل با یک پیشوند می‌آید که منبعِ بکاپ را نشان می‌دهد تا در پشتیبان‌گیری
+     * راحت پیدا شود:
+     *   - دستیِ کاربر: ۵ حرفِ اولِ نامِ کاربر (مثلِ `Ali_…` یا `علی_…`)
+     *   - زمان‌بندی‌شده: `Auto_…`
+     *   - پیش از به‌روزرسانی: `PreUp_…`
+     *   - پیش از بازیابی: `PreRe_…`
+     * به‌همراهِ تاریخ و ساعت در نام.
+     *
+     * @param  string|null  $prefix  پیشوندِ صریحِ منبع؛ اگر null باشد از کاربرِ واردشده ساخته می‌شود.
      * @return string نام فایل ساخته‌شده
      */
-    public function create(?string $reason = null): string
+    public function create(?string $reason = null, ?string $prefix = null): string
     {
+        $prefix = $this->sanitizePrefix($prefix ?? $this->currentUserPrefix());
+
         // پسوند تصادفی لازم است: نام فقط تا ثانیه دقت دارد و بازیابی، پشتیبان
         // ایمنی را در همان ثانیه می‌گیرد. بدون این، پشتیبان ایمنی روی فایلی
         // که داریم از آن بازیابی می‌کنیم می‌نشیند و مبدأ را نابود می‌کند.
-        $name = sprintf('backup-%s-%s.sql', Carbon::now()->format('Y-m-d_His'), str()->lower(str()->random(4)));
+        $name = sprintf('%s_%s_%s.sql', $prefix, Carbon::now()->format('Y-m-d_His'), str()->lower(str()->random(4)));
         $path = $this->absolutePath($name);
 
         $this->ensureDirectory();
@@ -93,7 +104,7 @@ class DatabaseBackupService
         */
         $safetyCopy = $this->tables() === []
             ? null
-            : $this->create('پشتیبان خودکار پیش از بازیابی');
+            : $this->create('پشتیبان خودکار پیش از بازیابی', 'PreRe');
 
         $pdo = DB::connection()->getPdo();
         $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
@@ -190,16 +201,44 @@ class DatabaseBackupService
 
     // ------------------------------------------------------------------ داخلی
 
-    /** نام فایل از ورودی کاربر می‌آید؛ هر چیزی جز نام ساده رد می‌شود. */
+    /** نام فایل از ورودی کاربر می‌آید؛ هر چیزی جز نام ساده رد می‌شود.
+     *  حروفِ یونیکد (فارسی) مجازند تا نامِ فارسیِ کاربر در پیشوند کار کند؛
+     *  basename جداکننده‌های مسیر را حذف می‌کند و «..» هم رد می‌شود. */
     private function safeName(string $name): string
     {
         $name = basename($name);
 
-        if (! preg_match('/^[\w.\-]+\.sql$/', $name)) {
+        if (str_contains($name, '..') || ! preg_match('/^[\p{L}\p{N}._\-]+\.sql$/u', $name)) {
             throw new RuntimeException('نام فایل پشتیبان معتبر نیست.');
         }
 
         return $name;
+    }
+
+    /** پیشوندِ نام از روی کاربرِ واردشده: ۵ حرفِ اولِ نام. بدونِ کاربر (کنسول) → Auto. */
+    private function currentUserPrefix(): string
+    {
+        $user = auth()->user();
+
+        if ($user && filled($user->name)) {
+            $clean = preg_replace('/\s+/u', '', trim($user->name)) ?? '';
+            $first = mb_substr($clean, 0, 5);
+
+            if ($first !== '') {
+                return $first;
+            }
+        }
+
+        return 'Auto';
+    }
+
+    /** فقط حروف/رقم (فارسی یا لاتین) و _- برای امنیتِ نامِ فایل؛ خالی → Backup. */
+    private function sanitizePrefix(string $prefix): string
+    {
+        $clean = preg_replace('/[^\p{L}\p{N}_\-]/u', '', $prefix) ?? '';
+        $clean = mb_substr($clean, 0, 20);
+
+        return $clean !== '' ? $clean : 'Backup';
     }
 
     private function ensureDirectory(): void

@@ -41,6 +41,12 @@ class Backups extends Page
     /** @var array<int, array{name: string, size: int, created_at: \Illuminate\Support\Carbon}> */
     public array $backups = [];
 
+    /** نام فایل‌های تیک‌خورده برای حذفِ گروهی. */
+    public array $selected = [];
+
+    /** تیکِ «انتخاب همه». */
+    public bool $selectAll = false;
+
     public static function getNavigationLabel(): string
     {
         return __('backups.label');
@@ -107,6 +113,23 @@ class Backups extends Page
     public function refreshList(): void
     {
         $this->backups = app(DatabaseBackupService::class)->list();
+        $this->syncSelectAll();
+    }
+
+    /** با تغییرِ تیکِ «انتخاب همه»، همه را انتخاب یا همه را پاک می‌کند. */
+    public function updatedSelectAll(bool $value): void
+    {
+        $this->selected = $value
+            ? array_column($this->backups, 'name')
+            : [];
+    }
+
+    /** تیکِ «انتخاب همه» را با وضعیتِ واقعیِ انتخاب‌ها هم‌خوان نگه می‌دارد. */
+    private function syncSelectAll(): void
+    {
+        $names = array_column($this->backups, 'name');
+        $this->selected = array_values(array_intersect($this->selected, $names));
+        $this->selectAll = $names !== [] && count($this->selected) === count($names);
     }
 
     protected function getHeaderActions(): array
@@ -514,9 +537,34 @@ class Backups extends Page
         abort_unless(auth()->user()?->can(Permission::DeleteBackups->value), 403);
 
         app(DatabaseBackupService::class)->delete($name);
+        $this->selected = array_values(array_diff($this->selected, [$name]));
         $this->refreshList();
 
         Notification::make()->title(__('backups.deleted'))->success()->send();
+    }
+
+    /** حذفِ گروهیِ فایل‌های تیک‌خورده. */
+    public function deleteSelected(): void
+    {
+        abort_unless(auth()->user()?->can(Permission::DeleteBackups->value), 403);
+
+        $service = app(DatabaseBackupService::class);
+        $count = 0;
+
+        foreach ($this->selected as $name) {
+            if ($service->exists($name)) {
+                $service->delete($name);
+                $count++;
+            }
+        }
+
+        $this->selected = [];
+        $this->refreshList();
+
+        Notification::make()
+            ->title(__('backups.deleted_selected', ['count' => Jalali::digits((string) $count)]))
+            ->success()
+            ->send();
     }
 
     /** حجم خوانا: «۱٫۲ مگابایت» */
