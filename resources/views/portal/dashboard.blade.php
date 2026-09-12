@@ -15,9 +15,18 @@
     </style>
 
     <div class="page-head">
-        <div>
-            <h1>{{ __('portal.welcome', ['name' => $user->name]) }}</h1>
-            <div class="sub">{{ __('portal.title') }} — {{ \App\Support\Branding::companyName() }}</div>
+        <div style="display:flex; align-items:center; gap:14px;">
+            @php $__logo = $user->customer?->logoData(); @endphp
+            @if ($__logo)
+                <img src="{{ $__logo }}" alt="{{ $user->customer->name }}"
+                     style="height:56px; width:auto; max-width:150px; object-fit:contain; border-radius:10px; background:#fff; padding:5px 8px; border:1px solid var(--border); flex:none;">
+            @endif
+            <div>
+                <h1>{{ __('portal.welcome', ['name' => $user->name]) }}</h1>
+                <div class="sub">
+                    @if ($user->customer){{ $user->customer->name }} — @endif{{ \App\Support\Branding::companyName() }}
+                </div>
+            </div>
         </div>
         @if ($user->canCreateTicket())
             <a href="{{ route('portal.tickets.create') }}" class="btn">

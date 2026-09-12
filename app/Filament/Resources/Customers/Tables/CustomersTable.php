@@ -27,14 +27,25 @@ class CustomersTable
                     ->searchable()
                     ->sortable()
                     ->weight('medium')
-                    // نامِ هر مشتری با رنگِ اختصاصیِ خودش (نقطهٔ رنگی کنارِ نام).
+                    // نامِ هر مشتری با لوگوی اختصاصی‌اش؛ اگر لوگو نداشت، دایرهٔ رنگی
+                    // با حرفِ اولِ نام به‌عنوانِ آواتارِ جایگزین.
                     ->html()
                     ->formatStateUsing(function ($state, $record) {
                         $color = e($record->displayColor());
 
-                        return '<span style="display:inline-flex;align-items:center;gap:7px;">'
-                            . '<span style="width:10px;height:10px;border-radius:50%;background:' . $color . ';flex:none;"></span>'
-                            . e($state) . '</span>';
+                        if ($record->hasLogo() && ($data = $record->logoData())) {
+                            $avatar = '<img src="' . e($data) . '" alt="" '
+                                . 'style="width:26px;height:26px;border-radius:7px;object-fit:contain;'
+                                . 'background:#fff;border:1px solid rgba(0,0,0,.08);flex:none;">';
+                        } else {
+                            $initial = e(mb_substr((string) $state, 0, 1));
+                            $avatar = '<span style="width:26px;height:26px;border-radius:7px;flex:none;'
+                                . 'display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700;'
+                                . 'background:' . $color . ';">' . $initial . '</span>';
+                        }
+
+                        return '<span style="display:inline-flex;align-items:center;gap:9px;">'
+                            . $avatar . e($state) . '</span>';
                     }),
 
                 TextColumn::make('projects_count')

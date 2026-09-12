@@ -37,12 +37,48 @@ class Customer extends Model
     ];
 
     protected $fillable = [
-        'code', 'name', 'color', 'entity_type', 'national_id', 'economic_code',
+        'code', 'name', 'color', 'logo_path', 'entity_type', 'national_id', 'economic_code',
         'phone', 'mobile', 'email', 'city', 'address', 'postal_code',
         'service_status', 'suspension_message',
         'can_create_ticket', 'can_view_history', 'can_view_invoices',
         'can_print_invoices', 'notes',
     ];
+
+    /** آیا مشتری لوگوی آپلودشده و موجود روی دیسک دارد؟ */
+    public function hasLogo(): bool
+    {
+        return filled($this->logo_path)
+            && \Illuminate\Support\Facades\Storage::disk(\App\Support\Branding::DISK)->exists($this->logo_path);
+    }
+
+    /**
+     * لوگوی مشتری به‌صورتِ data: URI (base64) — همه‌جا مطمئن نمایش داده می‌شود،
+     * مستقل از اینکه پوشهٔ branding روی وب‌روت سرو می‌شود یا نه (مشکلِ هاستِ اشتراکی).
+     * null یعنی لوگویی نیست.
+     */
+    public function logoData(): ?string
+    {
+        if (! $this->hasLogo()) {
+            return null;
+        }
+
+        $file  = \Illuminate\Support\Facades\Storage::disk(\App\Support\Branding::DISK)->path($this->logo_path);
+        $bytes = @file_get_contents($file);
+
+        if ($bytes === false) {
+            return null;
+        }
+
+        $mime = match (strtolower(pathinfo($file, PATHINFO_EXTENSION))) {
+            'svg'         => 'image/svg+xml',
+            'png'         => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'webp'        => 'image/webp',
+            default       => 'application/octet-stream',
+        };
+
+        return 'data:' . $mime . ';base64,' . base64_encode($bytes);
+    }
 
     /** رنگِ نمایشیِ مشتری — اگر تنظیم نشده باشد، رنگی پایدار از روی شناسه ساخته می‌شود. */
     public function displayColor(): string

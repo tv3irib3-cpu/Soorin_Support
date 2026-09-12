@@ -9,6 +9,9 @@ use App\Models\Invoice;
 use App\Support\Jalali;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
@@ -91,6 +94,69 @@ class ViewInvoice extends ViewRecord
         $invoice = $this->getRecord();
 
         return [
+            // ثبتِ پرداخت مستقیم از همین صفحهٔ فاکتور — کپیِ همان دکمهٔ داخلِ بخشِ
+            // «پرداخت‌ها»، تا بدونِ رفتن به آن بخش هم بتوان پرداخت ثبت کرد.
+            Action::make('addPayment')
+                ->label(__('invoices.add_payment'))
+                ->icon('heroicon-o-banknotes')
+                ->color('success')
+                ->visible(fn () => ! in_array($invoice->status, [Invoice::STATUS_DRAFT, Invoice::STATUS_CANCELLED], true)
+                    && $invoice->balance() > 0
+                    && (auth()->user()?->can(Permission::ManagePayments->value) ?? false))
+                ->modalHeading(__('invoices.add_payment'))
+                ->modalSubmitActionLabel(__('invoices.add_payment'))
+                ->schema([
+                    TextInput::make('amount')
+                        ->label(__('invoices.amount'))
+                        ->numeric()
+                        ->required()
+                        ->minValue(1)
+                        ->maxValue(fn () => $invoice->balance())
+                        ->default(fn () => $invoice->balance())
+                        ->helperText(__('invoices.balance') . ': ' . Jalali::money($invoice->balance()))
+                        ->suffix(__('common.currency')),
+
+                    DatePicker::make('paid_at')
+                        ->label(__('invoices.paid_at'))
+                        ->default(now())
+                        ->required(),
+
+                    Select::make('method')
+                        ->label(__('invoices.method'))
+                        ->options(__('invoices.methods'))
+                        ->default('transfer')
+                        ->required()
+                        ->native(false),
+
+                    TextInput::make('reference')
+                        ->label(__('invoices.reference'))
+                        ->maxLength(100),
+                ])
+                ->action(function (array $data) use ($invoice) {
+                    // مبلغ نباید از ماندهٔ فعلی بیشتر باشد (حتی اگر همزمان پرداختِ دیگری ثبت شده باشد).
+                    $amount = min((int) $data['amount'], $invoice->balance());
+
+                    if ($amount <= 0) {
+                        Notification::make()->danger()->title(__('invoices.no_balance'))->send();
+
+                        return;
+                    }
+
+                    $invoice->payments()->create([
+                        'amount'        => $amount,
+                        'paid_at'       => $data['paid_at'],
+                        'method'        => $data['method'],
+                        'reference'     => $data['reference'] ?? null,
+                        'registered_by' => auth()->id(),
+                    ]);
+
+                    // وضعیت و ماندهٔ فاکتور در Payment::booted به‌روز شده؛ رکورد را تازه کن
+                    // تا خلاصهٔ همین صفحه (پرداختی/مانده) بی‌درنگ درست نشان داده شود.
+                    $invoice->refresh();
+
+                    Notification::make()->success()->title(__('invoices.payment_saved'))->send();
+                }),
+
             Action::make('issue')
                 ->label(__('invoices.issue_action'))
                 ->icon('heroicon-o-paper-airplane')

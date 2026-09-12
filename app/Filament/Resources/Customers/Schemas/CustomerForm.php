@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Customers\Schemas;
 
+use App\Support\Branding;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -32,6 +34,23 @@ class CustomerForm
                     ColorPicker::make('color')
                         ->label(__('customers.color'))
                         ->helperText(__('customers.color_hint')),
+
+                    // لوگوی مشتری — روی دیسکِ branding (public/branding/customers).
+                    // عمداً ->image() نمی‌زنیم تا SVG هم پذیرفته شود (ویرایشگرِ تصویرِ
+                    // فیلامنت SVG را باز نمی‌کند)؛ نوع فایل را دستی محدود می‌کنیم.
+                    FileUpload::make('logo_path')
+                        ->label(__('customers.logo'))
+                        ->helperText(__('customers.logo_hint'))
+                        ->disk(Branding::DISK)
+                        ->directory('customers')
+                        ->visibility('public')
+                        ->acceptedFileTypes(['image/svg+xml', 'image/png', 'image/jpeg', 'image/webp'])
+                        ->maxSize(2048)
+                        ->imagePreviewHeight('90')
+                        ->downloadable()
+                        ->openable()
+                        ->deletable()
+                        ->columnSpanFull(),
 
                     Select::make('entity_type')
                         ->label(__('customers.entity_type'))
