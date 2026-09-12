@@ -9,6 +9,7 @@ use App\Http\Controllers\Portal\InvoiceController as PortalInvoiceController;
 use App\Http\Controllers\Portal\TicketController as PortalTicketController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Middleware\ApplyUserTheme;
+use App\Http\Middleware\LogCustomerActivity;
 use App\Http\Middleware\PortalAuthenticate;
 use Illuminate\Support\Facades\Route;
 
@@ -73,7 +74,7 @@ Route::prefix('portal')->name('portal.')->group(function () {
     // تعویضِ تمِ روز/شب — نیازی به ورود ندارد تا حتی در صفحهٔ ورود هم کار کند.
     Route::post('/theme', [\App\Http\Controllers\Portal\ThemeController::class, 'toggle'])->name('theme');
 
-    Route::middleware([PortalAuthenticate::class, ApplyUserTheme::class])->group(function () {
+    Route::middleware([PortalAuthenticate::class, ApplyUserTheme::class, LogCustomerActivity::class])->group(function () {
         Route::get('/', [PortalDashboardController::class, 'index'])->name('dashboard');
 
         Route::get('/unread-count', [PortalTicketController::class, 'unreadCount'])->name('unread');

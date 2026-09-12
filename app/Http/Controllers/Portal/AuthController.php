@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Portal;
 
 use App\Auth\LoginAttempt;
 use App\Http\Controllers\Controller;
+use App\Models\CustomerAccessLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -44,6 +45,7 @@ class AuthController extends Controller
                 ->authenticate();
         } catch (ValidationException $e) {
             RateLimiter::hit($throttleKey);
+            CustomerAccessLog::record(CustomerAccessLog::EVENT_LOGIN_FAILED, $request, username: $data['identifier']);
 
             throw $e;
         }
@@ -52,6 +54,7 @@ class AuthController extends Controller
         if ($user->isSupportUser()) {
             auth()->logout();
             RateLimiter::hit($throttleKey);
+            CustomerAccessLog::record(CustomerAccessLog::EVENT_LOGIN_FAILED, $request, username: $data['identifier']);
 
             throw ValidationException::withMessages([
                 'identifier' => __('auth.failed'),
@@ -62,11 +65,18 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
+        CustomerAccessLog::record(CustomerAccessLog::EVENT_LOGIN, $request, $user);
+
         return redirect()->intended(route('portal.dashboard'));
     }
 
     public function logout(Request $request): RedirectResponse
     {
+        // پیش از پاک‌شدنِ نشست، خروج را ثبت کن.
+        if (($user = $request->user()) && $user->isCustomerUser()) {
+            CustomerAccessLog::record(CustomerAccessLog::EVENT_LOGOUT, $request, $user);
+        }
+
         auth()->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
