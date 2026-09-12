@@ -81,6 +81,9 @@ class PaymentsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
+                    ->label(__('invoices.add_payment'))
+                    ->icon('heroicon-o-plus-circle')
+                    ->modalHeading(__('invoices.add_payment'))
                     ->mutateDataUsing(function (array $data) {
                         $data['registered_by'] = auth()->id();
 
@@ -88,6 +91,8 @@ class PaymentsRelationManager extends RelationManager
                     }),
             ])
             ->recordActions([DeleteAction::make()])
-            ->emptyStateHeading(__('common.empty_state'));
+            ->emptyStateHeading(__('invoices.no_payments'))
+            ->emptyStateDescription(__('invoices.no_payments_hint'))
+            ->emptyStateIcon('heroicon-o-banknotes');
     }
 }

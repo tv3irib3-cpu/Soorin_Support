@@ -48,6 +48,8 @@ return [
     'by_priority'     => 'توزیع تیکت بر اساس اولویت',
     'by_staff'        => 'عملکرد کارشناسان',
 
+    'col_row'         => 'ردیف',
+    'generated_at'    => 'تاریخِ تهیهٔ گزارش',
     'col_customer'    => 'مشتری',
     'col_project'     => 'پروژه',
     'col_created'     => 'ثبت‌شده',

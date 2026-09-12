@@ -26,7 +26,16 @@ class CustomersTable
                     ->label(__('customers.name'))
                     ->searchable()
                     ->sortable()
-                    ->weight('medium'),
+                    ->weight('medium')
+                    // نامِ هر مشتری با رنگِ اختصاصیِ خودش (نقطهٔ رنگی کنارِ نام).
+                    ->html()
+                    ->formatStateUsing(function ($state, $record) {
+                        $color = e($record->displayColor());
+
+                        return '<span style="display:inline-flex;align-items:center;gap:7px;">'
+                            . '<span style="width:10px;height:10px;border-radius:50%;background:' . $color . ';flex:none;"></span>'
+                            . e($state) . '</span>';
+                    }),
 
                 TextColumn::make('projects_count')
                     ->label(__('projects.plural'))

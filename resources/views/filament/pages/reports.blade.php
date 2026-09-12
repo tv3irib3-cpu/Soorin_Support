@@ -10,6 +10,23 @@
         $digits = fn ($v) => \App\Support\Jalali::digits((string) ($v ?? 0));
     @endphp
 
+    {{-- تاریخ و ساعتِ تهیهٔ گزارش + بازهٔ انتخابی --}}
+    <div class="text-xs text-gray-500 dark:text-gray-400">
+        {{ __('reports.generated_at') }}: <span class="font-medium">{{ \App\Support\Jalali::formatDateTime(now()) }}</span>
+        @if (!empty($r['from']) && !empty($r['to']))
+            &nbsp;·&nbsp; {{ __('reports.period', ['from' => \App\Support\Jalali::format($r['from']), 'to' => \App\Support\Jalali::format($r['to'])]) }}
+        @endif
+    </div>
+
+    {{-- ردیف‌های یک‌درمیانِ رنگی برای خواناترشدنِ جدول‌های گزارش. --}}
+    <style>
+        .rep tbody tr:nth-child(odd) { background: rgba(148,163,184,.08); }
+        .rep td, .rep th { padding: 8px 10px; }
+        .rep th { background: rgba(15,45,77,.06); }
+        .dark .rep th { background: rgba(255,255,255,.06); }
+        .rep .rownum { color: #64748b; font-variant-numeric: tabular-nums; text-align: center; width: 3rem; }
+    </style>
+
     {{-- ---------- کارت‌های خلاصه ---------- --}}
     <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
         <x-filament::section>
@@ -68,9 +85,10 @@
             <p class="text-sm text-gray-500">{{ __('reports.empty') }}</p>
         @else
             <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="rep w-full text-sm">
                 <thead>
                     <tr class="text-gray-500 border-b">
+                        <th class="rownum">{{ __('reports.col_row') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_customer') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_created') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_tickets') }}</th>
@@ -83,6 +101,7 @@
                 <tbody>
                     @foreach ($r['by_customer'] as $row)
                         <tr class="border-b">
+                            <td class="rownum">{{ $digits($loop->iteration) }}</td>
                             <td class="p-2">
                                 <span style="display:inline-flex;align-items:center;gap:7px;">
                                     <span style="width:10px;height:10px;border-radius:50%;background:{{ $row['color'] ?? '#94a3b8' }};flex:none;"></span>
@@ -109,7 +128,7 @@
             <p class="text-sm text-gray-500">{{ __('reports.empty') }}</p>
         @else
             <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="rep w-full text-sm">
                 <thead>
                     <tr class="text-gray-500 border-b">
                         <th class="p-2 text-right">{{ __('reports.col_project') }}</th>
@@ -139,7 +158,7 @@
             @if (empty($r['by_status']) || count($r['by_status']) === 0)
                 <p class="text-sm text-gray-500">{{ __('reports.empty') }}</p>
             @else
-                <table class="w-full text-sm">
+                <table class="rep w-full text-sm">
                     <thead>
                         <tr class="text-gray-500 border-b">
                             <th class="p-2 text-right">{{ __('reports.col_status') }}</th>
@@ -162,7 +181,7 @@
             @if (empty($r['by_priority']) || count($r['by_priority']) === 0)
                 <p class="text-sm text-gray-500">{{ __('reports.empty') }}</p>
             @else
-                <table class="w-full text-sm">
+                <table class="rep w-full text-sm">
                     <thead>
                         <tr class="text-gray-500 border-b">
                             <th class="p-2 text-right">{{ __('reports.col_priority') }}</th>
@@ -188,7 +207,7 @@
             <p class="text-sm text-gray-500">{{ __('reports.empty') }}</p>
         @else
             <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="rep w-full text-sm">
                 <thead>
                     <tr class="text-gray-500 border-b">
                         <th class="p-2 text-right">{{ __('reports.col_category') }}</th>
@@ -214,9 +233,10 @@
             <p class="text-sm text-gray-500">{{ __('reports.empty') }}</p>
         @else
             <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="rep w-full text-sm">
                 <thead>
                     <tr class="text-gray-500 border-b">
+                        <th class="rownum">{{ __('reports.col_row') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_staff') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_resolved') }}</th>
                         <th class="p-2 text-right">{{ __('reports.col_response') }}</th>
@@ -225,6 +245,7 @@
                 <tbody>
                     @foreach ($r['by_staff'] as $row)
                         <tr class="border-b">
+                            <td class="rownum">{{ $digits($loop->iteration) }}</td>
                             <td class="p-2">{{ $row['staff'] }}</td>
                             <td class="p-2">{{ $digits($row['resolved']) }}</td>
                             <td class="p-2">{{ $row['avg_response_hr'] !== null ? $digits($row['avg_response_hr']) : '—' }}</td>
