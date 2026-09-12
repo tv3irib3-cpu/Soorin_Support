@@ -8,10 +8,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 /**
- * تلاش برای ورود با **ایمیل یا شماره موبایل**.
+ * تلاش برای ورود با **ایمیل، نام کاربری یا شماره موبایل**.
  *
- * شماره موبایل قبل از جستجو نرمال می‌شود تا ۰۹۱۲…، ۹۱۲…، +۹۸۹۱۲… و اعداد
- * فارسی همگی به یک شکل واحد برسند.
+ * نام کاربری در همان ستونِ email ذخیره می‌شود (فرمِ کاربر «ایمیل یا نام کاربری»
+ * را می‌پذیرد)، پس ابتدا تطبیقِ دقیق با ستونِ email امتحان می‌شود و اگر نبود،
+ * ورودی به‌عنوانِ شماره موبایل نرمال و جستجو می‌شود (۰۹۱۲…، ۹۱۲…، +۹۸۹۱۲… و
+ * اعداد فارسی همگی به یک شکل واحد می‌رسند).
  */
 class LoginAttempt
 {
@@ -49,11 +51,17 @@ class LoginAttempt
 
     private function findUser(): ?User
     {
-        if (filter_var($this->identifier, FILTER_VALIDATE_EMAIL)) {
-            return User::where('email', $this->identifier)->first();
+        $id = trim($this->identifier);
+
+        // ایمیل یا نام کاربری → تطبیقِ دقیق با ستونِ email (که می‌تواند نام کاربری باشد).
+        if ($user = User::where('email', $id)->first()) {
+            return $user;
         }
 
-        return User::where('mobile', self::normalizeMobile($this->identifier))->first();
+        // در غیرِ این صورت به‌عنوانِ شمارهٔ موبایل جستجو می‌شود.
+        $mobile = self::normalizeMobile($id);
+
+        return $mobile !== '' ? User::where('mobile', $mobile)->first() : null;
     }
 
     /** @return array<string, string> */
