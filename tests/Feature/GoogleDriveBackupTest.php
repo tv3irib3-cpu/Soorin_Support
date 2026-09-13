@@ -78,6 +78,28 @@ class GoogleDriveBackupTest extends TestCase
         $this->assertSame('folder123', Setting::get('gdrive.folder_id'));
     }
 
+    public function test_exchange_code_rejects_when_drive_scope_missing(): void
+    {
+        $this->configure();
+
+        // گوگل فقط ایمیل را برگردانده (کاربر تیکِ Drive را نزده)
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'access_token' => 'atok', 'refresh_token' => 'rtok', 'expires_in' => 3600,
+                'scope' => 'openid https://www.googleapis.com/auth/userinfo.email',
+            ]),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+
+        try {
+            $this->svc()->exchangeCode('code', 'https://crm.test/google-drive/callback');
+        } finally {
+            // اتصالِ ناقص نباید ذخیره شده باشد
+            $this->assertFalse($this->svc()->isConnected());
+        }
+    }
+
     public function test_upload_uses_resumable_session(): void
     {
         $this->configure();

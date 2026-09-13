@@ -106,9 +106,21 @@ class GoogleDriveService
 
         $data = $res->json();
 
-        if (filled($data['refresh_token'] ?? null)) {
-            $this->set('refresh_token', $data['refresh_token']);
+        // مهم: مطمئن شو کاربر واقعاً دسترسیِ Drive را داده. اگر روی صفحهٔ رضایت
+        // تیکِ Drive نخورده باشد، توکن فقط ایمیل را دارد و بعداً هر عملیاتِ Drive
+        // با «ACCESS_TOKEN_SCOPE_INSUFFICIENT» رد می‌شود. اینجا زودتر و با پیامِ
+        // روشن جلویش را می‌گیریم و اتصالِ ناقص را ذخیره نمی‌کنیم.
+        $granted = (string) ($data['scope'] ?? '');
+
+        if ($granted !== '' && ! str_contains($granted, 'drive.file')) {
+            throw new RuntimeException(__('gdrive.scope_missing'));
         }
+
+        if (blank($data['refresh_token'] ?? null)) {
+            throw new RuntimeException(__('gdrive.no_refresh_token'));
+        }
+
+        $this->set('refresh_token', $data['refresh_token']);
 
         if (filled($data['access_token'] ?? null)) {
             Cache::put(self::ACCESS_TOKEN_CACHE, $data['access_token'], now()->addMinutes(50));
@@ -124,8 +136,15 @@ class GoogleDriveService
             // نمایشِ ایمیل حیاتی نیست
         }
 
-        // پوشهٔ مقصد را همان اول بساز.
-        $this->ensureFolder();
+        // پوشهٔ مقصد را همان اول بساز. اگر به‌خاطرِ کمبودِ دسترسی شکست خورد،
+        // اتصالِ ناقص را پاک کن تا کاربر با پیامِ روشن دوباره و درست وصل شود.
+        try {
+            $this->ensureFolder();
+        } catch (\Throwable $e) {
+            $this->disconnect();
+
+            throw new RuntimeException(__('gdrive.scope_missing') . ' — ' . $e->getMessage());
+        }
     }
 
     /** قطعِ اتصال — توکن و شناسه‌ها پاک می‌شوند (فایل‌های روی درایو دست‌نخورده می‌مانند). */
