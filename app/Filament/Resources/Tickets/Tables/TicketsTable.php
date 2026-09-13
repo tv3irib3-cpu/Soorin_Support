@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Tickets\Tables;
 
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Models\Ticket;
+use App\Models\TicketRead;
 use App\Models\User;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -44,6 +45,15 @@ class TicketsTable
                     ->searchable()
                     ->limit(40)
                     ->weight('medium'),
+
+                // پیام‌های خوانده‌نشدهٔ همین تیکت برای کاربرِ فعلی — تا معلوم باشد
+                // کدام تیکت پاسخِ تازه دارد، نه فقط مجموعِ کلیِ نشانِ منو.
+                TextColumn::make('unread')
+                    ->label(__('tickets.unread'))
+                    ->badge()
+                    ->color('danger')
+                    ->getStateUsing(fn (Ticket $record) => TicketRead::unreadForTicket($record, auth()->user()) ?: null)
+                    ->formatStateUsing(fn ($state) => $state ? \App\Support\Jalali::digits((string) $state) : null),
 
                 TextColumn::make('customer.name')
                     ->label(__('tickets.customer'))

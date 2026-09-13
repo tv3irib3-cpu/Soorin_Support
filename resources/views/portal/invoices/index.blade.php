@@ -17,9 +17,21 @@
                 </thead>
                 <tbody>
                     @foreach ($invoices as $invoice)
-                    @php $__cancelled = $invoice->status === \App\Models\Invoice::STATUS_CANCELLED; @endphp
-                    <tr>
-                        <td style="font-family:monospace;">{{ $invoice->number }}</td>
+                    @php
+                        $__cancelled = $invoice->status === \App\Models\Invoice::STATUS_CANCELLED;
+                        // فاکتورِ جدید: قابل‌دیدن (نه پیش‌نویس/لغوشده) و پس از آخرین بازدیدِ کاربر صادر شده.
+                        $__new = ! $__cancelled
+                            && $invoice->issued_at
+                            && in_array($invoice->status, \App\Models\Invoice::VISIBLE_STATUSES, true)
+                            && (empty($lastSeen) || $invoice->issued_at->gt($lastSeen));
+                    @endphp
+                    <tr @class(['row-new' => $__new])>
+                        <td style="font-family:monospace;">
+                            {{ $invoice->number }}
+                            @if ($__new)
+                                <span class="new-pill">{{ __('portal.new_badge') }}</span>
+                            @endif
+                        </td>
                         <td class="col-hide-mobile">{{ \App\Support\Jalali::format($invoice->issue_date) }}</td>
                         <td>{{ \App\Support\Jalali::money($invoice->payable_amount) }} {{ __('common.currency') }}</td>
                         <td><span class="badge {{ $__cancelled ? 'gray' : 'success' }}">{{ __('invoices.statuses.' . $invoice->status) }}</span></td>

@@ -37,6 +37,33 @@ class TicketRead extends Model
     }
 
     /**
+     * شمارشِ پیام‌های خوانده‌نشده به تفکیکِ تیکت — در یک کوئری (بدونِ N+1).
+     * خروجی: [ticket_id => تعداد]. تیکت‌هایی که خوانده‌نشده ندارند در آرایه نیستند.
+     *
+     * @param  iterable<int>  $ticketIds
+     * @return array<int, int>
+     */
+    public static function unreadCountsFor(User $user, iterable $ticketIds): array
+    {
+        $ids = collect($ticketIds)->map(fn ($id) => (int) $id)->filter()->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        // نکته: از select() سازندهٔ کوئری استفاده می‌کنیم (نه selectRaw) تا نامِ
+        // جدول با پیشوندِ دیتابیس (DB_TABLE_PREFIX) درست wrap شود.
+        return static::unreadMessagesQuery($user)
+            ->whereIn('ticket_messages.ticket_id', $ids)
+            ->groupBy('ticket_messages.ticket_id')
+            ->select('ticket_messages.ticket_id')
+            ->selectRaw('COUNT(*) as c')
+            ->pluck('c', 'ticket_id')
+            ->map(fn ($c) => (int) $c)
+            ->all();
+    }
+
+    /**
      * مجموعِ پیام‌های خوانده‌نشده در همهٔ تیکت‌هایی که کاربر می‌بیند.
      * پشتیبان همه را می‌بیند؛ مشتری فقط دامنهٔ دسترسیِ خودش.
      */

@@ -135,6 +135,22 @@
         .empty { text-align: center; padding: 46px 20px; color: var(--muted); }
         .empty svg { width: 46px; height: 46px; opacity: .4; margin-bottom: 10px; }
 
+        /* نشانِ خوانده‌نشده / جدید روی ردیف‌های جدول */
+        .unread-pill {
+            display: inline-flex; align-items: center; gap: 4px; margin-inline-start: 8px;
+            background: #ef4444; color: #fff; border-radius: 999px; padding: 2px 9px;
+            font-size: 11px; font-weight: 700; white-space: nowrap; vertical-align: middle;
+        }
+        .new-pill {
+            display: inline-flex; align-items: center; margin-inline-start: 8px;
+            background: var(--accent); color: #fff; border-radius: 999px; padding: 2px 9px;
+            font-size: 11px; font-weight: 700; white-space: nowrap; vertical-align: middle;
+        }
+        table.simple tr.row-unread td { background: color-mix(in srgb, #ef4444 7%, transparent); }
+        table.simple tr.row-unread td:first-child { box-shadow: inset 3px 0 0 #ef4444; }
+        table.simple tr.row-new td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+        table.simple tr.row-new td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+
         /* گفتگوی تیکت — حباب‌های چت */
         .thread { display: flex; flex-direction: column; gap: 12px; }
         .msg { max-width: 82%; padding: 11px 15px; border-radius: 15px; font-size: 13.5px; line-height: 1.75; }
@@ -158,7 +174,10 @@
 <body>
 
     @auth
-        @php $portalUnread = \App\Models\TicketRead::unreadCountFor(auth()->user()); @endphp
+        @php
+            $portalUnread = \App\Models\TicketRead::unreadCountFor(auth()->user());
+            $portalNewInvoices = \App\Models\InvoiceRead::newCountFor(auth()->user());
+        @endphp
     @endauth
     <header class="portal-header">
         <div class="portal-header__brand">
@@ -177,7 +196,12 @@
                 <span id="portal-unread-badge" class="nav-badge" @if ($portalUnread <= 0) style="display:none" @endif>{{ \App\Support\Jalali::digits((string) $portalUnread) }}</span>
             </a>
             @if (auth()->user()->canViewInvoices())
-                <a href="{{ route('portal.invoices.index') }}" class="{{ request()->routeIs('portal.invoices.*') ? 'active' : '' }}">{{ __('portal.my_invoices') }}</a>
+                <a href="{{ route('portal.invoices.index') }}" class="{{ request()->routeIs('portal.invoices.*') ? 'active' : '' }}">
+                    {{ __('portal.my_invoices') }}
+                    @if (($portalNewInvoices ?? 0) > 0)
+                        <span class="nav-badge">{{ \App\Support\Jalali::digits((string) $portalNewInvoices) }}</span>
+                    @endif
+                </a>
             @endif
         </nav>
         <div class="portal-header__user">

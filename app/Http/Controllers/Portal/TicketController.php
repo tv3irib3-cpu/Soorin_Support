@@ -31,7 +31,10 @@ class TicketController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('portal.tickets.index', compact('tickets'));
+        // تعدادِ پیام‌های خوانده‌نشده به تفکیکِ هر تیکت (یک کوئری، بدونِ N+1)
+        $unread = \App\Models\TicketRead::unreadCountsFor($user, $tickets->pluck('id'));
+
+        return view('portal.tickets.index', compact('tickets', 'unread'));
     }
 
     /** شمارندهٔ پیام‌های خوانده‌نشده — برای به‌روزرسانیِ زندهٔ نشانِ منو (JSON). */

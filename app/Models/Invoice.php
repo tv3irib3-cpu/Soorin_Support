@@ -45,10 +45,15 @@ class Invoice extends Model
 
     protected $fillable = [
         'number', 'customer_id', 'ticket_id', 'contract_id',
-        'issue_date', 'due_date',
+        'issue_date', 'due_date', 'issued_at',
         'service_amount', 'parts_amount', 'discount_amount',
         'contract_amount', 'payable_amount', 'paid_amount',
         'status', 'is_warranty', 'notes', 'created_by', 'overdue_suspended_at',
+    ];
+
+    /** وضعیت‌هایی که یعنی فاکتور برای مشتری قابل‌دیدن است (نه پیش‌نویس/نه لغوشده). */
+    public const VISIBLE_STATUSES = [
+        self::STATUS_ISSUED, self::STATUS_PARTIALLY_PAID, self::STATUS_PAID,
     ];
 
     protected function casts(): array
@@ -56,6 +61,7 @@ class Invoice extends Model
         return [
             'issue_date'      => 'date',
             'due_date'        => 'date',
+            'issued_at'       => 'datetime',
             'overdue_suspended_at' => 'datetime',
             'service_amount'  => 'integer',
             'parts_amount'    => 'integer',
@@ -225,6 +231,14 @@ class Invoice extends Model
 
     protected static function booted(): void
     {
+        // نخستین باری که فاکتور به وضعیتِ قابل‌دیدن (صادرشده و ...) می‌رسد، لحظهٔ
+        // آن را ثبت می‌کنیم — مبنای «فاکتورِ جدید» در پرتالِ مشتری. یک‌بار ست می‌شود.
+        static::saving(function (Invoice $invoice): void {
+            if (blank($invoice->issued_at) && in_array($invoice->status, self::VISIBLE_STATUSES, true)) {
+                $invoice->issued_at = now();
+            }
+        });
+
         /*
         | حذف فاکتور باید سهمی که از سقف قرارداد گرفته را آزاد کند، وگرنه
         | سقف برای همیشه اشتباه پر می‌ماند. فاکتور لغوشده قبلاً در cancel()

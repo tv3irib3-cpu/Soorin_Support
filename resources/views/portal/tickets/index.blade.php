@@ -36,10 +36,21 @@
                 </thead>
                 <tbody>
                     @foreach ($tickets as $ticket)
-                    @php $__url = route('portal.tickets.show', $ticket); @endphp
-                    <tr onclick="window.location='{{ $__url }}'" style="cursor:pointer;">
+                    @php
+                        $__url = route('portal.tickets.show', $ticket);
+                        $__unread = $unread[$ticket->id] ?? 0;
+                    @endphp
+                    <tr onclick="window.location='{{ $__url }}'" style="cursor:pointer;" @class(['row-unread' => $__unread > 0])>
                         <td style="font-family:monospace;" dir="ltr"><a href="{{ $__url }}">{{ $ticket->number }}</a></td>
-                        <td><a href="{{ $__url }}">{{ $ticket->subject }}</a></td>
+                        <td>
+                            <a href="{{ $__url }}" @style(['font-weight:700' => $__unread > 0])>{{ $ticket->subject }}</a>
+                            @if ($__unread > 0)
+                                <span class="unread-pill" title="{{ __('portal.unread_messages') }}">
+                                    {{ \App\Support\Jalali::digits((string) $__unread) }}
+                                    {{ __('portal.unread_new') }}
+                                </span>
+                            @endif
+                        </td>
                         <td class="col-hide-mobile">{{ $ticket->category?->name ?? '—' }}</td>
                         <td class="col-hide-mobile">{{ \App\Support\Jalali::format($ticket->created_at) }}</td>
                         <td><span class="badge {{ $badge($ticket->status) }}">{{ __('tickets.statuses.' . $ticket->status) }}</span></td>
