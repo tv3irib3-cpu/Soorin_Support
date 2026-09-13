@@ -54,6 +54,40 @@
         </div>
     </x-filament::section>
 
+    {{-- پاک‌سازیِ کاملِ داده — توضیحِ دقیقِ آنچه پاک/نگه‌داشته می‌شود، کنارِ دکمه --}}
+    <x-filament::section>
+        <x-slot name="heading">
+            <span class="text-danger-600 dark:text-danger-400">{{ __('storage.reset_section') }}</span>
+        </x-slot>
+
+        <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('storage.reset_intro') }}</p>
+
+        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div class="rounded-lg border border-success-200 bg-success-50 p-4 dark:border-success-500/30 dark:bg-success-500/10">
+                <div class="mb-2 text-sm font-semibold text-success-700 dark:text-success-400">✓ {{ __('storage.reset_kept_title') }}</div>
+                <ul class="list-disc space-y-1 pe-5 text-xs text-gray-700 dark:text-gray-300">
+                    @foreach (__('storage.reset_kept') as $item)
+                        <li>{{ $item }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            <div class="rounded-lg border border-danger-200 bg-danger-50 p-4 dark:border-danger-500/30 dark:bg-danger-500/10">
+                <div class="mb-2 text-sm font-semibold text-danger-700 dark:text-danger-400">✗ {{ __('storage.reset_deleted_title') }}</div>
+                <ul class="list-disc space-y-1 pe-5 text-xs text-gray-700 dark:text-gray-300">
+                    @foreach (__('storage.reset_deleted') as $item)
+                        <li>{{ $item }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+
+        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">{{ __('storage.reset_note') }}</p>
+
+        <div class="mt-4">
+            {{ $this->resetDataAction }}
+        </div>
+    </x-filament::section>
+
     {{-- راهنمای جابه‌جاییِ هاست --}}
     <x-filament::section collapsible>
         <x-slot name="heading">{{ __('storage.migration_title') }}</x-slot>

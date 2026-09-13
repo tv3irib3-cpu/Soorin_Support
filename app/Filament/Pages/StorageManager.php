@@ -3,12 +3,15 @@
 namespace App\Filament\Pages;
 
 use App\Enums\Permission;
+use App\Services\DatabaseBackupService;
+use App\Services\DataResetService;
 use App\Services\StorageService;
 use App\Support\Jalali;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -73,6 +76,60 @@ class StorageManager extends Page
             $this->restoreAction(),
             $this->cleanupAttachmentsAction(),
         ];
+        // resetDataAction به‌صورتِ اینلاین کنارِ توضیحاتش در نما رندر می‌شود
+        // ({{ $this->resetDataAction }}) تا کاربر دقیقاً ببیند چه پاک/نگه می‌شود.
+    }
+
+    /**
+     * پاک‌سازیِ کاملِ دادهٔ عملیاتی/تستی بدونِ درنظرگرفتنِ تاریخ — برای رفتن به
+     * بهره‌برداری. پیکربندی و کاربران می‌مانند. پیش از کار، پشتیبانِ کامل گرفته و
+     * برای جلوگیری از اشتباه، عبارتِ تأیید خواسته می‌شود.
+     */
+    public function resetDataAction(): Action
+    {
+        return Action::make('resetData')
+            ->label(__('storage.reset_label'))
+            ->icon(Heroicon::OutlinedExclamationTriangle)
+            ->color('danger')
+            ->modalHeading(__('storage.reset_label'))
+            ->modalDescription(__('storage.reset_modal'))
+            ->schema([
+                TextInput::make('confirm')
+                    ->label(__('storage.reset_confirm_field'))
+                    ->helperText(__('storage.reset_confirm_hint', ['word' => __('storage.reset_keyword')]))
+                    ->required(),
+            ])
+            ->modalSubmitActionLabel(__('storage.reset_label'))
+            ->action(function (array $data): void {
+                if (trim((string) ($data['confirm'] ?? '')) !== __('storage.reset_keyword')) {
+                    Notification::make()->danger()->title(__('storage.reset_bad_keyword'))->send();
+
+                    return;
+                }
+
+                // پشتیبانِ کامل پیش از پاک‌سازی — تا خودِ این کار هم قابلِ برگشت باشد.
+                $backup = null;
+                try {
+                    $backup = app(DatabaseBackupService::class)->create('پشتیبان پیش از پاک‌سازیِ کاملِ داده', 'PreWipe');
+                } catch (\Throwable) {
+                    // نبودِ پشتیبان نباید جلوی کار را بگیرد، ولی در پیام هشدارش هست.
+                }
+
+                $counts = app(DataResetService::class)->purge();
+
+                $this->loadSummary();
+
+                Notification::make()->success()
+                    ->title(__('storage.reset_done'))
+                    ->body(__('storage.reset_result', [
+                        'tickets'     => Jalali::digits((string) ($counts['tickets'] ?? 0)),
+                        'invoices'    => Jalali::digits((string) ($counts['invoices'] ?? 0)),
+                        'payments'    => Jalali::digits((string) ($counts['payments'] ?? 0)),
+                        'attachments' => Jalali::digits((string) ($counts['attachments'] ?? 0)),
+                        'backup'      => $backup ?? '—',
+                    ]))
+                    ->persistent()->send();
+            });
     }
 
     /**
