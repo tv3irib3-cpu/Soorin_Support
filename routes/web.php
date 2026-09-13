@@ -78,6 +78,26 @@ Route::middleware('auth')->group(function () {
 
         return response()->download($zip)->deleteFileAfterSend();
     })->where('key', '[a-z_]+')->name('storage.export');
+
+    // بازگشتِ OAuthِ گوگل‌درایو — گوگل با ?code=… به اینجا برمی‌گردد.
+    Route::get('/google-drive/callback', function (\Illuminate\Http\Request $request) {
+        abort_unless(auth()->user()?->can(\App\Enums\Permission::ManageSettings->value), 403);
+
+        $service = app(\App\Services\GoogleDriveService::class);
+        $redirect = \App\Filament\Pages\GoogleDriveBackup::getUrl();
+
+        if ($request->filled('error') || ! $request->filled('code')) {
+            return redirect($redirect)->with('gdrive_error', $request->string('error')->toString() ?: 'اتصال لغو شد.');
+        }
+
+        try {
+            $service->exchangeCode($request->string('code')->toString(), route('google-drive.callback'));
+        } catch (\Throwable $e) {
+            return redirect($redirect)->with('gdrive_error', $e->getMessage());
+        }
+
+        return redirect($redirect)->with('gdrive_status', 'connected');
+    })->name('google-drive.callback');
 });
 
 // ---------------------------------------------------------------- پرتال مشتری

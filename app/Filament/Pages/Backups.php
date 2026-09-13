@@ -168,6 +168,18 @@ class Backups extends Page
                         ->{$result['ok'] ? 'success' : 'warning'}()
                         ->send();
                 }
+
+                // اگر کپیِ خودکارِ گوگل‌درایو روشن است، یک نسخه هم آنجا بریز.
+                $gdrive = app(\App\Services\GoogleDriveService::class);
+
+                if ($gdrive->isEnabled()) {
+                    try {
+                        $gdrive->pushDatabaseBackup($name);
+                        Notification::make()->success()->title(__('gdrive.pushed'))->send();
+                    } catch (\Throwable $e) {
+                        Notification::make()->warning()->title(__('gdrive.push_failed'))->body($e->getMessage())->send();
+                    }
+                }
             });
     }
 

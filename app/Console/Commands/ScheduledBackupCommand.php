@@ -48,6 +48,25 @@ class ScheduledBackupCommand extends Command
                 : $this->warn('شبکه: ' . $result['message']);
         }
 
+        // کپی روی گوگل‌درایو (اگر فعال باشد) — نبودِ اینترنت/خطا نباید بکاپ را خراب کند.
+        $gdrive = app(\App\Services\GoogleDriveService::class);
+
+        if ($gdrive->isEnabled()) {
+            try {
+                $gdrive->pushDatabaseBackup($name);
+                $this->info('گوگل‌درایو: پشتیبانِ دیتابیس کپی شد.');
+
+                if ($gdrive->includesFiles()) {
+                    foreach (['attachments', 'customer_logos', 'brand_logos'] as $category) {
+                        $gdrive->pushFilesBundle($category);
+                    }
+                    $this->info('گوگل‌درایو: فایل‌ها هم کپی شد.');
+                }
+            } catch (\Throwable $e) {
+                $this->warn('گوگل‌درایو: ' . $e->getMessage());
+            }
+        }
+
         BackupSettings::markRan(now());
 
         return self::SUCCESS;
