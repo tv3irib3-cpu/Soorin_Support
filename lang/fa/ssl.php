@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'nav_group' => 'مدیریت و گزارش',
+    'nav_group' => 'مدیریت',
     'label'     => 'SSL',
     'title'     => 'گواهی امنیتی (SSL / HTTPS)',
 

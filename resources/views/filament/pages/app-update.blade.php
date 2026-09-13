@@ -76,7 +76,7 @@
                     @if (filled($rb['backup'] ?? null))
                         <div class="flex justify-between gap-3 sm:col-span-2 sm:block">
                             <dt class="text-gray-500">{{ __('updates.recover_point_backup') }}</dt>
-                            <dd class="font-mono text-xs" dir="ltr">storage/app/backups/{{ $rb['backup'] }}</dd>
+                            <dd class="font-mono text-xs" dir="ltr">storage/app/private/backups/{{ $rb['backup'] }}</dd>
                         </div>
                     @endif
                 </dl>
@@ -91,7 +91,7 @@
             <ul class="space-y-2">
                 <li>
                     <span class="font-medium">{{ __('updates.recover_backups_loc') }}:</span>
-                    <code class="mx-1 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs dark:bg-gray-800" dir="ltr">storage/app/backups/</code>
+                    <code class="mx-1 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs dark:bg-gray-800" dir="ltr">storage/app/private/backups/</code>
                     <span class="text-gray-500">— {{ __('updates.recover_backups_note') }}</span>
                 </li>
                 <li>

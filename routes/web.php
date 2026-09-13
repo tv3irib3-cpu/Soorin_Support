@@ -63,6 +63,21 @@ Route::middleware('auth')->group(function () {
             abort(404);
         }
     })->where('name', '[A-Za-z0-9_.\-]+')->name('backups.download');
+
+    // دانلودِ کلِ فایل‌های یک دستهٔ استوریج به‌صورتِ ZIP (پیوست‌ها، لوگوها، پشتیبان‌ها)
+    // — برای جابه‌جاییِ هاست. دسترسی: مجوزِ «تنظیمات سامانه».
+    Route::get('/storage-manager/export/{key}', function (string $key) {
+        abort_unless(auth()->user()?->can(\App\Enums\Permission::ManageSettings->value), 403);
+        abort_unless(array_key_exists($key, \App\Services\StorageService::categories()), 404);
+
+        try {
+            $zip = app(\App\Services\StorageService::class)->zip($key);
+        } catch (\Throwable) {
+            abort(500);
+        }
+
+        return response()->download($zip)->deleteFileAfterSend();
+    })->where('key', '[a-z_]+')->name('storage.export');
 });
 
 // ---------------------------------------------------------------- پرتال مشتری

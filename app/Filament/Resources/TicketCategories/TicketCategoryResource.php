@@ -37,6 +37,13 @@ class TicketCategoryResource extends Resource
         return __('tickets.categories');
     }
 
+    // بدونِ این، فیلامنت برای جمع، خودکار یک «s» به انتهای برچسبِ فارسی می‌چسباند
+    // («دسته‌بندی تیکتs»). جمعِ فارسی همان مفرد است.
+    public static function getPluralModelLabel(): string
+    {
+        return __('tickets.categories');
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('tickets.categories');
