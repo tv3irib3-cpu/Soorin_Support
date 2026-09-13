@@ -39,6 +39,12 @@
             <li>{{ __('gdrive.setup_4') }}</li>
             <li>{{ __('gdrive.setup_5') }}</li>
         </ol>
+
+        <div class="mt-4 rounded-lg border border-warning-200 bg-warning-50 p-4 dark:border-warning-500/30 dark:bg-warning-500/10">
+            <div class="mb-1 text-sm font-semibold text-warning-700 dark:text-warning-400">{{ __('gdrive.troubleshoot_title') }}</div>
+            <p class="text-xs text-gray-700 dark:text-gray-300">{{ __('gdrive.troubleshoot_403') }}</p>
+            <p class="mt-2 text-xs text-gray-700 dark:text-gray-300">{{ __('gdrive.troubleshoot_unverified') }}</p>
+        </div>
     </x-filament::section>
 
     {{-- فایل‌های روی درایو --}}

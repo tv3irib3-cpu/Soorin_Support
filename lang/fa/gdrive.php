@@ -19,10 +19,15 @@ return [
     // راه‌اندازی
     'setup_title' => 'راهنمای راه‌اندازی (یک‌بار)',
     'setup_1'     => 'در Google Cloud Console یک پروژه بساز و در بخشِ «APIs & Services» سرویسِ Google Drive API را فعال کن.',
-    'setup_2'     => 'در «OAuth consent screen» نوعِ External را بساز و ایمیلِ خودت را به Test users اضافه کن (یا برنامه را Publish کن).',
+    'setup_2'     => 'در «OAuth consent screen» نوعِ External را بساز. سپس در بخشِ «Publishing status» دکمهٔ «PUBLISH APP» را بزن تا وضعیت «In production» شود — چون این سامانه فقط از دسترسیِ غیرحساسِ drive.file استفاده می‌کند، گوگل هیچ verificationی نمی‌خواهد و همین کافی است. (اگر Publish نکنی و در حالتِ Testing بمانی، باید ایمیلت را به Test users اضافه کنی و توکن هر ۷ روز منقضی می‌شود.)',
     'setup_3'     => 'در «Credentials» یک «OAuth client ID» از نوعِ Web application بساز و این آدرس را دقیقاً در Authorized redirect URIs بگذار:',
     'setup_4'     => 'client_id و client_secret را کپی کن و با دکمهٔ «ثبت کلیدها» در همین صفحه وارد کن.',
     'setup_5'     => 'روی «اتصال به گوگل» بزن، حسابت را انتخاب و اجازه بده؛ برمی‌گردی و متصل می‌شوی.',
+
+    // رفعِ خطای رایج
+    'troubleshoot_title' => 'خطای «Error 403: access_denied» گرفتم؟',
+    'troubleshoot_403'   => 'یعنی صفحهٔ رضایتِ گوگل هنوز در حالتِ «Testing» است. راهِ درست: در OAuth consent screen دکمهٔ «PUBLISH APP» را بزن (وضعیت In production شود) — چون دسترسیِ ما drive.file است، نیازی به تأییدِ گوگل نیست و پس از آن اتصال بی‌مشکل کار می‌کند. راهِ سریعِ موقت: ایمیلت را در همان صفحه به «Test users» اضافه کن (ولی توکن هر ۷ روز منقضی می‌شود).',
+    'troubleshoot_unverified' => 'اگر پس از Publish صفحهٔ «Google hasn’t verified this app» دیدی، روی «Advanced» و بعد «Go to … (unsafe)» بزن؛ چون خودت توسعه‌دهنده‌ای این هشدار بی‌خطر است.',
 
     // اکشن‌ها
     'set_credentials'   => 'ثبت کلیدها',
