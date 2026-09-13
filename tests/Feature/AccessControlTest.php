@@ -86,6 +86,24 @@ class AccessControlTest extends TestCase
         $this->assertNotContains($theirs->id, $visible);
     }
 
+    public function test_customer_staff_always_sees_their_own_created_ticket(): void
+    {
+        // کارشناسِ مشتری با سطحِ پیش‌فرض (none) — نباید سابقهٔ دیگران را ببیند، ولی
+        // تیکتی که خودش ثبت کرده باید همیشه دیده شود (باگِ گزارش‌شده).
+        $staff = $this->customerUser(User::TYPE_CUSTOMER_STAFF, $this->aria);
+        $this->assertSame('none', $staff->historyScope());
+
+        $colleague = $this->customerUser(User::TYPE_CUSTOMER_STAFF, $this->aria);
+
+        $mine   = $this->ticketFor($this->aria, $this->bushehr, $staff);
+        $theirs = $this->ticketFor($this->aria, $this->bushehr, $colleague);
+
+        $visible = Ticket::visibleTo($staff)->pluck('id');
+
+        $this->assertContains($mine->id, $visible, 'کارشناس باید تیکتی که خودش ثبت کرده را ببیند');
+        $this->assertNotContains($theirs->id, $visible, 'کارشناس نباید تیکتِ همکارش را ببیند');
+    }
+
     public function test_customer_staff_with_no_history_sees_nothing(): void
     {
         $staff = $this->customerUser(User::TYPE_CUSTOMER_STAFF, $this->aria);

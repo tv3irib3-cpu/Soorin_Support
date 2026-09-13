@@ -89,9 +89,14 @@ class CustomerAccessFlagsTest extends TestCase
             'subject' => 'مشکل جدید', 'description' => 'شرح مشکل',
         ]);
 
-        // نباید به صفحه‌ای هدایت شود که برایش ۴۰۴ می‌دهد
-        $response->assertRedirect(route('portal.dashboard'));
         $this->assertDatabaseCount('tickets', 1);
+        $ticket = \App\Models\Ticket::first();
+
+        // سازندهٔ تیکت همیشه تیکتِ خودش را می‌بیند — حتی وقتی «دیدنِ سوابق» برای
+        // مشتری خاموش است. پس به صفحهٔ همان تیکت هدایت می‌شود، نه به داشبورد،
+        // و آن صفحه هم واقعاً باز می‌شود (بدونِ ۴۰۴).
+        $response->assertRedirect(route('portal.tickets.show', $ticket));
+        $this->actingAs($admin)->get(route('portal.tickets.show', $ticket))->assertOk();
     }
 
     public function test_deleting_invoice_releases_contract_ceiling(): void

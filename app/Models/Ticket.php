@@ -251,11 +251,22 @@ class Ticket extends Model
         // کاربر مشتری هرگز نباید داده مشتری دیگر را ببیند — این شرط همیشه اعمال می‌شود
         $query->where('customer_id', $user->customer_id);
 
-        return match ($user->historyScope()) {
-            'customer' => $query,
-            'project'  => $query->whereIn('customer_project_id', $user->accessibleProjectIds()),
-            'own'      => $query->where('created_by', $user->id),
-            default    => $query->whereRaw('1 = 0'),   // none — هیچ سابقه‌ای
-        };
+        $scope = $user->historyScope();
+
+        // مدیرِ مشتری (یا هر کاربر با سطحِ «همهٔ مشتری») همهٔ تیکت‌های مشتری را می‌بیند.
+        if ($scope === 'customer') {
+            return $query;
+        }
+
+        // در بقیهٔ حالت‌ها کاربر همیشه تیکت‌هایی را که خودش ثبت کرده می‌بیند — وگرنه
+        // کارشناسِ مشتری حتی تیکتی که همین الان ثبت کرده هم گم می‌شد. سطحِ تاریخچه
+        // فقط دامنهٔ دیدنِ تیکت‌های *دیگران* را گسترده‌تر می‌کند.
+        return $query->where(function (Builder $sub) use ($user, $scope): void {
+            $sub->where('created_by', $user->id);
+
+            if ($scope === 'project') {
+                $sub->orWhereIn('customer_project_id', $user->accessibleProjectIds());
+            }
+        });
     }
 }
