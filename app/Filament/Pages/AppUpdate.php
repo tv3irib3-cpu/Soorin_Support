@@ -27,6 +27,9 @@ class AppUpdate extends Page
     /** نتیجهٔ آخرین بررسی به‌روزرسانی. */
     public array $status = [];
 
+    /** اطلاعاتِ نقطهٔ بازگشت (اگر آپدیتی انجام شده که بشود از آن برگشت). */
+    public array $rollback = [];
+
     public static function getNavigationLabel(): string
     {
         return __('updates.label');
@@ -91,6 +94,9 @@ class AppUpdate extends Page
         // روشِ به‌روزرسانی همیشه از وضعیتِ فعلی خوانده می‌شود، نه از کشِ کهنه — تا اگر
         // مانیفست تنظیم شده باشد، نشانِ اشتباهِ «فقط به‌روزرسانی با فایل» نماند.
         $this->status['method'] = $service->currentMethod();
+
+        // اگر آپدیتی انجام شده که نقطهٔ بازگشت دارد، دکمهٔ دانگرید نمایان می‌شود.
+        $this->rollback = $service->rollbackInfo() ?? [];
     }
 
     protected function getHeaderActions(): array
@@ -99,6 +105,7 @@ class AppUpdate extends Page
             $this->checkAction(),
             $this->updatePackageAction(),
             $this->updateFromZipAction(),
+            $this->rollbackAction(),
         ];
 
         // قابلیت‌های مبتنی بر git/شل (اتصال و به‌روزرسانی از گیت‌هاب) فقط روی سرورِ دارای
@@ -138,6 +145,7 @@ class AppUpdate extends Page
 
                 $this->status['current'] = $result['version'];
                 $this->status['available'] = false;
+                $this->rollback = $service->rollbackInfo() ?? [];
 
                 Notification::make()->success()
                     ->title(__('updates.updated', ['version' => $result['version']]))
@@ -184,6 +192,56 @@ class AppUpdate extends Page
                 Notification::make()->success()
                     ->title(__('updates.link_git_done'))
                     ->body(__('updates.updated_backup', ['file' => $result['backup'] ?? '—']))
+                    ->persistent()->send();
+            });
+    }
+
+    /**
+     * بازگشت به نسخهٔ قبلی (دانگرید) — اگر آخرین آپدیت مشکل داشت. فقط وقتی دیده
+     * می‌شود که نقطهٔ بازگشتِ معتبری ثبت شده باشد. کاربر انتخاب می‌کند با دیتابیس
+     * چه شود: بازگردانیِ کامل (کد + دیتابیس) یا فقط کد.
+     */
+    private function rollbackAction(): Action
+    {
+        return Action::make('rollback')
+            ->label(__('updates.rollback'))
+            ->icon(Heroicon::OutlinedArrowUturnLeft)
+            ->color('warning')
+            ->visible(fn () => filled($this->rollback))
+            ->modalHeading(fn () => __('updates.rollback_to', ['version' => $this->rollback['version'] ?? '']))
+            ->modalDescription(__('updates.rollback_warning'))
+            ->schema([
+                \Filament\Forms\Components\Radio::make('mode')
+                    ->label(__('updates.rollback_choose_db'))
+                    ->options([
+                        'full' => __('updates.rollback_full'),
+                        'code' => __('updates.rollback_code_only'),
+                    ])
+                    ->descriptions([
+                        'full' => __('updates.rollback_full_desc'),
+                        'code' => __('updates.rollback_code_only_desc'),
+                    ])
+                    ->default('full')
+                    ->required(),
+            ])
+            ->modalSubmitActionLabel(__('updates.rollback'))
+            ->action(function (array $data, AppUpdateService $service): void {
+                try {
+                    $result = $service->rollback(($data['mode'] ?? 'full') === 'full');
+                } catch (\Throwable $e) {
+                    Notification::make()->danger()->title(__('updates.rollback_failed'))
+                        ->body($e->getMessage())->persistent()->send();
+
+                    return;
+                }
+
+                $this->status['current'] = $result['version'];
+                $this->status['available'] = true;   // نسخهٔ جدید دوباره در دسترس است
+                $this->rollback = [];
+
+                Notification::make()->success()
+                    ->title(__('updates.rolled_back', ['version' => $result['version']]))
+                    ->body(__('updates.rollback_backup', ['file' => $result['backup'] ?? '—']))
                     ->persistent()->send();
             });
     }
@@ -236,6 +294,7 @@ class AppUpdate extends Page
 
                 $this->status['current'] = $result['version'];
                 $this->status['available'] = false;
+                $this->rollback = $service->rollbackInfo() ?? [];
 
                 Notification::make()->success()
                     ->title(__('updates.updated', ['version' => $result['version']]))
@@ -280,6 +339,7 @@ class AppUpdate extends Page
 
                 $this->status['current'] = $result['version'];
                 $this->status['available'] = false;
+                $this->rollback = $service->rollbackInfo() ?? [];
 
                 Notification::make()->success()
                     ->title(__('updates.updated', ['version' => $result['version']]))

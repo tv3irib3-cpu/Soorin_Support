@@ -37,6 +37,7 @@
             <li>{{ __('updates.hint_git') }}</li>
             <li>{{ __('updates.hint_zip') }}</li>
             <li>{{ __('updates.hint_backup') }}</li>
+            <li>{{ __('updates.hint_rollback') }}</li>
         </ul>
     </x-filament::section>
 </x-filament-panels::page>

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Setting;
 use App\Support\AppVersion;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
@@ -243,7 +244,15 @@ class AppUpdateService
             throw new RuntimeException('این بستهٔ «فقط-کد» است ولی نصبِ فعلی هم vendor ندارد — از بستهٔ کامل استفاده کن.');
         }
 
+        // نسخهٔ فعلی (پیش از بازنویسی) و نسخهٔ بسته — برای ثبتِ نقطهٔ بازگشت.
+        $fromVersion = AppVersion::current();
+        $newVersion  = trim((string) @file_get_contents($source . '/VERSION')) ?: $fromVersion;
+
         $backup = $this->safetyBackup();
+
+        // عکسِ کدِ فعلی را پیش از بازنویسی بگیر تا بتوان دقیقاً به همین نسخه برگشت
+        // (روی هاستِ اشتراکی که git نیست، تنها راهِ بازگشت همین است).
+        $snapshot = $newVersion !== $fromVersion ? $this->captureCodeSnapshot($fromVersion) : null;
 
         // وب‌روتِ واقعی: روی هاستِ اشتراکی «public_html» است (APP_PUBLIC_PATH)، نه «public».
         $publicName = filled(env('APP_PUBLIC_PATH')) ? (string) env('APP_PUBLIC_PATH') : 'public';
@@ -271,6 +280,11 @@ class AppUpdateService
 
         $version = AppVersion::current();
         $this->markUpToDate($version);
+
+        // نقطهٔ بازگشت را فقط وقتی ثبت کن که نسخه واقعاً عوض شده و عکسِ کد گرفته شده باشد.
+        if ($version !== $fromVersion && filled($snapshot)) {
+            $this->storeRollbackPoint($this->currentMethod(), $fromVersion, $backup, snapshot: $snapshot);
+        }
 
         return ['backup' => $backup, 'version' => $version];
     }
@@ -361,8 +375,14 @@ class AppUpdateService
             throw new RuntimeException('این استقرار یک مخزن گیت نیست؛ از به‌روزرسانی با فایل استفاده کن.');
         }
 
-        $backup = $this->safetyBackup();
         $root = base_path();
+
+        // نقطهٔ بازگشت: کامیت و نسخهٔ فعلی را پیش از pull نگه می‌داریم تا اگر
+        // نسخهٔ جدید مشکل داشت، دقیقاً به همین‌جا برگردیم.
+        $fromCommit  = trim(Process::path($root)->env($this->processEnv())->run('git rev-parse HEAD')->output());
+        $fromVersion = AppVersion::current();
+
+        $backup = $this->safetyBackup();
 
         $this->run($root, 'git pull --ff-only', 180);
         $this->run($root, 'composer install --no-dev --optimize-autoloader --no-interaction', 600);
@@ -373,6 +393,13 @@ class AppUpdateService
 
         $version = AppVersion::current();
         $this->markUpToDate($version);
+
+        // فقط وقتی نقطهٔ بازگشت را ثبت کن که کامیت واقعاً جابه‌جا شده باشد.
+        $toCommit = trim(Process::path($root)->env($this->processEnv())->run('git rev-parse HEAD')->output());
+
+        if ($fromCommit !== '' && $fromCommit !== $toCommit) {
+            $this->storeRollbackPoint('git', $fromVersion, $backup, commit: $fromCommit);
+        }
 
         return ['backup' => $backup, 'version' => $version];
     }
@@ -425,6 +452,256 @@ class AppUpdateService
         $this->run($root, 'git branch --set-upstream-to=origin/main main', 60);
 
         return ['version' => AppVersion::current(), 'backup' => $backup];
+    }
+
+    // ==================================================== بازگشت به نسخهٔ قبلی
+
+    /** گروهِ تنظیماتِ نقطهٔ بازگشت در جدولِ settings. */
+    private const ROLLBACK_GROUP = 'update';
+
+    /**
+     * ورودی‌های سطحِ‌بالای «کد» که در بسته‌ها هستند — همان‌هایی که آپدیت بازنویسی
+     * می‌کند (بدونِ vendor، storage، ‎.env، ‎.git). عکسِ بازگشت از همین‌ها گرفته می‌شود.
+     */
+    private const CODE_ENTRIES = [
+        'app', 'bootstrap', 'config', 'database', 'lang', 'resources', 'routes',
+        'deploy', 'docker', 'docs', 'Logo', 'scripts',
+        'artisan', 'composer.json', 'composer.lock', 'VERSION',
+        'phpunit.xml', 'package.json', 'vite.config.js', 'docker-compose.yml',
+    ];
+
+    private function rollbackDir(): string
+    {
+        return storage_path('app/rollback');
+    }
+
+    /**
+     * اطلاعاتِ نقطهٔ بازگشت (نسخه‌ای که آخرین آپدیت از آن آمده)، یا null اگر ثبت نشده
+     * یا فایلِ عکسِ آن دیگر موجود نیست.
+     *
+     * @return array{method: string, version: string, commit: string, backup: string, snapshot: string, at: ?string}|null
+     */
+    public function rollbackInfo(): ?array
+    {
+        $version = (string) Setting::get('update.rollback_version', '');
+
+        if ($version === '') {
+            return null;
+        }
+
+        $info = [
+            'method'   => (string) Setting::get('update.rollback_method', 'package'),
+            'version'  => $version,
+            'commit'   => (string) Setting::get('update.rollback_commit', ''),
+            'backup'   => (string) Setting::get('update.rollback_backup', ''),
+            'snapshot' => (string) Setting::get('update.rollback_snapshot', ''),
+            'at'       => Setting::get('update.rollback_at'),
+        ];
+
+        // بازگشتِ غیرِ گیت به عکسِ کد نیاز دارد؛ اگر فایلش رفته، نقطهٔ بازگشت بی‌اعتبار است.
+        if ($info['method'] !== 'git' && (blank($info['snapshot']) || ! is_file($info['snapshot']))) {
+            return null;
+        }
+
+        return $info;
+    }
+
+    /** آیا نقطهٔ بازگشتِ معتبری هست؟ (برای نمایشِ دکمهٔ دانگرید). */
+    public function canRollback(): bool
+    {
+        return $this->rollbackInfo() !== null;
+    }
+
+    private function storeRollbackPoint(string $method, string $version, ?string $backup, string $commit = '', ?string $snapshot = null): void
+    {
+        // نقطهٔ بازگشتِ قبلی مصرف/جایگزین می‌شود؛ عکسِ کدِ قدیمی‌اش پاک شود.
+        $old = (string) Setting::get('update.rollback_snapshot', '');
+
+        if (filled($old) && $old !== $snapshot && is_file($old)) {
+            @unlink($old);
+        }
+
+        Setting::set('update.rollback_method', $method, self::ROLLBACK_GROUP, 'string');
+        Setting::set('update.rollback_version', $version, self::ROLLBACK_GROUP, 'string');
+        Setting::set('update.rollback_commit', $commit, self::ROLLBACK_GROUP, 'string');
+        Setting::set('update.rollback_backup', (string) $backup, self::ROLLBACK_GROUP, 'string');
+        Setting::set('update.rollback_snapshot', (string) $snapshot, self::ROLLBACK_GROUP, 'string');
+        Setting::set('update.rollback_at', now()->toIso8601String(), self::ROLLBACK_GROUP, 'string');
+    }
+
+    private function clearRollbackPoint(): void
+    {
+        $snapshot = (string) Setting::get('update.rollback_snapshot', '');
+
+        if (filled($snapshot) && is_file($snapshot)) {
+            @unlink($snapshot);
+        }
+
+        foreach (['method', 'version', 'commit', 'backup', 'snapshot', 'at'] as $key) {
+            Setting::set('update.rollback_' . $key, '', self::ROLLBACK_GROUP, 'string');
+        }
+    }
+
+    /**
+     * عکسِ zip از کدِ فعلیِ نصب (پیش از بازنویسیِ آپدیت) — همان مجموعهٔ فایلی که
+     * آپدیت لمس می‌کند، به‌علاوهٔ وب‌روتِ واقعی (public/public_html). فقط یک عکس نگه
+     * داشته می‌شود. null اگر ساخت ناموفق بود (نبودِ عکس یعنی بازگشتِ غیرِگیت ممکن نیست).
+     */
+    private function captureCodeSnapshot(string $version): ?string
+    {
+        try {
+            $dir = $this->rollbackDir();
+            @mkdir($dir, 0775, true);
+
+            // فقط یک نقطهٔ بازگشت نگه می‌داریم؛ عکس‌های قبلی را پاک کن.
+            foreach (glob($dir . '/code-*.zip') ?: [] as $old) {
+                @unlink($old);
+            }
+
+            $path = $dir . '/code-' . preg_replace('/[^0-9.]/', '', $version) . '-' . date('YmdHis') . '.zip';
+
+            $zip = new ZipArchive();
+
+            if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+                return null;
+            }
+
+            foreach (self::CODE_ENTRIES as $entry) {
+                $abs = base_path($entry);
+
+                if (! file_exists($abs)) {
+                    continue;
+                }
+
+                is_dir($abs) ? $this->zipDir($zip, $abs, $entry) : $zip->addFile($abs, $entry);
+            }
+
+            // وب‌روتِ واقعی را به‌صورتِ public/ داخلِ عکس نگه دار (asset‌های هماهنگ با کد).
+            $publicName = filled(env('APP_PUBLIC_PATH')) ? (string) env('APP_PUBLIC_PATH') : 'public';
+            $pub = base_path($publicName);
+
+            if (is_dir($pub)) {
+                $this->zipDir($zip, $pub, 'public');
+            }
+
+            $zip->close();
+
+            return is_file($path) ? $path : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function zipDir(ZipArchive $zip, string $absDir, string $localBase): void
+    {
+        $zip->addEmptyDir($localBase);
+
+        $it = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($absDir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST,
+        );
+
+        foreach ($it as $file) {
+            $abs   = $file->getPathname();
+            $local = $localBase . '/' . str_replace('\\', '/', substr($abs, strlen($absDir) + 1));
+
+            $file->isDir() ? $zip->addEmptyDir($local) : $zip->addFile($abs, $local);
+        }
+    }
+
+    private function restoreCodeSnapshot(string $zipPath): void
+    {
+        $tmp = storage_path('app/rb-' . uniqid());
+
+        $zip = new ZipArchive();
+
+        if ($zip->open($zipPath) !== true) {
+            throw new RuntimeException('بازکردنِ عکسِ نسخهٔ قبلی ناموفق بود.');
+        }
+
+        @mkdir($tmp, 0775, true);
+        $zip->extractTo($tmp);
+        $zip->close();
+
+        $publicName = filled(env('APP_PUBLIC_PATH')) ? (string) env('APP_PUBLIC_PATH') : 'public';
+
+        // همه‌چیز جز public روی ریشه؛ public جدا به وب‌روتِ واقعی.
+        $this->copyOver($tmp, base_path(), ['public']);
+
+        if (is_dir($tmp . '/public')) {
+            @mkdir(base_path($publicName), 0775, true);
+            $this->copyOver($tmp . '/public', base_path($publicName), []);
+        }
+
+        $this->rrmdir($tmp);
+    }
+
+    /**
+     * بازگشت به نسخهٔ قبلی (دانگرید).
+     *
+     * کد به نسخهٔ پیش از آخرین آپدیت برمی‌گردد — روی نصبِ گیت با `git reset --hard`
+     * و در غیرِ آن با بازگرداندنِ عکسِ کد. برای دیتابیس دو حالت است:
+     *   - $restoreDatabase = true: دیتابیس از پشتیبانِ پیش‌از‌آپدیت بازیابی می‌شود
+     *     (کاملاً هماهنگ؛ داده‌های بعد از آپدیت می‌رود ولی در پشتیبان محفوظ است).
+     *   - false: دیتابیس دست‌نخورده می‌ماند (فقط وقتی امن است که آپدیت مهاجرتِ ویرانگر نداشته).
+     *
+     * پیش از هر کاری یک پشتیبانِ تازه گرفته می‌شود تا خودِ بازگشت هم قابلِ برگشت باشد.
+     *
+     * @return array{version: string, backup: ?string, restored_db: bool}
+     */
+    public function rollback(bool $restoreDatabase): array
+    {
+        @set_time_limit(0);
+        @ignore_user_abort(true);
+
+        $info = $this->rollbackInfo();
+
+        if ($info === null) {
+            throw new RuntimeException(__('updates.rollback_none'));
+        }
+
+        // پشتیبانِ تازه از وضعیتِ فعلی تا خودِ بازگشت هم قابلِ برگشت باشد.
+        $preRollbackBackup = null;
+
+        try {
+            $preRollbackBackup = app(DatabaseBackupService::class)->create('پشتیبان پیش از بازگشت به نسخهٔ قبلی', 'PreRb');
+        } catch (\Throwable) {
+            // نبودِ پشتیبان نباید جلوی بازگشت را بگیرد.
+        }
+
+        if ($info['method'] === 'git' && AppVersion::isGitRepo() && filled($info['commit'])) {
+            $root = base_path();
+            $this->run($root, 'git reset --hard ' . escapeshellarg($info['commit']), 180);
+            $this->run($root, 'composer install --no-dev --optimize-autoloader --no-interaction', 600);
+        } else {
+            // نصبِ بسته/زیپ (هاستِ اشتراکی): از عکسِ کد بازگردان.
+            if (blank($info['snapshot']) || ! is_file($info['snapshot'])) {
+                throw new RuntimeException(__('updates.rollback_no_snapshot'));
+            }
+
+            $this->restoreCodeSnapshot($info['snapshot']);
+        }
+
+        // بازیابیِ دیتابیس فقط اگر کاربر خواسته و پشتیبانِ پیش‌از‌آپدیت موجود باشد.
+        if ($restoreDatabase && filled($info['backup'])) {
+            $service = app(DatabaseBackupService::class);
+
+            if ($service->exists($info['backup'])) {
+                $service->restore($service->absolutePath($info['backup']));
+            }
+        }
+
+        Artisan::call('optimize:clear');
+
+        // نقطهٔ بازگشت مصرف شد؛ نسخهٔ جدید دوباره «موجود» می‌شود.
+        $this->clearRollbackPoint();
+        Cache::forget(self::CACHE_KEY);
+
+        return [
+            'version'     => AppVersion::current(),
+            'backup'      => $preRollbackBackup,
+            'restored_db' => $restoreDatabase,
+        ];
     }
 
     private function safetyBackup(): ?string
