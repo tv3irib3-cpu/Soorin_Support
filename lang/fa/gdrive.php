@@ -18,15 +18,18 @@ return [
 
     // راه‌اندازی
     'setup_title' => 'راهنمای راه‌اندازی (یک‌بار)',
-    'setup_1'     => 'در Google Cloud Console یک پروژه بساز و در بخشِ «APIs & Services» سرویسِ Google Drive API را فعال کن.',
-    'setup_2'     => 'در «OAuth consent screen» نوعِ External را بساز. سپس در بخشِ «Publishing status» دکمهٔ «PUBLISH APP» را بزن تا وضعیت «In production» شود — چون این سامانه فقط از دسترسیِ غیرحساسِ drive.file استفاده می‌کند، گوگل هیچ verificationی نمی‌خواهد و همین کافی است. (اگر Publish نکنی و در حالتِ Testing بمانی، باید ایمیلت را به Test users اضافه کنی و توکن هر ۷ روز منقضی می‌شود.)',
-    'setup_3'     => 'در «Credentials» یک «OAuth client ID» از نوعِ Web application بساز و این آدرس را دقیقاً در Authorized redirect URIs بگذار:',
-    'setup_4'     => 'client_id و client_secret را کپی کن و با دکمهٔ «ثبت کلیدها» در همین صفحه وارد کن.',
-    'setup_5'     => 'روی «اتصال به گوگل» بزن، حسابت را انتخاب و اجازه بده؛ برمی‌گردی و متصل می‌شوی.',
+    'setup_1'     => '۱) در Google Cloud Console یک پروژه بساز. سپس از کادرِ جست‌وجوی بالا «Google Drive API» را باز کن و اگر دکمهٔ «Enable» بود بزنش (باید فعال باشد).',
+    'setup_2'     => '۲) به «Google Auth Platform» برو؛ از منوی چپ «Audience» را باز کن و در بخشِ «Publishing status» دکمهٔ «PUBLISH APP» را بزن تا وضعیت «In production» شود. چون این سامانه فقط از دسترسیِ غیرحساسِ drive.file استفاده می‌کند، گوگل هیچ verificationی نمی‌خواهد. (اگر Publish نکنی و در Testing بمانی، باید ایمیلت را در همان صفحه به «Test users» اضافه کنی و توکن هر ۷ روز منقضی می‌شود.)',
+    'setup_3'     => '۳) از منوی چپ «Data Access» → «Add or remove scopes» → در جست‌وجو drive.file را بزن و دسترسیِ «.../auth/drive.file» را تیک بزن → Update → Save.',
+    'setup_4'     => '۴) از منوی چپ «Clients» → «Create client» → نوع «Web application» را بساز و این آدرس را دقیقاً در بخشِ «Authorized redirect URIs» بگذار و Save:',
+    'setup_5'     => '۵) client_id و client_secret را از همان صفحهٔ Client کپی کن و با دکمهٔ «ثبت کلیدها» در همین صفحه وارد کن.',
+    'setup_6'     => '۶) روی «اتصال به گوگل» بزن و حسابت را انتخاب کن. در صفحهٔ اجازهٔ گوگل، حتماً تیکِ دسترسی به Drive را بزن («فقط فایل‌هایی که با این برنامه می‌سازی»)؛ اگر گزینهٔ «Select all» بود همان را بزن. سپس Continue.',
+    'setup_7'     => '۷) پس از اتصال، از دکمهٔ «تنظیمات» گزینهٔ «کپیِ خودکارِ پشتیبان» (و در صورتِ نیاز «کپیِ فایل‌ها») را روشن کن.',
 
     // رفعِ خطای رایج
-    'troubleshoot_title' => 'خطای «Error 403: access_denied» گرفتم؟',
-    'troubleshoot_403'   => 'یعنی صفحهٔ رضایتِ گوگل هنوز در حالتِ «Testing» است. راهِ درست: در OAuth consent screen دکمهٔ «PUBLISH APP» را بزن (وضعیت In production شود) — چون دسترسیِ ما drive.file است، نیازی به تأییدِ گوگل نیست و پس از آن اتصال بی‌مشکل کار می‌کند. راهِ سریعِ موقت: ایمیلت را در همان صفحه به «Test users» اضافه کن (ولی توکن هر ۷ روز منقضی می‌شود).',
+    'troubleshoot_title' => 'رفعِ خطاهای رایج',
+    'troubleshoot_403'   => 'خطای «Error 403: access_denied»: یعنی صفحهٔ رضایت هنوز در حالتِ Testing است. در «Google Auth Platform → Audience» دکمهٔ «PUBLISH APP» را بزن (وضعیت In production). چون دسترسیِ ما drive.file است، نیازی به تأییدِ گوگل نیست. راهِ سریعِ موقت: ایمیلت را به «Test users» اضافه کن (ولی توکن هر ۷ روز منقضی می‌شود).',
+    'troubleshoot_scope' => 'خطای «insufficient authentication scopes» یا «Insufficient Permission»: یعنی هنگام اتصال، تیکِ دسترسی به Drive زده نشده. «قطع اتصال» را بزن و دوباره «اتصال به گوگل» را بزن و این‌بار حتماً تیکِ Drive را بزن. اگر باز هم نشد، مطمئن شو مرحلهٔ ۱ (فعال‌بودنِ Drive API) و مرحلهٔ ۳ (افزودنِ scope در Data Access) انجام شده.',
     'troubleshoot_unverified' => 'اگر پس از Publish صفحهٔ «Google hasn’t verified this app» دیدی، روی «Advanced» و بعد «Go to … (unsafe)» بزن؛ چون خودت توسعه‌دهنده‌ای این هشدار بی‌خطر است.',
 
     // اکشن‌ها

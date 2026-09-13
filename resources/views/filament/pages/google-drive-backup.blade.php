@@ -27,22 +27,26 @@
     <x-filament::section collapsible :collapsed="$this->isConnected()">
         <x-slot name="heading">{{ __('gdrive.setup_title') }}</x-slot>
 
-        <ol class="list-decimal space-y-2 pe-5 text-sm text-gray-600 dark:text-gray-400">
+        {{-- شماره‌ها داخلِ متنِ هر مرحله هستند، پس فهرستِ بدونِ شمارهٔ خودکار. --}}
+        <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
             <li>{{ __('gdrive.setup_1') }}</li>
             <li>{{ __('gdrive.setup_2') }}</li>
+            <li>{{ __('gdrive.setup_3') }}</li>
             <li>
-                {{ __('gdrive.setup_3') }}
+                {{ __('gdrive.setup_4') }}
                 <div class="mt-1">
                     <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs dark:bg-gray-800" dir="ltr">{{ $this->redirectUri() }}</code>
                 </div>
             </li>
-            <li>{{ __('gdrive.setup_4') }}</li>
             <li>{{ __('gdrive.setup_5') }}</li>
-        </ol>
+            <li>{{ __('gdrive.setup_6') }}</li>
+            <li>{{ __('gdrive.setup_7') }}</li>
+        </ul>
 
         <div class="mt-4 rounded-lg border border-warning-200 bg-warning-50 p-4 dark:border-warning-500/30 dark:bg-warning-500/10">
             <div class="mb-1 text-sm font-semibold text-warning-700 dark:text-warning-400">{{ __('gdrive.troubleshoot_title') }}</div>
             <p class="text-xs text-gray-700 dark:text-gray-300">{{ __('gdrive.troubleshoot_403') }}</p>
+            <p class="mt-2 text-xs text-gray-700 dark:text-gray-300">{{ __('gdrive.troubleshoot_scope') }}</p>
             <p class="mt-2 text-xs text-gray-700 dark:text-gray-300">{{ __('gdrive.troubleshoot_unverified') }}</p>
         </div>
     </x-filament::section>
