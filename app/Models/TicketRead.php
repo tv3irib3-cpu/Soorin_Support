@@ -66,14 +66,21 @@ class TicketRead extends Model
     /**
      * مجموعِ پیام‌های خوانده‌نشده در همهٔ تیکت‌هایی که کاربر می‌بیند.
      * پشتیبان همه را می‌بیند؛ مشتری فقط دامنهٔ دسترسیِ خودش.
+     *
+     * @param  array<int, string>  $excludeStatuses وضعیت‌هایی که تیکتِ آن‌ها در شمارش
+     *         نیاید (مثلاً در داشبوردِ پشتیبان، «منتظر پاسخ مشتری» شمرده نمی‌شود).
      */
-    public static function unreadCountFor(User $user): int
+    public static function unreadCountFor(User $user, array $excludeStatuses = []): int
     {
         $q = static::unreadMessagesQuery($user);
 
         if (! $user->isSupportUser()) {
             $visibleIds = Ticket::visibleTo($user)->pluck('tickets.id');
             $q->whereIn('ticket_messages.ticket_id', $visibleIds);
+        }
+
+        if ($excludeStatuses !== []) {
+            $q->whereHas('ticket', fn ($t) => $t->whereNotIn('status', $excludeStatuses));
         }
 
         return $q->count();

@@ -103,32 +103,29 @@ class TicketWorkflowTest extends TestCase
         $this->assertNotContains(Ticket::STATUS_CLOSED, $ticket->availableTransitions());
     }
 
-    public function test_closing_ticket_locks_it_automatically(): void
+    public function test_resolving_ticket_locks_it_automatically(): void
     {
+        // «حل‌شده» وضعیتِ نهایی است و تیکت را قفل می‌کند («بسته‌شده» حذف شده).
         $ticket = $this->newTicket();
         $ticket->update(['status' => Ticket::STATUS_IN_PROGRESS]);
         $ticket->update(['status' => Ticket::STATUS_RESOLVED]);
-        $ticket->update(['status' => Ticket::STATUS_CLOSED]);
 
         $ticket->refresh();
         $this->assertTrue($ticket->is_locked);
-        $this->assertNotNull($ticket->closed_at);
         $this->assertNotNull($ticket->resolved_at);
     }
 
-    public function test_closed_ticket_can_be_reopened_to_in_progress_only(): void
+    public function test_resolved_ticket_can_be_reopened_to_in_progress_only(): void
     {
         $ticket = $this->newTicket();
         $ticket->update(['status' => Ticket::STATUS_IN_PROGRESS]);
         $ticket->update(['status' => Ticket::STATUS_RESOLVED]);
-        $ticket->update(['status' => Ticket::STATUS_CLOSED]);
         $ticket->refresh();
 
-        // مدیرِ پشتیبان می‌تواند تیکتِ بسته را دوباره باز کند (به «در حال بررسی»)
+        // مدیرِ پشتیبان می‌تواند تیکتِ حل‌شده را دوباره باز کند (به «در حال بررسی»)
         $this->assertTrue($ticket->canTransitionTo(Ticket::STATUS_IN_PROGRESS));
         $this->assertSame([Ticket::STATUS_IN_PROGRESS], $ticket->availableTransitions());
         // ولی مستقیم به هیچ وضعیتِ دیگری نمی‌رود
-        $this->assertFalse($ticket->canTransitionTo(Ticket::STATUS_RESOLVED));
         $this->assertFalse($ticket->canTransitionTo(Ticket::STATUS_CANCELLED));
     }
 
@@ -145,12 +142,11 @@ class TicketWorkflowTest extends TestCase
         $this->assertSame(Ticket::STATUS_IN_PROGRESS, $ticket->fresh()->status);
     }
 
-    public function test_reopening_closed_ticket_clears_the_lock(): void
+    public function test_reopening_resolved_ticket_clears_the_lock(): void
     {
         $ticket = $this->newTicket();
         $ticket->update(['status' => Ticket::STATUS_IN_PROGRESS]);
         $ticket->update(['status' => Ticket::STATUS_RESOLVED]);
-        $ticket->update(['status' => Ticket::STATUS_CLOSED]);
         $this->assertTrue($ticket->fresh()->is_locked);
 
         // بازگشایی → قفل خودکار برداشته می‌شود

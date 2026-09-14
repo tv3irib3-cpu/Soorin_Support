@@ -96,9 +96,16 @@ class ViewTicket extends ViewRecord
                 ]),
 
             Section::make(__('tickets.resolution'))
-                ->visible(fn () => filled($ticket->resolution))
+                ->visible(fn () => filled($ticket->resolution) || filled($ticket->method))
                 ->schema([
-                    TextEntry::make('resolution')->hiddenLabel(),
+                    TextEntry::make('resolution')
+                        ->label(__('tickets.resolution'))
+                        ->placeholder('—'),
+                    TextEntry::make('method')
+                        ->label(__('tickets.method'))
+                        ->badge()
+                        ->formatStateUsing(fn ($state) => __("tickets.methods.$state") ?: $state)
+                        ->visible(fn () => filled($ticket->method)),
                 ]),
 
             Section::make(__('tickets.rating'))
@@ -163,6 +170,14 @@ class ViewTicket extends ViewRecord
                     ->required()
                     ->rows(4),
 
+                // مدتِ زمانِ کارکردِ این پاسخ — اجباری؛ به مجموعِ کارکردِ تیکت اضافه می‌شود.
+                TextInput::make('work_minutes')
+                    ->label(__('tickets.reply_work_minutes'))
+                    ->helperText(__('tickets.reply_work_minutes_hint'))
+                    ->numeric()
+                    ->minValue(0)
+                    ->required(),
+
                 FileUpload::make('attachments')
                     ->label(__('tickets.attachments'))
                     ->helperText(__('tickets.attach_hint'))
@@ -183,19 +198,7 @@ class ViewTicket extends ViewRecord
                     return;
                 }
 
-                $message = TicketMessage::create([
-                    'ticket_id'   => $ticket->id,
-                    'user_id'     => auth()->id(),
-                    'body'        => $data['body'],
-                    'is_internal' => (bool) ($data['is_internal'] ?? false),
-                ]);
-
-                $service = app(TicketAttachmentService::class);
-                foreach ((array) ($data['attachments'] ?? []) as $file) {
-                    if ($file) {
-                        $service->store($file, $ticket, $message, auth()->user());
-                    }
-                }
+                app(\App\Services\TicketReplyService::class)->reply($ticket, auth()->user(), $data);
 
                 Notification::make()->success()->title(__('common.saved'))->send();
             });
@@ -207,10 +210,6 @@ class ViewTicket extends ViewRecord
         $ticket = $this->getRecord();
 
         return [
-            $this->replyAction()
-                ->button()
-                ->color('primary'),
-
             Action::make('changeStatus')
                 ->label(__('tickets.change_status'))
                 ->icon('heroicon-o-arrow-path')
@@ -219,12 +218,15 @@ class ViewTicket extends ViewRecord
                 ->schema(fn () => [
                     Select::make('status')
                         ->label(__('tickets.status'))
-                        // همهٔ وضعیت‌ها به‌جز وضعیتِ فعلی — مدیر می‌تواند هر وضعیتی را دستی بگذارد.
+                        // همهٔ وضعیت‌ها به‌جز وضعیتِ فعلی و «جدید» — «جدید» فقط هنگامِ
+                        // ثبتِ تیکت توسطِ مشتری معنی دارد و پشتیبان نباید تیکت را دوباره
+                        // «جدید» کند.
                         ->options(collect(__('tickets.statuses'))
-                            ->except($this->getRecord()->status)
+                            ->except([$this->getRecord()->status, \App\Models\Ticket::STATUS_NEW])
                             ->all())
                         ->required()
-                        ->native(false),
+                        ->native(false)
+                        ->live(),
 
                     Textarea::make('resolution')
                         ->label(__('tickets.resolution'))
@@ -232,11 +234,14 @@ class ViewTicket extends ViewRecord
                         // فقط وقتی مقصد «حل‌شده» است شرح راه‌حل لازم است
                         ->visible(fn ($get) => $get('status') === \App\Models\Ticket::STATUS_RESOLVED),
 
-                    TextInput::make('work_minutes')
-                        ->label(__('tickets.work_minutes'))
-                        ->helperText(__('tickets.work_minutes_hint'))
-                        ->numeric()
-                        ->default($ticket->work_minutes),
+                    // روش انجام — چندانتخابی، فقط هنگامِ حل‌شدنِ تیکت پرسیده می‌شود و
+                    // اجباری است (حداقل یک مورد). یک تیکت ممکن است ترکیبی حل شود.
+                    \Filament\Forms\Components\CheckboxList::make('method')
+                        ->label(__('tickets.method'))
+                        ->options(__('tickets.methods'))
+                        ->columns(2)
+                        ->visible(fn ($get) => $get('status') === \App\Models\Ticket::STATUS_RESOLVED)
+                        ->required(fn ($get) => $get('status') === \App\Models\Ticket::STATUS_RESOLVED),
                 ])
                 ->action(function (array $data) use ($ticket) {
                     // بازخوانی برای جلوگیری از رقابت با تغییری که همزمان توسط کاربر دیگر ثبت شده
@@ -246,7 +251,10 @@ class ViewTicket extends ViewRecord
                     // فقط باید یک وضعیتِ معتبر و متفاوت با وضعیتِ فعلی باشد (بدونِ محدودیتِ
                     // نقشهٔ گذار — مدیر آزادیِ کامل دارد). TicketObserver خودش قفل/تاریخ‌ها
                     // را بر اساس وضعیتِ جدید تنظیم می‌کند.
-                    if (! array_key_exists($data['status'], __('tickets.statuses')) || $data['status'] === $from) {
+                    // «جدید» توسطِ پشتیبان قابلِ تنظیم نیست (فقط هنگامِ ثبتِ مشتری).
+                    if (! array_key_exists($data['status'], __('tickets.statuses'))
+                        || $data['status'] === $from
+                        || $data['status'] === \App\Models\Ticket::STATUS_NEW) {
                         Notification::make()
                             ->danger()
                             ->title(__('tickets.invalid_transition', ['from' => $from, 'to' => $data['status']]))
@@ -255,11 +263,17 @@ class ViewTicket extends ViewRecord
                         return;
                     }
 
-                    $ticket->update([
-                        'status'       => $data['status'],
-                        'resolution'   => $data['resolution'] ?? $ticket->resolution,
-                        'work_minutes' => $data['work_minutes'] ?? $ticket->work_minutes,
-                    ]);
+                    $payload = [
+                        'status'     => $data['status'],
+                        'resolution' => $data['resolution'] ?? $ticket->resolution,
+                    ];
+
+                    // روش انجام فقط هنگامِ حل‌شدن ثبت می‌شود.
+                    if ($data['status'] === \App\Models\Ticket::STATUS_RESOLVED && filled($data['method'] ?? null)) {
+                        $payload['method'] = array_values((array) $data['method']);
+                    }
+
+                    $ticket->update($payload);
 
                     Notification::make()
                         ->success()
@@ -273,8 +287,10 @@ class ViewTicket extends ViewRecord
             Action::make('assign')
                 ->label(__('tickets.assign'))
                 ->icon('heroicon-o-user-plus')
+                // فقط مدیرِ پشتیبان می‌تواند تخصیص را عوض کند؛ کارشناس نباید تیکت را
+                // به دیگری (به‌ویژه مدیران) واگذار کند.
                 ->visible(fn () => ! $ticket->is_locked
-                    && (auth()->user()?->can(Permission::AssignTickets->value) ?? false))
+                    && (auth()->user()?->isSupportAdmin() ?? false))
                 ->schema([
                     Select::make('assigned_to')
                         ->label(__('tickets.assigned_to'))

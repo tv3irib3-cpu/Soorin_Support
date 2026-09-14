@@ -85,10 +85,8 @@ class TicketForm
                         ->required()
                         ->native(false),
 
-                    Select::make('method')
-                        ->label(__('tickets.method'))
-                        ->options(__('tickets.methods'))
-                        ->native(false),
+                    // «روش انجام» از فرمِ ویرایش برداشته شد؛ حالا هنگامِ «حل‌شدنِ»
+                    // تیکت در اکشنِ تغییر وضعیت (چندانتخابی) پرسیده می‌شود.
 
                     Select::make('priority')
                         ->label(__('tickets.priority'))

@@ -42,11 +42,9 @@ class Ticket extends Model
         self::STATUS_WAITING_CUSTOMER => [self::STATUS_IN_PROGRESS, self::STATUS_WAITING_SUPPORT, self::STATUS_WAITING_PAYMENT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
         self::STATUS_WAITING_SUPPORT  => [self::STATUS_IN_PROGRESS, self::STATUS_WAITING_CUSTOMER, self::STATUS_WAITING_PAYMENT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
         self::STATUS_WAITING_PAYMENT  => [self::STATUS_IN_PROGRESS, self::STATUS_WAITING_CUSTOMER, self::STATUS_WAITING_SUPPORT, self::STATUS_RESOLVED, self::STATUS_CANCELLED],
-        self::STATUS_RESOLVED         => [self::STATUS_CLOSED, self::STATUS_IN_PROGRESS],
-        // تیکتِ بسته یا لغوشده قابلِ «بازگشایی» به «در حال بررسی» است (فقط مدیرِ
-        // پشتیبان از اکشنِ تغییر وضعیت). با بازگشاییِ تیکتِ بسته، TicketObserver قفل
-        // را برمی‌دارد. تغییر در ticket_status_logs ثبت می‌شود، پس تاریخچه می‌ماند.
-        self::STATUS_CLOSED           => [self::STATUS_IN_PROGRESS],
+        // «حل‌شده» وضعیتِ نهایی است (قفل می‌شود)؛ فقط مدیرِ پشتیبان می‌تواند دوباره
+        // بازش کند به «در حال بررسی». تغییر در ticket_status_logs ثبت می‌شود.
+        self::STATUS_RESOLVED         => [self::STATUS_IN_PROGRESS],
         self::STATUS_CANCELLED        => [self::STATUS_IN_PROGRESS],
     ];
 
@@ -76,6 +74,7 @@ class Ticket extends Model
     {
         return [
             'is_locked'         => 'boolean',
+            'method'            => 'array',   // روش انجام چندمقداری: ریموت/حضوری/تلفنی/چت
             'first_response_at' => 'datetime',
             'resolved_at'       => 'datetime',
             'closed_at'         => 'datetime',

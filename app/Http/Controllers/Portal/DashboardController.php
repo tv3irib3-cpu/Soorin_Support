@@ -14,7 +14,9 @@ class DashboardController extends Controller
 
         // «باز» = هنوز در جریان (حل‌شده/بسته/لغو باز نیست، هم‌راستا با داشبوردِ پشتیبان).
         $openTickets = Ticket::visibleTo($user)->whereNotIn('status', ['resolved', 'closed', 'cancelled'])->count();
-        $closedTickets = Ticket::visibleTo($user)->whereIn('status', ['closed', 'cancelled'])->count();
+        // «بسته‌شده» حذف شده و «حل‌شده» وضعیتِ نهایی است؛ پس تیکتِ حل‌شده هم در شمارِ
+        // «بسته‌شده»ی پرتال می‌آید.
+        $closedTickets = Ticket::visibleTo($user)->whereIn('status', ['resolved', 'closed', 'cancelled'])->count();
 
         // تیکت‌های حل‌شده‌ای که مشتری هنوز به آن‌ها امتیاز نداده — برای یادآوریِ نظرسنجی.
         $resolvedUnrated = Ticket::visibleTo($user)

@@ -132,19 +132,18 @@ class TicketLifecycleE2ETest extends TestCase
         $this->actingAs($this->supportAdmin)->get('/admin/tickets/' . $ticket->id)->assertOk();
     }
 
-    /** ۵) بستنِ تیکت آن را قفل می‌کند و جلوی پاسخِ بعدی را می‌گیرد. */
-    public function test_closing_locks_the_ticket_and_blocks_further_replies(): void
+    /** ۵) حل‌شدنِ تیکت آن را قفل می‌کند و جلوی پاسخِ بعدی را می‌گیرد. */
+    public function test_resolving_locks_the_ticket_and_blocks_further_replies(): void
     {
         $ticket = $this->makeTicket();
 
         $ticket->update(['status' => Ticket::STATUS_IN_PROGRESS]);
         $ticket->update(['status' => Ticket::STATUS_RESOLVED]);
-        $ticket->update(['status' => Ticket::STATUS_CLOSED]);
         $ticket->refresh();
 
-        $this->assertTrue($ticket->is_locked, 'تیکتِ بسته باید قفل شود');
-        $this->assertNotNull($ticket->closed_at);
-        // تیکتِ بسته فقط قابلِ بازگشایی به «در حال بررسی» است (توسط مدیرِ پشتیبان).
+        $this->assertTrue($ticket->is_locked, 'تیکتِ حل‌شده باید قفل شود');
+        $this->assertNotNull($ticket->resolved_at);
+        // تیکتِ حل‌شده فقط قابلِ بازگشایی به «در حال بررسی» است (توسط مدیرِ پشتیبان).
         $this->assertSame([Ticket::STATUS_IN_PROGRESS], $ticket->availableTransitions());
 
         // مشتری دیگر نمی‌تواند روی تیکتِ قفل‌شده پاسخ بگذارد

@@ -30,12 +30,12 @@ class EditClosedTicketTest extends TestCase
         $ticket = Ticket::create([
             'customer_id' => $customer->id, 'subject' => 's', 'description' => 'd', 'created_by' => $admin->id,
         ]);
-        // بستن و قفل‌شدن
-        $ticket->forceFill(['status' => 'closed', 'is_locked' => true, 'closed_at' => now()])->save();
+        // حل‌شدن و قفل‌شدن (وضعیتِ نهایی)
+        $ticket->forceFill(['status' => Ticket::STATUS_RESOLVED, 'is_locked' => true, 'resolved_at' => now()])->save();
 
         $this->actingAs($admin);
 
-        $this->assertTrue(TicketResource::canEdit($ticket->fresh()), 'مدیر باید بتواند تیکتِ بسته را ویرایش کند');
+        $this->assertTrue(TicketResource::canEdit($ticket->fresh()), 'مدیر باید بتواند تیکتِ حل‌شده را ویرایش کند');
 
         $this->get(TicketResource::getUrl('edit', ['record' => $ticket]))
             ->assertSuccessful();
@@ -55,7 +55,7 @@ class EditClosedTicketTest extends TestCase
         $ticket = Ticket::create([
             'customer_id' => $customer->id, 'subject' => 's', 'description' => 'd', 'created_by' => $admin->id,
         ]);
-        $ticket->forceFill(['status' => 'closed', 'is_locked' => true, 'closed_at' => now()])->save();
+        $ticket->forceFill(['status' => Ticket::STATUS_RESOLVED, 'is_locked' => true, 'resolved_at' => now()])->save();
 
         $this->actingAs($admin);
 
@@ -66,6 +66,6 @@ class EditClosedTicketTest extends TestCase
 
         $ticket->refresh();
         $this->assertSame(Ticket::STATUS_WAITING_CUSTOMER, $ticket->status);
-        $this->assertFalse($ticket->is_locked, 'بازکردنِ تیکتِ بسته باید قفل را بردارد');
+        $this->assertFalse($ticket->is_locked, 'بازکردنِ تیکتِ حل‌شده باید قفل را بردارد');
     }
 }

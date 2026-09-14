@@ -49,7 +49,11 @@ class DashboardStats extends StatsOverviewWidget
             ->filter(fn (Ticket $t) => $t->isSlaBreached())
             ->count();
 
-        $unread     = auth()->user() ? TicketRead::unreadCountFor(auth()->user()) : 0;
+        // تیکت‌های «منتظر پاسخ مشتری» توپ در زمینِ مشتری است؛ در شمارِ خوانده‌نشدهٔ
+        // پشتیبان نمی‌آید تا فقط تیکت‌هایی که واقعاً منتظرِ کارِ پشتیبان‌اند شمرده شوند.
+        $unread     = auth()->user()
+            ? TicketRead::unreadCountFor(auth()->user(), [\App\Models\Ticket::STATUS_WAITING_CUSTOMER])
+            : 0;
         $ticketsUrl = TicketResource::getUrl('index');
 
         // اعداد به فارسی نمایش داده می‌شوند (قاعدهٔ پروژه: اعداد فارسی در نمایش).

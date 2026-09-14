@@ -58,17 +58,15 @@ class TicketObserver
         $from = $ticket->getOriginal('status');
         $to   = $ticket->status;
 
-        if ($to === Ticket::STATUS_RESOLVED && blank($ticket->resolved_at)) {
-            $ticket->resolved_at = now();
-        }
-
-        if ($to === Ticket::STATUS_CLOSED) {
+        // «حل‌شده» وضعیتِ نهایی است: زمانِ حل ثبت و تیکت قفل می‌شود (نقشی که پیش‌تر
+        // «بسته‌شده» داشت — که حالا حذف شده است).
+        if ($to === Ticket::STATUS_RESOLVED) {
+            $ticket->resolved_at ??= now();
             $ticket->is_locked = true;
-            $ticket->closed_at ??= now();
         }
 
-        // اگر از بسته‌شده به وضعیت دیگری برگردد (فقط توسط مدیر پشتیبان مجاز است)
-        if ($from === Ticket::STATUS_CLOSED && $to !== Ticket::STATUS_CLOSED) {
+        // بازگشایی از «حل‌شده» به وضعیتِ دیگر (فقط مدیرِ پشتیبان) → قفل برداشته می‌شود.
+        if ($from === Ticket::STATUS_RESOLVED && $to !== Ticket::STATUS_RESOLVED) {
             $ticket->is_locked = false;
         }
     }
