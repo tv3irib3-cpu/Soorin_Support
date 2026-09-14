@@ -19,42 +19,42 @@
                 <tbody>
                     @foreach ($summary as $row)
                         <tr x-data="{ showPath: false }"
-                            class="border-b border-gray-100 odd:bg-gray-50/70 hover:bg-primary-50/40 dark:border-white/5 dark:odd:bg-white/[0.03] dark:hover:bg-primary-500/5">
-                            {{-- دسته: نام + توضیحِ کوتاه، وسط‌چین --}}
-                            <td class="px-4 py-5 text-center align-middle">
+                            class="odd:bg-sky-50/70 hover:bg-sky-100/50 dark:odd:bg-white/[0.03] dark:hover:bg-white/[0.06]">
+                            {{-- دسته: نام (هم‌اندازه) + توضیحِ ریزتر، وسط‌چین --}}
+                            <td class="px-6 py-6 text-center align-middle">
                                 <div class="font-semibold text-gray-800 dark:text-gray-100">{{ $row['label'] }}</div>
-                                <div class="mx-auto mt-1 max-w-xs text-xs leading-5 text-gray-500 dark:text-gray-400">{{ $row['description'] }}</div>
+                                <div class="mx-auto mt-1 max-w-xs text-center text-[11px] leading-5 text-gray-400 dark:text-gray-500">{{ $row['description'] }}</div>
                             </td>
 
                             {{-- تعداد --}}
-                            <td class="px-4 py-5 text-center align-middle">
+                            <td class="px-6 py-6 text-center align-middle">
                                 <span class="text-lg font-bold tabular-nums text-gray-800 dark:text-gray-100">{{ \App\Support\Jalali::digits((string) $row['count']) }}</span>
                             </td>
 
                             {{-- حجم --}}
-                            <td class="px-4 py-5 text-center align-middle tabular-nums">
+                            <td class="px-6 py-6 text-center align-middle tabular-nums">
                                 {{ \App\Support\Jalali::digits($row['human']) }}
                             </td>
 
-                            {{-- محل: یک نشان + دکمهٔ «نمایش مسیر» که مسیر را باز می‌کند --}}
-                            <td class="px-4 py-5 text-center align-middle">
-                                <x-filament::badge :color="$row['in_webroot'] ? 'warning' : 'gray'" size="sm" class="mx-auto">
-                                    {{ $row['in_webroot'] ? __('storage.in_webroot') : __('storage.in_storage') }}
-                                </x-filament::badge>
-                                <div class="mt-2">
+                            {{-- محل: یک نشان + دکمهٔ «نمایش مسیر» (سبزِ کم‌رنگ) که مسیر را باز می‌کند --}}
+                            <td class="px-6 py-6 text-center align-middle">
+                                <div class="flex flex-col items-center gap-2">
+                                    <x-filament::badge :color="$row['in_webroot'] ? 'warning' : 'gray'" size="sm">
+                                        {{ $row['in_webroot'] ? __('storage.in_webroot') : __('storage.in_storage') }}
+                                    </x-filament::badge>
                                     <button type="button" x-on:click="showPath = !showPath"
-                                            class="text-xs font-medium text-primary-600 hover:underline dark:text-primary-400">
+                                            class="text-xs font-medium text-success-500/80 hover:text-success-600 dark:text-success-400/80">
                                         <span x-show="!showPath">{{ __('storage.show_path') }}</span>
                                         <span x-show="showPath" x-cloak>{{ __('storage.hide_path') }}</span>
                                     </button>
-                                    <div x-show="showPath" x-collapse x-cloak class="mt-2">
+                                    <div x-show="showPath" x-collapse x-cloak>
                                         <code class="inline-block rounded bg-gray-100 px-2 py-1 font-mono text-[11px] text-gray-600 dark:bg-gray-800 dark:text-gray-300" dir="ltr">{{ $row['relative'] }}</code>
                                     </div>
                                 </div>
                             </td>
 
                             {{-- عملیات --}}
-                            <td class="px-4 py-5 text-center align-middle">
+                            <td class="px-6 py-6 text-center align-middle">
                                 @if ($row['count'] > 0)
                                     <x-filament::button tag="a" href="{{ route('storage.export', $row['key']) }}" size="sm" icon="heroicon-o-arrow-down-tray" color="gray">
                                         {{ __('storage.download_zip') }}
