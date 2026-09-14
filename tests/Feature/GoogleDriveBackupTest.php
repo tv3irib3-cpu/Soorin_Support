@@ -157,6 +157,25 @@ class GoogleDriveBackupTest extends TestCase
         Livewire::test(GoogleDriveBackup::class)->assertOk();
     }
 
+    public function test_connected_page_shows_inline_disconnect_and_refresh_and_disconnect_works(): void
+    {
+        $admin = User::create(['name' => 'a', 'email' => 'a@dpst.ir', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_ADMIN]);
+        $admin->assignRole(User::TYPE_SUPPORT_ADMIN);
+        $this->actingAs($admin);
+
+        $this->configure();
+        $this->svc()->set('refresh_token', 'rtok');
+        $this->svc()->set('email', 'me@gmail.com');
+
+        Livewire::test(GoogleDriveBackup::class)
+            ->assertOk()
+            ->assertSee(__('gdrive.disconnect'))
+            ->assertSee(__('gdrive.refresh'))
+            ->callAction('disconnect');
+
+        $this->assertFalse($this->svc()->isConnected());
+    }
+
     public function test_save_credentials_via_action(): void
     {
         $admin = User::create(['name' => 'a', 'email' => 'a@dpst.ir', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_ADMIN]);

@@ -86,17 +86,16 @@ class GoogleDriveBackup extends Page
 
     protected function getHeaderActions(): array
     {
-        $svc = $this->service();
-
         return [
             $this->credentialsAction(),
             $this->connectAction(),
             $this->settingsAction(),
             $this->pushDbAction(),
             $this->pushFilesAction(),
-            $this->refreshAction(),
-            $this->disconnectAction(),
         ];
+        // «تازه‌سازی فهرست» و «قطع اتصال» به‌صورتِ اینلاین در نما رندر می‌شوند
+        // ({{ $this->refreshAction }} و {{ $this->disconnectAction }}) تا روی موبایل
+        // که نوارِ بالا شلوغ و بیرون‌زده می‌شود، همیشه دیده و در دسترس باشند.
     }
 
     /** ذخیرهٔ client_id/secret (از Google Cloud Console). */

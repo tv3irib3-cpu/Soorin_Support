@@ -15,6 +15,8 @@
                 @if ($this->includesFiles())
                     <x-filament::badge color="info">{{ __('gdrive.files_on') }}</x-filament::badge>
                 @endif
+
+                <span class="ms-auto">{{ $this->disconnectAction }}</span>
             </div>
         @elseif ($this->isConfigured())
             <p class="text-sm text-warning-600 dark:text-warning-400">{{ __('gdrive.configured_not_connected') }}</p>
@@ -56,6 +58,8 @@
         <x-filament::section>
             <x-slot name="heading">{{ __('gdrive.files_on_drive') }}</x-slot>
             <x-slot name="description">{{ __('gdrive.files_hint') }}</x-slot>
+
+            <div class="mb-4">{{ $this->refreshAction }}</div>
 
             @if (! $listed)
                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('gdrive.press_refresh') }}</p>
