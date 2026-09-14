@@ -74,7 +74,9 @@ class TicketRead extends Model
     {
         $q = static::unreadMessagesQuery($user);
 
-        if (! $user->isSupportUser()) {
+        // مدیرِ پشتیبان همهٔ تیکت‌ها را می‌بیند؛ کارشناس فقط تیکت‌های خودش و مشتری
+        // فقط دامنهٔ دسترسیِ خودش. (تا شمارِ خوانده‌نشدهٔ هر کارشناس مالِ خودش باشد.)
+        if (! $user->isSupportAdmin()) {
             $visibleIds = Ticket::visibleTo($user)->pluck('tickets.id');
             $q->whereIn('ticket_messages.ticket_id', $visibleIds);
         }

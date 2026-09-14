@@ -60,10 +60,11 @@ class CustomerProjectResource extends Resource
         return CustomerProjectsTable::configure($table);
     }
 
-    /** نامِ مشتری برای رنگِ نقطه و ستون، بدونِ N+1 خوانده می‌شود. */
+    /** نامِ مشتری + شمارِ تیکت‌ها یک‌جا خوانده می‌شوند (withCount مطمئن‌تر از counts
+     * روی ستون است وقتی getEloquentQuery بازنویسی شده). */
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('customer');
+        return parent::getEloquentQuery()->with('customer')->withCount('tickets');
     }
 
     public static function getPages(): array

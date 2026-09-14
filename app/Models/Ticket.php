@@ -235,6 +235,25 @@ class Ticket extends Model
      *   project   → تیکت‌های پروژه‌های تخصیص‌داده‌شده
      *   customer  → تمام تیکت‌های آن مشتری
      */
+    /** تیکت‌های «ورودی» — ساخته‌شده توسطِ مشتری (یا بدونِ سازنده = از پرتال). */
+    public function scopeCreatedByCustomer(Builder $query): Builder
+    {
+        return $query->where(function (Builder $w): void {
+            $w->whereNull('created_by')
+                ->orWhereHas('creator', fn (Builder $c) => $c->whereIn('user_type', [
+                    User::TYPE_CUSTOMER_ADMIN, User::TYPE_CUSTOMER_STAFF,
+                ]));
+        });
+    }
+
+    /** تیکت‌های «خروجی» — ساخته‌شده توسطِ پشتیبان از پنل. */
+    public function scopeCreatedBySupport(Builder $query): Builder
+    {
+        return $query->whereHas('creator', fn (Builder $c) => $c->whereIn('user_type', [
+            User::TYPE_SUPPORT_ADMIN, User::TYPE_SUPPORT_STAFF,
+        ]));
+    }
+
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
         if ($user->isSupportUser()) {

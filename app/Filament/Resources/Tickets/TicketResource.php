@@ -26,9 +26,13 @@ class TicketResource extends Resource
      * دامنهٔ دیدِ تیکت‌ها در پنل: مدیرِ پشتیبان همه را می‌بیند؛ کارشناس فقط تیکت‌های
      * تخصیص‌یافته به خودش (با تغییرِ تخصیص، از پنلِ کارشناسِ قبلی پنهان می‌شود).
      */
+    /**
+     * تیکت‌های «ورودی» — ساخته‌شده توسطِ مشتری. کارشناس فقط تیکت‌های تخصیص‌یافته
+     * به خودش را می‌بیند؛ مدیرِ پشتیبان همه را.
+     */
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()->createdByCustomer();
         $user = auth()->user();
 
         if ($user && $user->isSupportUser() && ! $user->isSupportAdmin()) {
@@ -38,18 +42,35 @@ class TicketResource extends Resource
         return $query;
     }
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;
+    /**
+     * صفحاتِ «نمایش/ویرایش» بینِ تیکت‌های ورودی و خروجی مشترک‌اند؛ پس route model
+     * binding نباید محدود به «ورودی» باشد وگرنه بازکردنِ تیکتِ خروجی ۴۰۴ می‌دهد.
+     * فقط محدودیتِ دسترسیِ کارشناس (تیکت‌های خودش) اعمال می‌شود، نه جهتِ ورودی/خروجی.
+     */
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        $query = Ticket::query();
+        $user = auth()->user();
+
+        if ($user && $user->isSupportUser() && ! $user->isSupportAdmin()) {
+            $query->where('assigned_to', $user->id);
+        }
+
+        return $query;
+    }
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxArrowDown;
 
     protected static ?int $navigationSort = 30;
 
     public static function getModelLabel(): string
     {
-        return __('tickets.label');
+        return __('tickets.incoming_label');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('tickets.plural');
+        return __('tickets.incoming');
     }
 
     public static function getNavigationGroup(): ?string
@@ -118,9 +139,11 @@ class TicketResource extends Resource
         return auth()->user()?->can(Permission::ViewTickets->value) ?? false;
     }
 
+    // تیکتِ «ورودی» را مشتری از پرتال می‌سازد؛ ساختِ دستی در این منو معنی ندارد.
+    // ساختِ تیکت توسطِ پشتیبان در منوی «تیکت‌های خروجی» است.
     public static function canCreate(): bool
     {
-        return auth()->user()?->can(Permission::CreateTickets->value) ?? false;
+        return false;
     }
 
     public static function canEdit(mixed $record): bool

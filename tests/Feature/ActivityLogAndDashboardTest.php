@@ -71,6 +71,7 @@ class ActivityLogAndDashboardTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(__('portal.open_tickets'));
-        $response->assertSee(__('tickets.sla_breached'));
+        // باکسِ «پاسخ معطل» حذف شد؛ حالا «نیازمندِ رسیدگی» را داریم.
+        $response->assertSee(__('dashboard.needs_attention'));
     }
 }

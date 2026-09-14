@@ -4,24 +4,27 @@ namespace App\Filament\Widgets;
 
 use App\Models\Ticket;
 use App\Support\Jalali;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Schema;
 use Filament\Widgets\ChartWidget;
+use Filament\Widgets\ChartWidget\Concerns\HasFiltersSchema;
 use Illuminate\Support\Carbon;
 
 /**
- * روندِ تیکت‌ها در ۶ ماهِ اخیر — تعدادِ ثبت‌شده و حل‌شده در هر ماه.
+ * روندِ ماهانهٔ تیکت‌ها — تعدادِ ثبت‌شده و حل‌شده در هر ماه.
  *
- * ماه‌ها میلادی سطل‌بندی می‌شوند (مرزِ دقیق مهم نیست) ولی برچسب‌ها شمسی‌اند.
- * فقط برای کسی که مجوزِ گزارش دارد دیده می‌شود.
+ * بازهٔ زمانی با دو انتخاب‌گرِ «ماهِ شمسی» (از / تا) قابل‌تنظیم است (آیکونِ قیف کنارِ
+ * عنوان). پیش‌فرض: ۶ ماهِ اخیر. برچسبِ ماه‌ها شمسی است.
  */
 class TicketsTrendChart extends ChartWidget
 {
+    use HasFiltersSchema;
+
     protected static ?int $sort = 2;
 
     protected static bool $isLazy = false;
 
     protected int|string|array $columnSpan = 'full';
-
-    private const MONTHS = 6;
 
     public function getHeading(): ?string
     {
@@ -38,7 +41,6 @@ class TicketsTrendChart extends ChartWidget
         return 'bar';
     }
 
-    /** محورِ عمودی فقط عددِ صحیح — تعدادِ تیکت اعشاری نمی‌شود (۰٫۱ اشتباه بود). */
     protected function getOptions(): array
     {
         return [
@@ -51,25 +53,69 @@ class TicketsTrendChart extends ChartWidget
         ];
     }
 
+    /** فرمِ فیلترِ بازه: دو انتخاب‌گرِ ماهِ شمسی (از / تا). */
+    public function filtersSchema(Schema $schema): Schema
+    {
+        $months = $this->monthOptions();
+
+        return $schema->components([
+            Select::make('from')
+                ->label(__('dashboard.trend_from'))
+                ->options($months)
+                ->default(Carbon::now()->startOfMonth()->subMonths(5)->format('Y-m'))
+                ->native(false)
+                ->searchable(),
+
+            Select::make('to')
+                ->label(__('dashboard.trend_to'))
+                ->options($months)
+                ->default(Carbon::now()->startOfMonth()->format('Y-m'))
+                ->native(false)
+                ->searchable(),
+        ]);
+    }
+
+    /** فهرستِ ۳۶ ماهِ اخیر: کلید = «Y-m» میلادی، برچسب = ماه/سالِ شمسی. */
+    private function monthOptions(): array
+    {
+        $options = [];
+        $base = Carbon::now()->startOfMonth();
+
+        for ($i = 0; $i < 36; $i++) {
+            $m = $base->copy()->subMonths($i);
+            $options[$m->format('Y-m')] = Jalali::format($m, 'F Y');
+        }
+
+        return $options;
+    }
+
     protected function getData(): array
     {
+        $from = $this->monthStart($this->filters['from'] ?? null, Carbon::now()->startOfMonth()->subMonths(5));
+        $to   = $this->monthStart($this->filters['to'] ?? null, Carbon::now()->startOfMonth());
+
+        // اگر «از» بعد از «تا» بود، جابه‌جا کن تا همیشه بازهٔ درستی باشد.
+        if ($from->gt($to)) {
+            [$from, $to] = [$to, $from];
+        }
+
         $labels = [];
         $created = [];
         $resolved = [];
 
-        $start = Carbon::now()->startOfMonth()->subMonths(self::MONTHS - 1);
+        $cursor = $from->copy();
+        $guard = 0;   // سقفِ ۴۸ ماه تا نمودار بی‌نهایت بزرگ نشود
 
-        for ($i = 0; $i < self::MONTHS; $i++) {
-            $month = $start->copy()->addMonths($i);
-            $from = $month->copy()->startOfMonth();
-            $to = $month->copy()->endOfMonth();
+        while ($cursor->lte($to) && $guard < 48) {
+            $start = $cursor->copy()->startOfMonth();
+            $end   = $cursor->copy()->endOfMonth();
 
-            $labels[] = Jalali::format($month, 'F'); // نامِ ماهِ شمسی
+            $labels[] = Jalali::format($cursor, 'F Y');
+            $created[] = Ticket::whereBetween('created_at', [$start, $end])->count();
+            $resolved[] = Ticket::whereNotNull('resolved_at')->whereBetween('resolved_at', [$start, $end])->count();
 
-            $created[] = Ticket::whereBetween('created_at', [$from, $to])->count();
-            $resolved[] = Ticket::whereNotNull('resolved_at')
-                ->whereBetween('resolved_at', [$from, $to])
-                ->count();
+            $cursor->addMonth();
+            $guard++;
         }
 
         return [
@@ -79,5 +125,18 @@ class TicketsTrendChart extends ChartWidget
             ],
             'labels' => $labels,
         ];
+    }
+
+    private function monthStart(?string $value, Carbon $fallback): Carbon
+    {
+        if (blank($value)) {
+            return $fallback->copy();
+        }
+
+        try {
+            return Carbon::parse($value . '-01')->startOfMonth();
+        } catch (\Throwable) {
+            return $fallback->copy();
+        }
     }
 }

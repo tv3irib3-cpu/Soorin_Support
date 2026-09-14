@@ -76,19 +76,26 @@ class TicketsTable
                     ->extraHeaderAttributes(['class' => 'hidden md:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden md:table-cell']),
 
+                // سازندهٔ تیکت — بینِ «پروژه» و «دسته‌بندی». برای تفکیکِ تیکتِ مشتری
+                // از تیکتِ ساخته‌شدهٔ پشتیبان (ورودی/خروجی).
+                TextColumn::make('creator.name')
+                    ->label(__('tickets.creator'))
+                    ->placeholder('—')
+                    ->extraHeaderAttributes(['class' => 'hidden md:table-cell'])
+                    ->extraCellAttributes(['class' => 'hidden md:table-cell']),
+
                 TextColumn::make('category.name')
                     ->label(__('tickets.category'))
                     ->placeholder('—')
                     ->extraHeaderAttributes(['class' => 'hidden lg:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden lg:table-cell']),
 
+                // اولویت همیشه دیده شود (نشانِ رنگیِ بحرانی/زیاد/...).
                 TextColumn::make('priority')
                     ->label(__('tickets.priority'))
                     ->badge()
                     ->formatStateUsing(fn (string $state) => __("tickets.priorities.$state"))
-                    ->color(fn (string $state) => self::PRIORITY_COLORS[$state] ?? 'gray')
-                    ->extraHeaderAttributes(['class' => 'hidden xl:table-cell'])
-                    ->extraCellAttributes(['class' => 'hidden xl:table-cell']),
+                    ->color(fn (string $state) => self::PRIORITY_COLORS[$state] ?? 'gray'),
 
                 TextColumn::make('assignee.name')
                     ->label(__('tickets.assigned_to'))
@@ -168,7 +175,25 @@ class TicketsTable
                         return $query->whereIn('id', $ids);
                     }),
             ])
-            ->defaultSort('created_at', 'desc')
+            // پیش‌فرض: اولویتِ بالاتر بالاتر (بحرانی→زیاد→عادی→کم)، بعد تازه‌ترین.
+            ->defaultSort(fn ($query) => $query
+                ->orderByRaw("FIELD(priority, 'critical','high','normal','low')")
+                ->orderByDesc('created_at'))
+            // رنگ‌بندیِ ردیف‌ها: تیکتِ نیازمندِ پاسخِ پشتیبان (جدید/منتظر پشتیبان) و
+            // تیکتِ دارای پیامِ خوانده‌نشده، هرکدام نشانِ خودشان را می‌گیرند.
+            ->recordClasses(function (Ticket $record): string {
+                $classes = [];
+
+                if (in_array($record->status, [Ticket::STATUS_NEW, Ticket::STATUS_WAITING_SUPPORT], true)) {
+                    $classes[] = 'ticket-row-attention';
+                }
+
+                if (TicketRead::unreadForTicket($record, auth()->user()) > 0) {
+                    $classes[] = 'ticket-row-unread';
+                }
+
+                return implode(' ', $classes);
+            })
             ->emptyStateHeading(__('tickets.empty_heading'))
             ->emptyStateDescription(__('tickets.empty_body'));
     }

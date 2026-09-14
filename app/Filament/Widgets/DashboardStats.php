@@ -24,51 +24,45 @@ class DashboardStats extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        // «باز» یعنی هنوز در جریان است — حل‌شده/بسته/لغو دیگر باز حساب نمی‌شود.
-        $openTickets = Ticket::whereNotIn('status', ['resolved', 'closed', 'cancelled'])->count();
+        $user = auth()->user();
 
-        $resolvedThisMonth = Ticket::whereIn('status', ['resolved', 'closed'])
+        // آمارِ تیکت‌ها «به‌ازای همین کاربر» است: مدیرِ پشتیبان همه، کارشناس فقط
+        // تیکت‌های خودش. (وگرنه اعداد بینِ کارشناسان مشترک می‌شد.)
+        $mine = fn () => $user ? Ticket::visibleTo($user) : Ticket::query()->whereRaw('1=0');
+
+        // «باز» یعنی هنوز در جریان است — حل‌شده/لغو دیگر باز حساب نمی‌شود.
+        $openTickets = $mine()->whereNotIn('status', ['resolved', 'closed', 'cancelled'])->count();
+
+        $resolvedThisMonth = $mine()->whereIn('status', ['resolved', 'closed'])
             ->whereMonth('resolved_at', now()->month)
             ->whereYear('resolved_at', now()->year)
             ->count();
 
+        // «نیازمندِ رسیدگی» = تیکت‌های جدید یا در انتظارِ پاسخِ پشتیبان (توپ در زمینِ پشتیبان).
+        $needsAttention = $mine()->whereIn('status', [
+            \App\Models\Ticket::STATUS_NEW,
+            \App\Models\Ticket::STATUS_WAITING_SUPPORT,
+        ])->count();
+
         $unpaidInvoices = Invoice::whereNotIn('status', ['paid', 'cancelled', 'draft'])->count();
 
-        // مجموعِ بدهیِ وصول‌نشدهٔ همهٔ فاکتورها (قابل‌پرداخت منهای پرداخت‌شده).
         $totalDebt = (int) Invoice::whereNotIn('status', ['draft', 'cancelled'])
             ->selectRaw('COALESCE(SUM(GREATEST(payable_amount - paid_amount, 0)), 0) as d')
             ->value('d');
 
-        $avgRating = Ticket::whereNotNull('rating')->avg('rating');
+        $avgRating = $mine()->whereNotNull('rating')->avg('rating');
 
-        $slaBreached = Ticket::whereNull('first_response_at')
-            ->whereNotIn('status', ['closed', 'cancelled'])
-            ->whereHas('contract.plan', fn ($q) => $q->whereNotNull('response_hours'))
-            ->with('contract.plan')
-            ->get()
-            ->filter(fn (Ticket $t) => $t->isSlaBreached())
-            ->count();
-
-        // تیکت‌های «منتظر پاسخ مشتری» توپ در زمینِ مشتری است؛ در شمارِ خوانده‌نشدهٔ
-        // پشتیبان نمی‌آید تا فقط تیکت‌هایی که واقعاً منتظرِ کارِ پشتیبان‌اند شمرده شوند.
-        $unread     = auth()->user()
-            ? TicketRead::unreadCountFor(auth()->user(), [\App\Models\Ticket::STATUS_WAITING_CUSTOMER])
-            : 0;
         $ticketsUrl = TicketResource::getUrl('index');
-
-        // اعداد به فارسی نمایش داده می‌شوند (قاعدهٔ پروژه: اعداد فارسی در نمایش).
         $fa = fn (int $n) => \App\Support\Jalali::digits((string) $n);
 
         $stats = [];
 
-        // نشانِ پیام‌های خوانده‌نشده — فقط وقتی بزرگ‌تر از صفر است، با رنگِ قرمز و کلیک‌پذیر.
-        if ($unread > 0) {
-            $stats[] = Stat::make(__('portal.unread_messages'), $fa($unread))
-                ->icon('heroicon-o-chat-bubble-left-right')
-                ->description(__('tickets.unread'))
-                ->color('danger')
-                ->url($ticketsUrl);
-        }
+        // نیازمندِ رسیدگی (جدید/منتظر پشتیبان) — همیشه نمایش، قرمز اگر بزرگ‌تر از صفر.
+        $stats[] = Stat::make(__('dashboard.needs_attention'), $fa($needsAttention))
+            ->icon('heroicon-o-bell-alert')
+            ->description(__('dashboard.needs_attention_hint'))
+            ->color($needsAttention > 0 ? 'danger' : 'success')
+            ->url($ticketsUrl);
 
         $stats[] = Stat::make(__('portal.open_tickets'), $fa($openTickets))
             ->icon('heroicon-o-ticket')
@@ -91,15 +85,12 @@ class DashboardStats extends StatsOverviewWidget
             ->color($totalDebt > 0 ? 'danger' : 'success')
             ->url(InvoiceResource::getUrl('index'));
 
-        $stats[] = Stat::make(__('tickets.sla_breached'), $fa($slaBreached))
-            ->icon('heroicon-o-exclamation-triangle')
-            ->color($slaBreached > 0 ? 'danger' : 'gray')
-            ->url($ticketsUrl);
-
+        // امتیازِ رضایت — با نامِ کارشناسِ پشتیبان (این باکس برای همین کاربر است).
         $stats[] = Stat::make(
             __('tickets.rating'),
             $avgRating ? \App\Support\Jalali::digits(number_format($avgRating, 1)) . ' / ۵' : '—'
         )
+            ->description($user?->name)
             ->icon('heroicon-o-star')
             ->color('warning');
 

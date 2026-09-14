@@ -38,9 +38,16 @@ class ViewTicket extends ViewRecord
     {
         parent::mount($record);
 
-        // باز کردنِ تیکت = خوانده‌شدنِ گفتگو برای این کاربر (شمارندهٔ خوانده‌نشده صفر شود).
         if ($user = auth()->user()) {
+            // باز کردنِ تیکت = خوانده‌شدنِ گفتگو برای این کاربر (شمارندهٔ خوانده‌نشده صفر شود).
             TicketRead::markRead($this->getRecord(), $user);
+
+            // بازکردنِ تیکتِ «جدید» توسطِ پشتیبان → خودکار «در حال بررسی». (وضعیت‌ها
+            // خودکار عوض می‌شوند؛ کارشناس تغییرِ وضعیتِ دستی ندارد.)
+            $ticket = $this->getRecord();
+            if ($user->isSupportUser() && $ticket->status === Ticket::STATUS_NEW) {
+                $ticket->update(['status' => Ticket::STATUS_IN_PROGRESS]);
+            }
         }
     }
 
@@ -210,11 +217,51 @@ class ViewTicket extends ViewRecord
         $ticket = $this->getRecord();
 
         return [
+            // «مشکل حل شد» — برای کارشناس و مدیر. روشِ انجام را می‌پرسد و وضعیت را
+            // «حل‌شده» می‌کند. (کارشناس تغییرِ وضعیتِ دستیِ دیگری ندارد؛ بقیهٔ وضعیت‌ها
+            // خودکارند: بازکردنِ تیکتِ جدید→در حال بررسی، پاسخ→منتظر پاسخ مشتری.)
+            Action::make('resolve')
+                ->label(__('tickets.resolve_action'))
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->button()
+                ->visible(fn () => $ticket->canReceiveMessages()
+                    && (auth()->user()?->isSupportUser() ?? false))
+                ->modalHeading(__('tickets.resolve_action'))
+                ->modalSubmitActionLabel(__('tickets.resolve_action'))
+                ->schema([
+                    \Filament\Forms\Components\CheckboxList::make('method')
+                        ->label(__('tickets.method'))
+                        ->helperText(__('tickets.method_hint'))
+                        ->options(__('tickets.methods'))
+                        ->columns(2)
+                        ->required(),
+
+                    Textarea::make('resolution')
+                        ->label(__('tickets.resolution'))
+                        ->rows(3),
+                ])
+                ->action(function (array $data) use ($ticket) {
+                    if (! $ticket->canReceiveMessages()) {
+                        Notification::make()->danger()->title(__('tickets.locked_notice'))->send();
+
+                        return;
+                    }
+
+                    $ticket->update([
+                        'status'     => Ticket::STATUS_RESOLVED,
+                        'method'     => array_values((array) $data['method']),
+                        'resolution' => $data['resolution'] ?? $ticket->resolution,
+                    ]);
+
+                    Notification::make()->success()->title(__('tickets.resolved_done'))->send();
+                }),
+
             Action::make('changeStatus')
                 ->label(__('tickets.change_status'))
                 ->icon('heroicon-o-arrow-path')
-                // مدیرِ پشتیبان کنترلِ کاملِ دستی دارد؛ همیشه در دسترس است.
-                ->visible(fn () => auth()->user()?->can(Permission::ManageTickets->value) ?? false)
+                // تغییرِ وضعیتِ دستیِ کامل فقط برای مدیرِ پشتیبان (کارشناس ندارد).
+                ->visible(fn () => auth()->user()?->isSupportAdmin() ?? false)
                 ->schema(fn () => [
                     Select::make('status')
                         ->label(__('tickets.status'))

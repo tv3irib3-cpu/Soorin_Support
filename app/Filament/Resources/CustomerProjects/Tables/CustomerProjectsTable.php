@@ -56,11 +56,12 @@ class CustomerProjectsTable
                     ->extraHeaderAttributes(['class' => 'hidden lg:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden lg:table-cell']),
 
+                // tickets_count از withCount در getEloquentQuery می‌آید (نه counts روی ستون).
                 TextColumn::make('tickets_count')
                     ->label(__('projects.tickets_count'))
-                    ->counts('tickets')
                     ->badge()
                     ->color(fn ($state) => $state > 0 ? 'info' : 'gray')
+                    ->formatStateUsing(fn ($state) => \App\Support\Jalali::digits((string) ((int) $state)))
                     ->sortable(),
 
                 TextColumn::make('users_count')

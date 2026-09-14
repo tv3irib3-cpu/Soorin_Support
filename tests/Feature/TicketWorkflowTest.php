@@ -38,11 +38,18 @@ class TicketWorkflowTest extends TestCase
 
     private function newTicket(): Ticket
     {
+        // سازنده = یک کاربرِ مشتری تا تیکت «ورودی» شمرده شود و در فهرستِ تیکت‌های
+        // ورودی دیده شود (چرخهٔ وضعیت مستقل از سازنده است).
+        $creator = User::firstOrCreate(
+            ['email' => 'cust-creator@t.test'],
+            ['name' => 'مشتری', 'password' => 'secret123', 'user_type' => User::TYPE_CUSTOMER_ADMIN, 'customer_id' => $this->customer->id],
+        );
+
         return Ticket::create([
             'customer_id' => $this->customer->id,
             'subject'     => 'خرابی هارد',
             'description' => 'شرح مشکل',
-            'created_by'  => $this->supportAdmin->id,
+            'created_by'  => $creator->id,
         ]);
     }
 
