@@ -200,22 +200,15 @@ body { background: var(--bg); color: var(--text); }
 }
 .soorin-pathbtn:hover { color: #16a34a; text-decoration: underline; }
 
-/* ---------- رنگ‌بندیِ ردیف‌های جدولِ تیکت‌ها ----------
-   نیازمندِ پاسخِ پشتیبان (جدید/منتظر پشتیبان): خطِ کناریِ کهربایی + ته‌رنگ.
-   خوانده‌نشده: ته‌رنگِ قرمزِ ملایم و نامِ پررنگ‌تر. (هر دو با هم قابلِ ترکیب.) */
-.ticket-row-attention td {
-    box-shadow: inset 3px 0 0 #f59e0b;
-    background: color-mix(in srgb, #f59e0b 7%, transparent);
+/* ---------- رنگ‌بندیِ ردیف‌های جدولِ تیکت‌ها (بر پایهٔ اولویت) ----------
+   بحرانی→قرمز، زیاد→نارنجی، عادی→آبی، کم→بی‌رنگ. هر ردیف یک جداکنندهٔ خاکستری دارد. */
+.ticket-row td {
+    border-bottom: 1px solid color-mix(in srgb, var(--muted) 28%, transparent);
 }
-.ticket-row-unread td {
-    background: color-mix(in srgb, #ef4444 7%, transparent);
-}
-.ticket-row-unread.ticket-row-attention td {
-    /* هر دو: ته‌رنگِ قرمز + خطِ کهربایی */
-    background: color-mix(in srgb, #ef4444 8%, transparent);
-    box-shadow: inset 3px 0 0 #f59e0b;
-}
-.ticket-row-unread td:nth-child(2) { font-weight: 700; }
+.ticket-row-critical td { background: color-mix(in srgb, #ef4444 9%, transparent); }
+.ticket-row-high td     { background: color-mix(in srgb, #f59e0b 11%, transparent); }
+.ticket-row-normal td   { background: color-mix(in srgb, #3b82f6 8%, transparent); }
+/* اولویتِ «کم» بی‌رنگ می‌ماند تا جدول شلوغ نشود. */
 
 /* ---------- دسترس‌پذیری ---------- */
 :focus-visible {

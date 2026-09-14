@@ -179,21 +179,9 @@ class TicketsTable
             ->defaultSort(fn ($query) => $query
                 ->orderByRaw("FIELD(priority, 'critical','high','normal','low')")
                 ->orderByDesc('created_at'))
-            // رنگ‌بندیِ ردیف‌ها: تیکتِ نیازمندِ پاسخِ پشتیبان (جدید/منتظر پشتیبان) و
-            // تیکتِ دارای پیامِ خوانده‌نشده، هرکدام نشانِ خودشان را می‌گیرند.
-            ->recordClasses(function (Ticket $record): string {
-                $classes = [];
-
-                if (in_array($record->status, [Ticket::STATUS_NEW, Ticket::STATUS_WAITING_SUPPORT], true)) {
-                    $classes[] = 'ticket-row-attention';
-                }
-
-                if (TicketRead::unreadForTicket($record, auth()->user()) > 0) {
-                    $classes[] = 'ticket-row-unread';
-                }
-
-                return implode(' ', $classes);
-            })
+            // رنگ‌بندیِ ردیف‌ها بر پایهٔ اولویت: بحرانی→قرمز، زیاد→نارنجی، عادی→آبی،
+            // کم→بی‌رنگ. جداکنندهٔ خاکستریِ هر ردیف با کلاسِ پایهٔ ticket-row.
+            ->recordClasses(fn (Ticket $record): string => 'ticket-row ticket-row-' . $record->priority)
             ->emptyStateHeading(__('tickets.empty_heading'))
             ->emptyStateDescription(__('tickets.empty_body'));
     }
