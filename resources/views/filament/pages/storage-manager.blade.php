@@ -6,39 +6,55 @@
 
     <x-filament::section>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full border-collapse text-sm">
                 <thead>
-                    <tr class="text-gray-500 dark:text-gray-400 text-start">
-                        <th class="py-2 pe-3 text-start font-medium">{{ __('storage.category') }}</th>
-                        <th class="py-2 px-3 text-center font-medium">{{ __('storage.files_count') }}</th>
-                        <th class="py-2 px-3 text-center font-medium">{{ __('storage.size') }}</th>
-                        <th class="py-2 px-3 text-start font-medium">{{ __('storage.path') }}</th>
-                        <th class="py-2 ps-3 text-center font-medium">{{ __('storage.actions') }}</th>
+                    <tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500 dark:border-white/10 dark:text-gray-400">
+                        <th class="px-4 py-3 text-center font-semibold">{{ __('storage.category') }}</th>
+                        <th class="px-4 py-3 text-center font-semibold">{{ __('storage.files_count') }}</th>
+                        <th class="px-4 py-3 text-center font-semibold">{{ __('storage.size') }}</th>
+                        <th class="px-4 py-3 text-center font-semibold">{{ __('storage.location') }}</th>
+                        <th class="px-4 py-3 text-center font-semibold">{{ __('storage.actions') }}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                <tbody>
                     @foreach ($summary as $row)
-                        <tr>
-                            <td class="py-3 pe-3 align-top">
+                        <tr x-data="{ showPath: false }"
+                            class="border-b border-gray-100 odd:bg-gray-50/70 hover:bg-primary-50/40 dark:border-white/5 dark:odd:bg-white/[0.03] dark:hover:bg-primary-500/5">
+                            {{-- دسته: نام + توضیحِ کوتاه، وسط‌چین --}}
+                            <td class="px-4 py-5 text-center align-middle">
                                 <div class="font-semibold text-gray-800 dark:text-gray-100">{{ $row['label'] }}</div>
-                                <div class="mt-0.5 text-xs text-gray-500 dark:text-gray-400" style="max-width:30rem">{{ $row['description'] }}</div>
-                                <div class="mt-1">
-                                    <x-filament::badge :color="$row['in_webroot'] ? 'warning' : 'gray'" size="sm">
-                                        {{ $row['in_webroot'] ? __('storage.in_webroot') : __('storage.in_storage') }}
-                                    </x-filament::badge>
-                                </div>
+                                <div class="mx-auto mt-1 max-w-xs text-xs leading-5 text-gray-500 dark:text-gray-400">{{ $row['description'] }}</div>
                             </td>
-                            <td class="py-3 px-3 text-center align-top tabular-nums">
-                                {{ \App\Support\Jalali::digits((string) $row['count']) }}
+
+                            {{-- تعداد --}}
+                            <td class="px-4 py-5 text-center align-middle">
+                                <span class="text-lg font-bold tabular-nums text-gray-800 dark:text-gray-100">{{ \App\Support\Jalali::digits((string) $row['count']) }}</span>
                             </td>
-                            <td class="py-3 px-3 text-center align-top tabular-nums">
+
+                            {{-- حجم --}}
+                            <td class="px-4 py-5 text-center align-middle tabular-nums">
                                 {{ \App\Support\Jalali::digits($row['human']) }}
                             </td>
-                            <td class="py-3 px-3 align-top">
-                                <code class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs dark:bg-gray-800" dir="ltr">{{ $row['relative'] }}</code>
-                                <div class="mt-1 font-mono text-[11px] text-gray-400" dir="ltr">{{ $row['absolute'] }}</div>
+
+                            {{-- محل: یک نشان + دکمهٔ «نمایش مسیر» که مسیر را باز می‌کند --}}
+                            <td class="px-4 py-5 text-center align-middle">
+                                <x-filament::badge :color="$row['in_webroot'] ? 'warning' : 'gray'" size="sm" class="mx-auto">
+                                    {{ $row['in_webroot'] ? __('storage.in_webroot') : __('storage.in_storage') }}
+                                </x-filament::badge>
+                                <div class="mt-2">
+                                    <button type="button" x-on:click="showPath = !showPath"
+                                            class="text-xs font-medium text-primary-600 hover:underline dark:text-primary-400">
+                                        <span x-show="!showPath">{{ __('storage.show_path') }}</span>
+                                        <span x-show="showPath" x-cloak>{{ __('storage.hide_path') }}</span>
+                                    </button>
+                                    <div x-show="showPath" x-collapse x-cloak class="mt-2">
+                                        <code class="inline-block rounded bg-gray-100 px-2 py-1 font-mono text-[11px] text-gray-600 dark:bg-gray-800 dark:text-gray-300" dir="ltr">{{ $row['relative'] }}</code>
+                                    </div>
+                                </div>
                             </td>
-                            <td class="py-3 ps-3 text-center align-top">
+
+                            {{-- عملیات --}}
+                            <td class="px-4 py-5 text-center align-middle">
                                 @if ($row['count'] > 0)
                                     <x-filament::button tag="a" href="{{ route('storage.export', $row['key']) }}" size="sm" icon="heroicon-o-arrow-down-tray" color="gray">
                                         {{ __('storage.download_zip') }}

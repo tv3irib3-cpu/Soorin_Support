@@ -25,15 +25,14 @@ class CustomerProjectsTable
                     ->searchable()
                     ->sortable()
                     ->weight('medium')
-                    // رنگِ اختصاصیِ مشتریِ همین پروژه، کنارِ نامِ پروژه (مثلِ منوی کاربران).
+                    // لوگوی مشتریِ همین پروژه کنارِ نام، و نامِ پروژه با رنگِ مشتری هایلایت.
                     ->html()
-                    ->formatStateUsing(function ($state, $record) {
-                        $color = e($record->customer?->displayColor() ?? '#94a3b8');
-
-                        return '<span style="display:inline-flex;align-items:center;gap:7px;">'
-                            . '<span style="width:10px;height:10px;border-radius:50%;background:' . $color . ';flex:none;"></span>'
-                            . e($state) . '</span>';
-                    }),
+                    ->formatStateUsing(fn ($state, $record) => \App\Support\CustomerBadge::nameWithColor(
+                        (string) $state,
+                        $record->customer?->displayColor() ?? '#94a3b8',
+                        $record->customer?->hasLogo() ? $record->customer->logoData() : null,
+                        $record->customer?->name,   // حرفِ اولِ آواتار از نامِ مشتری
+                    )),
 
                 TextColumn::make('customer.name')
                     ->label(__('projects.customer'))

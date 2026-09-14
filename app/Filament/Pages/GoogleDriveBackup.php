@@ -9,7 +9,7 @@ use App\Services\StorageService;
 use App\Support\Jalali;
 use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -90,8 +90,7 @@ class GoogleDriveBackup extends Page
             $this->credentialsAction(),
             $this->connectAction(),
             $this->settingsAction(),
-            $this->pushDbAction(),
-            $this->pushFilesAction(),
+            $this->pushAction(),
         ];
         // «تازه‌سازی فهرست» و «قطع اتصال» به‌صورتِ اینلاین در نما رندر می‌شوند
         // ({{ $this->refreshAction }} و {{ $this->disconnectAction }}) تا روی موبایل
@@ -158,64 +157,80 @@ class GoogleDriveBackup extends Page
             });
     }
 
-    /** کپیِ آخرین (یا یک) پشتیبانِ دیتابیس روی درایو — یا ساختِ تازه و آپلود. */
-    public function pushDbAction(): Action
+    /**
+     * کپیِ انتخابیِ چند مورد روی درایو، همه با یک بار: دیتابیس و/یا هر دستهٔ فایل.
+     * کنارِ هر گزینه حجمش نوشته می‌شود؛ پیش‌فرض همه تیک‌خورده.
+     */
+    public function pushAction(): Action
     {
-        return Action::make('pushDb')
-            ->label(__('gdrive.push_db'))
-            ->icon(Heroicon::OutlinedCircleStack)
-            ->color('gray')
-            ->visible(fn () => $this->service()->isConnected())
-            ->requiresConfirmation()
-            ->modalDescription(__('gdrive.push_db_hint'))
-            ->action(function (): void {
-                try {
-                    // اگر پشتیبانی نیست، یکی بساز؛ وگرنه آخرین را بفرست.
-                    $backupService = app(DatabaseBackupService::class);
-                    $list = $backupService->list();
-                    $name = $list[0]['name'] ?? $backupService->create('پشتیبان برای گوگل‌درایو', 'GDrive');
-
-                    $this->service()->pushDatabaseBackup($name);
-                } catch (\Throwable $e) {
-                    Notification::make()->danger()->title(__('gdrive.push_failed'))->body($e->getMessage())->persistent()->send();
-
-                    return;
-                }
-
-                Notification::make()->success()->title(__('gdrive.pushed'))->send();
-            });
-    }
-
-    /** آپلودِ باندلِ یک دستهٔ فایل روی درایو. */
-    public function pushFilesAction(): Action
-    {
-        return Action::make('pushFiles')
-            ->label(__('gdrive.push_files'))
-            ->icon(Heroicon::OutlinedArrowUpTray)
+        return Action::make('push')
+            ->label(__('gdrive.push'))
+            ->icon(Heroicon::OutlinedCloudArrowUp)
             ->color('gray')
             ->visible(fn () => $this->service()->isConnected())
             ->schema([
-                Select::make('category')
-                    ->label(__('storage.category'))
-                    ->options(collect(StorageService::categories())
-                        ->keys()
-                        ->reject(fn ($k) => $k === 'backups')   // پشتیبان‌ها از دکمهٔ اختصاصیِ خودشان
-                        ->mapWithKeys(fn ($k) => [$k => __("storage.categories.$k")])
-                        ->all())
+                CheckboxList::make('items')
+                    ->label(__('gdrive.push_choose'))
+                    ->options($this->pushOptions())
+                    ->default(array_keys($this->pushOptions()))   // همه انتخاب‌شده
                     ->required()
-                    ->native(false),
+                    ->columns(1)
+                    ->bulkToggleable(),
             ])
+            ->modalSubmitActionLabel(__('gdrive.push'))
             ->action(function (array $data): void {
-                try {
-                    $this->service()->pushFilesBundle($data['category']);
-                } catch (\Throwable $e) {
-                    Notification::make()->danger()->title(__('gdrive.push_failed'))->body($e->getMessage())->persistent()->send();
+                $items = (array) ($data['items'] ?? []);
+                $ok = 0;
+                $errors = [];
 
-                    return;
+                foreach ($items as $item) {
+                    try {
+                        if ($item === 'database') {
+                            $backupService = app(DatabaseBackupService::class);
+                            $list = $backupService->list();
+                            $name = $list[0]['name'] ?? $backupService->create('پشتیبان برای گوگل‌درایو', 'GDrive');
+                            $this->service()->pushDatabaseBackup($name);
+                        } else {
+                            $this->service()->pushFilesBundle($item);
+                        }
+                        $ok++;
+                    } catch (\Throwable $e) {
+                        $errors[] = ($this->pushOptions()[$item] ?? $item) . ': ' . $e->getMessage();
+                    }
                 }
 
-                Notification::make()->success()->title(__('gdrive.pushed'))->send();
+                if ($errors === []) {
+                    Notification::make()->success()->title(__('gdrive.pushed'))
+                        ->body(__('gdrive.pushed_count', ['count' => Jalali::digits((string) $ok)]))->send();
+                } else {
+                    Notification::make()->warning()->title(__('gdrive.push_partial'))
+                        ->body(implode("\n", $errors))->persistent()->send();
+                }
             });
+    }
+
+    /**
+     * گزینه‌های کپی روی درایو با حجمِ هرکدام در برچسب.
+     *
+     * @return array<string, string>
+     */
+    private function pushOptions(): array
+    {
+        $storage = app(StorageService::class);
+        $options = [];
+
+        // دیتابیس: حجمِ آخرین پشتیبان (اگر باشد) وگرنه بدونِ حجم.
+        $backups = $storage->stats('backups');
+        $latest  = app(DatabaseBackupService::class)->list()[0]['size'] ?? null;
+        $options['database'] = __('gdrive.item_database')
+            . ($latest ? ' (' . Jalali::digits(StorageService::humanBytes((int) $latest)) . ')' : '');
+
+        foreach (['attachments', 'customer_logos', 'brand_logos'] as $key) {
+            $bytes = $storage->stats($key)['bytes'];
+            $options[$key] = __("storage.categories.$key") . ' (' . Jalali::digits(StorageService::humanBytes($bytes)) . ')';
+        }
+
+        return $options;
     }
 
     /** تازه‌سازیِ فهرستِ فایل‌های روی درایو. */

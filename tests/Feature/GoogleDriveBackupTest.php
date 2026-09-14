@@ -142,6 +142,33 @@ class GoogleDriveBackupTest extends TestCase
         $this->assertSame(1024, $files[0]['size']);
     }
 
+    public function test_push_action_uploads_selected_file_categories(): void
+    {
+        $admin = User::create(['name' => 'a', 'email' => 'a@dpst.ir', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_ADMIN]);
+        $admin->assignRole(User::TYPE_SUPPORT_ADMIN);
+        $this->actingAs($admin);
+
+        $this->configure();
+        $this->svc()->set('refresh_token', 'rtok');
+        $this->svc()->set('folder_id', 'folder123');
+
+        // یک فایلِ پیوست تا باندلش ساخته و آپلود شود
+        Storage::disk('local')->put('ticket-attachments/a.pdf', 'data');
+
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response(['access_token' => 'atok', 'expires_in' => 3600]),
+            'www.googleapis.com/upload/drive/v3/files*' => Http::response(null, 200, ['Location' => 'https://upload.session/x']),
+            'upload.session/*' => Http::response(['id' => 'up1']),
+        ]);
+
+        Livewire::test(GoogleDriveBackup::class)
+            ->callAction('push', ['items' => ['attachments']])
+            ->assertHasNoActionErrors();
+
+        // یک آپلودِ resumable آغاز شده
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/upload/drive/v3/files'));
+    }
+
     public function test_delete_file_calls_drive_delete(): void
     {
         $this->configure();
