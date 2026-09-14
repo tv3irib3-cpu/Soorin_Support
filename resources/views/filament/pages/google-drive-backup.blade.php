@@ -85,12 +85,20 @@
                                         {{ $f['modified'] ? \App\Support\Jalali::formatDateTime($f['modified']) : '—' }}
                                     </td>
                                     <td class="py-2 ps-3 text-center">
-                                        <x-filament::button
-                                            size="sm" color="warning" icon="heroicon-o-arrow-down-tray"
-                                            wire:click="restoreFromDrive('{{ $f['id'] }}')"
-                                            wire:confirm="{{ __('gdrive.restore_confirm') }}">
-                                            {{ __('gdrive.restore') }}
-                                        </x-filament::button>
+                                        <div class="flex items-center justify-center gap-2">
+                                            <x-filament::button
+                                                size="sm" color="warning" icon="heroicon-o-arrow-down-tray"
+                                                wire:click="restoreFromDrive('{{ $f['id'] }}')"
+                                                wire:confirm="{{ __('gdrive.restore_confirm') }}">
+                                                {{ __('gdrive.restore') }}
+                                            </x-filament::button>
+                                            <x-filament::button
+                                                size="sm" color="danger" icon="heroicon-o-trash"
+                                                wire:click="deleteFromDrive('{{ $f['id'] }}')"
+                                                wire:confirm="{{ __('gdrive.delete_confirm') }}">
+                                                {{ __('gdrive.delete') }}
+                                            </x-filament::button>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach

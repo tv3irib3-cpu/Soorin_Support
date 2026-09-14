@@ -278,6 +278,27 @@ class GoogleDriveBackup extends Page
         Notification::make()->success()->title(__('gdrive.restored'))->body($body)->persistent()->send();
     }
 
+    /** حذفِ یک فایل از روی درایو (از فهرست). */
+    public function deleteFromDrive(string $fileId): void
+    {
+        if (! collect($this->files)->contains('id', $fileId)) {
+            return;
+        }
+
+        try {
+            $this->service()->deleteFile($fileId);
+        } catch (\Throwable $e) {
+            Notification::make()->danger()->title(__('gdrive.delete_failed'))->body($e->getMessage())->persistent()->send();
+
+            return;
+        }
+
+        // از فهرستِ نمایش هم بردار (بدونِ نیاز به تازه‌سازیِ دوبارهٔ شبکه).
+        $this->files = array_values(array_filter($this->files, fn ($f) => $f['id'] !== $fileId));
+
+        Notification::make()->success()->title(__('gdrive.deleted'))->send();
+    }
+
     public function humanSize(int $bytes): string
     {
         return Jalali::digits(StorageService::humanBytes($bytes));

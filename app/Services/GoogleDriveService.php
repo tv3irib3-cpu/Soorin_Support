@@ -307,6 +307,19 @@ class GoogleDriveService
             ->all();
     }
 
+    /** حذفِ یک فایل از روی درایو (فایل‌هایی که همین برنامه ساخته). */
+    public function deleteFile(string $fileId): void
+    {
+        $token = $this->accessToken() ?? throw new RuntimeException('اتصالِ گوگل‌درایو برقرار نیست.');
+
+        $res = Http::withToken($token)->delete(self::FILES_URL . '/' . $fileId);
+
+        // 204 = موفق. 404 هم یعنی از قبل نیست؛ آن را هم موفق در نظر می‌گیریم.
+        if (! $res->successful() && $res->status() !== 404) {
+            throw new RuntimeException('حذف از گوگل‌درایو ناموفق بود: ' . trim($res->body()));
+        }
+    }
+
     // ----------------------------------------------------------- هماهنگیِ پشتیبان/فایل
 
     /** آپلودِ یک فایلِ پشتیبانِ دیتابیس (‎.sql) از پوشهٔ backups روی درایو. */

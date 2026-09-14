@@ -142,6 +142,44 @@ class GoogleDriveBackupTest extends TestCase
         $this->assertSame(1024, $files[0]['size']);
     }
 
+    public function test_delete_file_calls_drive_delete(): void
+    {
+        $this->configure();
+        $this->svc()->set('refresh_token', 'rtok');
+
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response(['access_token' => 'atok', 'expires_in' => 3600]),
+            'www.googleapis.com/drive/v3/files/f1' => Http::response(null, 204),
+        ]);
+
+        $this->svc()->deleteFile('f1');
+
+        Http::assertSent(fn ($request) => $request->method() === 'DELETE'
+            && str_contains($request->url(), '/drive/v3/files/f1'));
+    }
+
+    public function test_delete_from_drive_removes_row_from_list(): void
+    {
+        $admin = User::create(['name' => 'a', 'email' => 'a@dpst.ir', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_ADMIN]);
+        $admin->assignRole(User::TYPE_SUPPORT_ADMIN);
+        $this->actingAs($admin);
+
+        $this->configure();
+        $this->svc()->set('refresh_token', 'rtok');
+
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response(['access_token' => 'atok', 'expires_in' => 3600]),
+            'www.googleapis.com/drive/v3/files/f1' => Http::response(null, 204),
+        ]);
+
+        Livewire::test(GoogleDriveBackup::class)
+            ->set('listed', true)
+            ->set('files', [['id' => 'f1', 'name' => 'db-x.sql', 'size' => 10, 'modified' => null]])
+            ->assertSee('db-x.sql')
+            ->call('deleteFromDrive', 'f1')
+            ->assertDontSee('db-x.sql');
+    }
+
     public function test_page_access_admin_only(): void
     {
         $staff = User::create(['name' => 's', 'email' => 's1@dpst.ir', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_STAFF]);
