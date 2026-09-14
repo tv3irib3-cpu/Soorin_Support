@@ -210,6 +210,19 @@ body { background: var(--bg); color: var(--text); }
 .ticket-row-normal td   { background: color-mix(in srgb, #3b82f6 8%, transparent); }
 /* اولویتِ «کم» بی‌رنگ می‌ماند تا جدول شلوغ نشود. */
 
+/* ---------- باکسِ امتیازِ کلیِ شرکت (داشبوردِ مدیر) ---------- */
+.rating-overall {
+    text-align: center;
+    padding: 16px;
+    border-radius: 14px;
+    background: color-mix(in srgb, #f59e0b 9%, transparent);
+    border: 1px solid color-mix(in srgb, #f59e0b 25%, transparent);
+}
+.rating-overall__label { font-size: 13px; color: var(--muted); }
+.rating-overall__stars { color: #f59e0b; font-size: 34px; letter-spacing: 6px; margin-top: 6px; }
+.rating-overall__num { font-size: 30px; font-weight: 800; color: var(--text); margin-top: 4px; }
+.rating-overall__count { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
 /* ---------- دسترس‌پذیری ---------- */
 :focus-visible {
     outline: 2px solid var(--accent);

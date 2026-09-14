@@ -50,8 +50,6 @@ class DashboardStats extends StatsOverviewWidget
             ->selectRaw('COALESCE(SUM(GREATEST(payable_amount - paid_amount, 0)), 0) as d')
             ->value('d');
 
-        $avgRating = $mine()->whereNotNull('rating')->avg('rating');
-
         $ticketsUrl = TicketResource::getUrl('index');
         $fa = fn (int $n) => \App\Support\Jalali::digits((string) $n);
 
@@ -85,14 +83,8 @@ class DashboardStats extends StatsOverviewWidget
             ->color($totalDebt > 0 ? 'danger' : 'success')
             ->url(InvoiceResource::getUrl('index'));
 
-        // امتیازِ رضایت — با نامِ کارشناسِ پشتیبان (این باکس برای همین کاربر است).
-        $stats[] = Stat::make(
-            __('tickets.rating'),
-            $avgRating ? \App\Support\Jalali::digits(number_format($avgRating, 1)) . ' / ۵' : '—'
-        )
-            ->description($user?->name)
-            ->icon('heroicon-o-star')
-            ->color('warning');
+        // امتیازِ رضایت در ویجتِ اختصاصیِ AgentRatingsWidget نمایش داده می‌شود
+        // (به‌تفکیکِ کارشناس + امتیازِ کلیِ شرکت برای مدیر).
 
         return $stats;
     }

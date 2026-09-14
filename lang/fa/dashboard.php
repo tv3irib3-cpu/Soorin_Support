@@ -10,6 +10,14 @@ return [
     'needs_attention'      => 'نیازمندِ رسیدگی',
     'needs_attention_hint' => 'تیکت‌های جدید یا در انتظارِ پاسخِ پشتیبان',
 
+    // امتیازِ رضایت
+    'ratings_title'           => 'امتیازِ رضایت',
+    'overall_company_rating'  => 'امتیازِ کلیِ شرکت',
+    'agent'                   => 'کارشناس',
+    'rating_count'            => 'بر پایهٔ :count تیکتِ امتیازخورده',
+    'rating_count_col'        => 'تعداد امتیاز',
+    'no_ratings'              => 'هنوز امتیازی ثبت نشده',
+
     // بازهٔ نمودارِ روند
     'trend_from'       => 'از (ماهِ شمسی)',
     'trend_to'         => 'تا (ماهِ شمسی)',
