@@ -10,6 +10,18 @@
             @endif
         </div>
 
+        {{-- آدرسِ مخزنِ گیت‌هابِ پروژه --}}
+        @php
+            $repo = rtrim(preg_replace('/\.git$/', '', (string) config('branding.github.repo')), '/');
+        @endphp
+        @if ($repo !== '')
+            <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                <span class="text-gray-500 dark:text-gray-400">{{ __('updates.repo') }}:</span>
+                <a href="{{ $repo }}" target="_blank" rel="noopener"
+                   class="font-mono text-primary-600 underline dark:text-primary-400" dir="ltr">{{ $repo }}</a>
+            </div>
+        @endif
+
         @if (! empty($status['checked']))
             <div class="mt-4">
                 @if (! empty($status['error']))

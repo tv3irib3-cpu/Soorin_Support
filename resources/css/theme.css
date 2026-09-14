@@ -147,6 +147,59 @@ body { background: var(--bg); color: var(--text); }
     .app-footer__inner { flex-direction: column; align-items: center; }
 }
 
+/* ---------- جدول‌های سفارشی (مدیریت استوریج / گوگل‌درایو) ----------
+   کلاس‌های خودمان، چون کلاس‌های Tailwindِ دلخواه در CSSِ ازپیش‌کامپایل‌شدهٔ
+   Filament موجود نیستند. اینجا در head پنل inline می‌شوند، پس همیشه اعمال می‌شوند. */
+.soorin-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.soorin-grid thead th {
+    text-align: center;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: .03em;
+    color: var(--muted);
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+.soorin-grid tbody td {
+    text-align: center;
+    vertical-align: middle;
+    padding: 22px 24px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+}
+/* راه‌راه: سطرهای فرد آبیِ کم‌رنگ، سطرهای زوج شفاف (سفیدِ کارت) */
+.soorin-grid tbody tr:nth-child(odd)  { background: color-mix(in srgb, #38bdf8 12%, transparent); }
+.soorin-grid tbody tr:hover           { background: color-mix(in srgb, #38bdf8 20%, transparent); }
+.soorin-grid__title { font-weight: 700; color: var(--text); }
+.soorin-grid__desc  { margin: 6px auto 0; max-width: 22rem; font-size: 11px; line-height: 1.7; color: var(--muted); opacity: .85; }
+.soorin-grid__num   { font-size: 18px; font-weight: 800; color: var(--text); }
+.soorin-grid__cell  { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.soorin-code {
+    display: inline-block;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    direction: ltr;
+    background: color-mix(in srgb, var(--muted) 14%, transparent);
+    color: var(--muted);
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+/* دکمهٔ «نمایش مسیر» — سبزِ خیلی کم‌رنگ */
+.soorin-pathbtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: color-mix(in srgb, #22c55e 60%, var(--muted));
+}
+.soorin-pathbtn:hover { color: #16a34a; text-decoration: underline; }
+
 /* ---------- دسترس‌پذیری ---------- */
 :focus-visible {
     outline: 2px solid var(--accent);

@@ -67,24 +67,22 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('gdrive.no_files') }}</p>
             @else
                 <div class="overflow-x-auto">
-                    <table class="w-full border-collapse text-sm">
+                    <table class="soorin-grid">
                         <thead>
-                            <tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500 dark:border-white/10 dark:text-gray-400">
-                                <th class="px-6 py-3 text-center font-semibold">{{ __('gdrive.file_name') }}</th>
-                                <th class="px-6 py-3 text-center font-semibold">{{ __('storage.size') }}</th>
-                                <th class="px-6 py-3 text-center font-semibold">{{ __('gdrive.modified') }}</th>
-                                <th class="px-6 py-3 text-center font-semibold">{{ __('storage.actions') }}</th>
+                            <tr>
+                                <th>{{ __('gdrive.file_name') }}</th>
+                                <th>{{ __('storage.size') }}</th>
+                                <th>{{ __('gdrive.modified') }}</th>
+                                <th>{{ __('storage.actions') }}</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($files as $f)
-                                <tr class="odd:bg-sky-50/70 hover:bg-sky-100/50 dark:odd:bg-white/[0.03] dark:hover:bg-white/[0.06]">
-                                    <td class="px-6 py-4 text-center align-middle font-mono text-xs" dir="ltr">{{ $f['name'] }}</td>
-                                    <td class="px-6 py-4 text-center align-middle tabular-nums">{{ $this->humanSize((int) $f['size']) }}</td>
-                                    <td class="px-6 py-4 text-center align-middle">
-                                        {{ $f['modified'] ? \App\Support\Jalali::formatDateTime($f['modified']) : '—' }}
-                                    </td>
-                                    <td class="px-6 py-4 text-center align-middle">
+                                <tr>
+                                    <td><span class="soorin-code">{{ $f['name'] }}</span></td>
+                                    <td>{{ $this->humanSize((int) $f['size']) }}</td>
+                                    <td>{{ $f['modified'] ? \App\Support\Jalali::formatDateTime($f['modified']) : '—' }}</td>
+                                    <td>
                                         <div class="flex items-center justify-center gap-2">
                                             <x-filament::button
                                                 size="sm" color="warning" icon="heroicon-o-arrow-down-tray"
