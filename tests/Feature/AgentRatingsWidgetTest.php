@@ -69,7 +69,8 @@ class AgentRatingsWidgetTest extends TestCase
         Livewire::test(AgentRatingsWidget::class)
             ->assertOk()
             ->assertSee('کارشناس یک')
-            ->assertDontSee('کارشناس دو')                         // امتیازِ دیگران را نمی‌بیند
-            ->assertDontSee(__('dashboard.overall_company_rating')); // امتیازِ کلِ شرکت فقط مدیر
+            ->assertDontSee('کارشناس دو')                      // امتیازِ کارشناسِ دیگر را نمی‌بیند
+            ->assertSee(__('dashboard.overall_company_rating')) // ولی امتیازِ کلِ شرکت را می‌بیند
+            ->assertSee(\App\Support\Jalali::digits('3.0'));    // میانگینِ کل = (۴+۲)/۲ = ۳
     }
 }

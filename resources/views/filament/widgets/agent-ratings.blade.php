@@ -14,19 +14,17 @@
     <x-filament::section>
         <x-slot name="heading">{{ __('dashboard.ratings_title') }}</x-slot>
 
-        {{-- امتیازِ کلیِ شرکت — فقط مدیر، درشت و بالای فهرست --}}
-        @if ($isAdmin)
-            <div class="rating-overall">
-                <div class="rating-overall__label">{{ __('dashboard.overall_company_rating') }}</div>
-                @if ($overall !== null)
-                    <div class="rating-overall__stars">{{ $star($overall) }}</div>
-                    <div class="rating-overall__num">{{ $fa(number_format($overall, 1)) }} / ۵</div>
-                    <div class="rating-overall__count">{{ __('dashboard.rating_count', ['count' => $fa($overallCount)]) }}</div>
-                @else
-                    <div class="rating-overall__num">—</div>
-                @endif
-            </div>
-        @endif
+        {{-- امتیازِ کلیِ شرکت — برای همه (کارشناس و مدیر)، درشت و بالای فهرست --}}
+        <div class="rating-overall">
+            <div class="rating-overall__label">{{ __('dashboard.overall_company_rating') }}</div>
+            @if ($overall !== null)
+                <div class="rating-overall__stars">{{ $star($overall) }}</div>
+                <div class="rating-overall__num">{{ $fa(number_format($overall, 1)) }} / ۵</div>
+                <div class="rating-overall__count">{{ __('dashboard.rating_count', ['count' => $fa($overallCount)]) }}</div>
+            @else
+                <div class="rating-overall__num">—</div>
+            @endif
+        </div>
 
         <div class="overflow-x-auto" style="margin-top: 16px;">
             <table class="soorin-grid">

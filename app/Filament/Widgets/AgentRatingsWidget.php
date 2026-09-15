@@ -9,8 +9,9 @@ use Filament\Widgets\Widget;
 /**
  * امتیازِ رضایت به‌تفکیکِ هر کارشناسِ پشتیبان.
  *
- * کارشناس فقط امتیازِ خودش را می‌بیند؛ مدیرِ پشتیبان امتیازِ همهٔ کارشناسان را
- * به‌علاوهٔ «امتیازِ کلیِ شرکت» (میانگینِ سادهٔ همهٔ تیکت‌های امتیازخورده) می‌بیند.
+ * «امتیازِ کلیِ شرکت» (میانگینِ سادهٔ همهٔ تیکت‌های امتیازخورده) را همه می‌بینند —
+ * چه کارشناس چه مدیر. تفاوت در فهرست است: کارشناس فقط امتیازِ خودش را می‌بیند،
+ * مدیرِ پشتیبان امتیازِ همهٔ کارشناسان را.
  * امتیازِ هر کارشناس = میانگینِ تیکت‌های تخصیص‌یافته به او که امتیاز گرفته‌اند.
  */
 class AgentRatingsWidget extends Widget
@@ -46,14 +47,10 @@ class AgentRatingsWidget extends Widget
             return ['name' => $u->name, 'avg' => $avg, 'count' => $count];
         })->all();
 
-        // امتیازِ کلیِ شرکت — میانگینِ سادهٔ همهٔ تیکت‌های امتیازخورده (فقط برای مدیر).
-        $overall = null;
-        $overallCount = 0;
-
-        if ($isAdmin) {
-            $overallCount = Ticket::whereNotNull('rating')->count();
-            $overall = $overallCount > 0 ? (float) Ticket::whereNotNull('rating')->avg('rating') : null;
-        }
+        // امتیازِ کلیِ شرکت — میانگینِ سادهٔ همهٔ تیکت‌های امتیازخورده. برای همه
+        // (کارشناس و مدیر) نمایش داده می‌شود.
+        $overallCount = Ticket::whereNotNull('rating')->count();
+        $overall = $overallCount > 0 ? (float) Ticket::whereNotNull('rating')->avg('rating') : null;
 
         return [
             'isAdmin'      => $isAdmin,

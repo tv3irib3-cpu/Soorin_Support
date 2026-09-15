@@ -4,8 +4,10 @@ namespace App\Filament\Resources\Tickets\Tables;
 
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Models\Ticket;
+use App\Models\TicketMessage;
 use App\Models\TicketRead;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -28,6 +30,25 @@ class TicketsTable
     private const PRIORITY_COLORS = [
         'low' => 'gray', 'normal' => 'info', 'high' => 'warning', 'critical' => 'danger',
     ];
+
+    /** ترتیبِ منطقیِ اولویت (کم→بحرانی) برای سورت؛ نزولی = بحرانی بالاتر. */
+    private const PRIORITY_ORDER = "'low','normal','high','critical'";
+
+    /** ترتیبِ منطقیِ وضعیت در چرخهٔ کار برای سورت. */
+    private const STATUS_ORDER = "'new','in_progress','waiting_support','waiting_customer','waiting_payment','resolved','cancelled','closed'";
+
+    /**
+     * زیرکوئریِ «تاریخِ آخرین پیامِ هر تیکت» — مقاوم به پیشوندِ جدول
+     * (getQualifiedKeyName نامِ واقعیِ soorin_tickets.id را می‌دهد و مدلِ
+     * TicketMessage جدولِ پیشونددارِ خودش را). هم برای نمایش و هم برای سورت.
+     */
+    private static function lastMessageSubquery(Builder $query)
+    {
+        return TicketMessage::select('created_at')
+            ->whereColumn('ticket_id', $query->getModel()->getQualifiedKeyName())
+            ->latest()
+            ->limit(1);
+    }
 
     public static function configure(Table $table): Table
     {
@@ -90,16 +111,20 @@ class TicketsTable
                     ->extraHeaderAttributes(['class' => 'hidden lg:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden lg:table-cell']),
 
-                // اولویت همیشه دیده شود (نشانِ رنگیِ بحرانی/زیاد/...).
+                // اولویت همیشه دیده شود (نشانِ رنگیِ بحرانی/زیاد/...). سورت با ترتیبِ
+                // منطقیِ اولویت: نزولی = بحرانی بالاتر، صعودی = کم بالاتر.
                 TextColumn::make('priority')
                     ->label(__('tickets.priority'))
                     ->badge()
                     ->formatStateUsing(fn (string $state) => __("tickets.priorities.$state"))
-                    ->color(fn (string $state) => self::PRIORITY_COLORS[$state] ?? 'gray'),
+                    ->color(fn (string $state) => self::PRIORITY_COLORS[$state] ?? 'gray')
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderByRaw('FIELD(priority, ' . self::PRIORITY_ORDER . ') ' . ($direction === 'desc' ? 'DESC' : 'ASC'))),
 
                 TextColumn::make('assignee.name')
                     ->label(__('tickets.assigned_to'))
                     ->placeholder(__('tickets.unassigned'))
+                    ->sortable()
                     ->extraHeaderAttributes(['class' => 'hidden lg:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden lg:table-cell']),
 
@@ -107,7 +132,9 @@ class TicketsTable
                     ->label(__('tickets.status'))
                     ->badge()
                     ->formatStateUsing(fn (string $state) => __("tickets.statuses.$state"))
-                    ->color(fn (string $state) => self::STATUS_COLORS[$state] ?? 'gray'),
+                    ->color(fn (string $state) => self::STATUS_COLORS[$state] ?? 'gray')
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderByRaw('FIELD(status, ' . self::STATUS_ORDER . ') ' . ($direction === 'desc' ? 'DESC' : 'ASC'))),
 
                 IconColumn::make('sla')
                     ->label(__('tickets.sla_breached'))
@@ -129,6 +156,20 @@ class TicketsTable
                     ->label(__('common.created_at'))
                     ->formatStateUsing(fn ($state) => \App\Support\Jalali::format($state))
                     ->sortable()
+                    ->extraHeaderAttributes(['class' => 'hidden xl:table-cell'])
+                    ->extraCellAttributes(['class' => 'hidden xl:table-cell']),
+
+                // تاریخِ آخرین پیام — از زیرکوئریِ last_message_at (که در
+                // modifyQueryUsing انتخاب شده) خوانده می‌شود؛ سورت مستقیماً روی
+                // همان زیرکوئری تا به اسم مستعار وابسته نباشد.
+                TextColumn::make('last_message_at')
+                    ->label(__('tickets.last_message_at'))
+                    ->formatStateUsing(fn ($state) => $state
+                        ? \App\Support\Jalali::formatDateTime(\Illuminate\Support\Carbon::parse($state))
+                        : '—')
+                    ->placeholder('—')
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderBy(self::lastMessageSubquery($query), $direction))
                     ->extraHeaderAttributes(['class' => 'hidden xl:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden xl:table-cell']),
 
@@ -175,10 +216,13 @@ class TicketsTable
                         return $query->whereIn('id', $ids);
                     }),
             ])
-            // پیش‌فرض: اولویتِ بالاتر بالاتر (بحرانی→زیاد→عادی→کم)، بعد تازه‌ترین.
-            ->defaultSort(fn ($query) => $query
-                ->orderByRaw("FIELD(priority, 'critical','high','normal','low')")
-                ->orderByDesc('created_at'))
+            // زیرکوئریِ «تاریخِ آخرین پیام» را برای نمایش به کوئری می‌افزاییم تا هر
+            // ردیف یک کوئریِ جدا نزند (بدونِ N+1).
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query
+                ->addSelect(['last_message_at' => self::lastMessageSubquery($query)]))
+            // پیش‌فرض: تازه‌ترین تیکت بالا. سایرِ سورت‌ها (اولویت، وضعیت، شرکت،
+            // تاریخِ آخرین پیام، …) با کلیک روی سرستون در دسترس است.
+            ->defaultSort('created_at', 'desc')
             // رنگ‌بندیِ ردیف‌ها بر پایهٔ اولویت: بحرانی→قرمز، زیاد→نارنجی، عادی→آبی،
             // کم→بی‌رنگ. جداکنندهٔ خاکستریِ هر ردیف با کلاسِ پایهٔ ticket-row.
             ->recordClasses(fn (Ticket $record): string => 'ticket-row ticket-row-' . $record->priority)

@@ -18,6 +18,7 @@ return [
 
     'number'        => 'شماره تیکت',
     'created_at'    => 'تاریخ ثبت',
+    'last_message_at' => 'آخرین پیام',
     'subject'       => 'موضوع',
     'description'   => 'شرح مشکل',
     'customer'      => 'مشتری',
