@@ -127,7 +127,7 @@ class TicketController extends Controller
             404,
         );
 
-        $ticket->load(['publicMessages.user', 'publicMessages.attachments', 'category', 'project']);
+        $ticket->load(['publicMessages.user', 'publicMessages.attachments', 'category', 'project', 'customerAssignee']);
 
         // پیوست‌هایی که مستقیم به خودِ تیکت وصل‌اند (هنگام ثبتِ تیکت آپلود شده‌اند)
         $ticketAttachments = $ticket->attachments()->whereNull('ticket_message_id')->get();
@@ -135,7 +135,49 @@ class TicketController extends Controller
         // علامت‌گذاریِ خواندهٔ گفتگو برای این کاربر (شمارندهٔ خوانده‌نشده صفر شود)
         \App\Models\TicketRead::markRead($ticket, $user);
 
-        return view('portal.tickets.show', compact('ticket', 'ticketAttachments'));
+        // فقط مدیرِ مشتری می‌تواند تیکت را به کارشناسِ خودش بسپارد؛ فهرستِ کارشناسانِ
+        // فعالِ همین مشتری برای دراپ‌داونِ اختصاص.
+        $assignableStaff = $user->isCustomerAdmin()
+            ? User::where('customer_id', $user->customer_id)
+                ->where('user_type', User::TYPE_CUSTOMER_STAFF)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get()
+            : collect();
+
+        return view('portal.tickets.show', compact('ticket', 'ticketAttachments', 'assignableStaff'));
+    }
+
+    /**
+     * اختصاصِ تیکت به کارشناسِ خودِ مشتری — فقط مدیرِ مشتری. کارشناسِ انتخابی باید
+     * کارشناسِ فعالِ همین مشتری باشد. مقدارِ خالی یعنی لغوِ اختصاص.
+     */
+    public function assign(Request $request, Ticket $ticket): RedirectResponse
+    {
+        $user = auth()->user();
+
+        abort_unless($user->isCustomerAdmin(), 403);
+        abort_unless(Ticket::visibleTo($user)->whereKey($ticket->id)->exists(), 404);
+
+        $data = $request->validate([
+            'customer_assigned_to' => ['nullable', 'exists:users,id'],
+        ]);
+
+        if (! empty($data['customer_assigned_to'])) {
+            $isOwnStaff = User::whereKey($data['customer_assigned_to'])
+                ->where('customer_id', $user->customer_id)
+                ->where('user_type', User::TYPE_CUSTOMER_STAFF)
+                ->where('is_active', true)
+                ->exists();
+
+            abort_unless($isOwnStaff, 422);
+        }
+
+        $ticket->update(['customer_assigned_to' => $data['customer_assigned_to'] ?: null]);
+
+        ActivityLog::record('ticket_customer_assigned', $ticket);
+
+        return back()->with('status', __('portal.assigned_done'));
     }
 
     public function reply(Request $request, Ticket $ticket): RedirectResponse

@@ -65,6 +65,37 @@
         </div>
     </div>
 
+    {{-- اختصاص به کارشناسِ خودِ مشتری — نمایشِ کارشناسِ فعلی برای همه؛ فرمِ اختصاص فقط مدیرِ مشتری --}}
+    @if ($assignableStaff->isNotEmpty() || $ticket->customerAssignee)
+        <div class="card" style="margin-top:16px;">
+            <div style="font-weight:800; margin-bottom:8px;">{{ __('portal.assign_title') }}</div>
+
+            @if ($ticket->customerAssignee)
+                <div style="margin-bottom:10px;">
+                    {{ __('portal.assigned_to') }}: <strong>{{ $ticket->customerAssignee->name }}</strong>
+                </div>
+            @else
+                <div style="color:var(--muted); font-size:13px; margin-bottom:10px;">{{ __('portal.assign_none') }}</div>
+            @endif
+
+            @if ($assignableStaff->isNotEmpty())
+                <form method="POST" action="{{ route('portal.tickets.assign', $ticket) }}">
+                    @csrf
+                    <div class="field" style="margin-bottom:10px;">
+                        <label for="customer_assigned_to">{{ __('portal.assign_to_staff') }}</label>
+                        <select name="customer_assigned_to" id="customer_assigned_to">
+                            <option value="">{{ __('portal.assign_unassign') }}</option>
+                            @foreach ($assignableStaff as $s)
+                                <option value="{{ $s->id }}" @selected($ticket->customer_assigned_to == $s->id)>{{ $s->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">{{ __('portal.assign_submit') }}</button>
+                </form>
+            @endif
+        </div>
+    @endif
+
     <div class="page-head" style="margin-top:22px; margin-bottom:12px;">
         <h3 style="margin:0;">{{ __('tickets.conversation') }}</h3>
         <span class="msg-count">

@@ -30,19 +30,28 @@ class DashboardStats extends StatsOverviewWidget
         // تیکت‌های خودش. (وگرنه اعداد بینِ کارشناسان مشترک می‌شد.)
         $mine = fn () => $user ? Ticket::visibleTo($user) : Ticket::query()->whereRaw('1=0');
 
-        // «باز» یعنی هنوز در جریان است — حل‌شده/لغو دیگر باز حساب نمی‌شود.
-        $openTickets = $mine()->whereNotIn('status', ['resolved', 'closed', 'cancelled'])->count();
+        // سه باکس بدونِ هم‌پوشانی تعریف می‌شوند تا محتوای یکسان نشان ندهند:
+        //   نیازمندِ رسیدگی = توپ در زمینِ پشتیبان (جدید یا منتظرِ پاسخِ پشتیبان)
+        //   باز            = در جریان ولی توپ در زمینِ پشتیبان نیست (بررسی/منتظرِ مشتری)
+        //   حل‌شده         = حل‌شده یا بسته‌شده (در این ماه)
+
+        // «نیازمندِ رسیدگی» = تیکت‌های جدید یا در انتظارِ پاسخِ پشتیبان.
+        $needsAttention = $mine()->whereIn('status', [
+            \App\Models\Ticket::STATUS_NEW,
+            \App\Models\Ticket::STATUS_WAITING_SUPPORT,
+        ])->count();
+
+        // «باز» = در حال بررسی یا در انتظارِ پاسخِ مشتری (نه جدید/منتظرِ پشتیبان،
+        // تا با باکسِ نیازمندِ رسیدگی هم‌پوشانی نداشته باشد).
+        $openTickets = $mine()->whereIn('status', [
+            \App\Models\Ticket::STATUS_IN_PROGRESS,
+            \App\Models\Ticket::STATUS_WAITING_CUSTOMER,
+        ])->count();
 
         $resolvedThisMonth = $mine()->whereIn('status', ['resolved', 'closed'])
             ->whereMonth('resolved_at', now()->month)
             ->whereYear('resolved_at', now()->year)
             ->count();
-
-        // «نیازمندِ رسیدگی» = تیکت‌های جدید یا در انتظارِ پاسخِ پشتیبان (توپ در زمینِ پشتیبان).
-        $needsAttention = $mine()->whereIn('status', [
-            \App\Models\Ticket::STATUS_NEW,
-            \App\Models\Ticket::STATUS_WAITING_SUPPORT,
-        ])->count();
 
         $unpaidInvoices = Invoice::whereNotIn('status', ['paid', 'cancelled', 'draft'])->count();
 

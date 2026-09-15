@@ -23,20 +23,24 @@ class TicketResource extends Resource
     protected static ?string $model = Ticket::class;
 
     /**
-     * دامنهٔ دیدِ تیکت‌ها در پنل: مدیرِ پشتیبان همه را می‌بیند؛ کارشناس فقط تیکت‌های
-     * تخصیص‌یافته به خودش (با تغییرِ تخصیص، از پنلِ کارشناسِ قبلی پنهان می‌شود).
-     */
-    /**
-     * تیکت‌های «ورودی» — ساخته‌شده توسطِ مشتری. کارشناس فقط تیکت‌های تخصیص‌یافته
-     * به خودش را می‌بیند؛ مدیرِ پشتیبان همه را.
+     * دامنهٔ دیدِ تیکت‌ها در پنل: مدیرِ پشتیبان همهٔ تیکت‌ها را می‌بیند (چه ساختهٔ
+     * مشتری، چه ساختهٔ پشتیبان)؛ کارشناس فقط تیکت‌های تخصیص‌یافته به خودش (با
+     * تغییرِ تخصیص، از پنلِ کارشناسِ قبلی پنهان می‌شود).
+     *
+     * تفکیکِ ورودی/خروجی حذف شد: یک بخشِ واحدِ «تیکت‌ها» همهٔ تیکت‌ها را نشان
+     * می‌دهد و تیکتِ ساختهٔ پشتیبان با نشان و نوارِ کناری در جدول متمایز می‌شود.
      */
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery()->createdByCustomer();
+        $query = parent::getEloquentQuery();
         $user = auth()->user();
 
+        // کارشناس تیکت‌های تخصیص‌یافته به خودش را می‌بیند، به‌علاوهٔ تیکت‌هایی که
+        // خودش ساخته (وگرنه تیکتی که همین الان ساخته را در فهرست نمی‌دید).
         if ($user && $user->isSupportUser() && ! $user->isSupportAdmin()) {
-            $query->where('assigned_to', $user->id);
+            $query->where(fn (Builder $q) => $q
+                ->where('assigned_to', $user->id)
+                ->orWhere('created_by', $user->id));
         }
 
         return $query;
@@ -52,8 +56,12 @@ class TicketResource extends Resource
         $query = Ticket::query();
         $user = auth()->user();
 
+        // مانند فهرست: کارشناس تیکت‌های خودش (تخصیص‌یافته یا ساخته‌شده) را باز می‌کند —
+        // تا پس از ساختِ تیکت، صفحهٔ نمایشِ همان تیکت ۴۰۴ ندهد.
         if ($user && $user->isSupportUser() && ! $user->isSupportAdmin()) {
-            $query->where('assigned_to', $user->id);
+            $query->where(fn (Builder $q) => $q
+                ->where('assigned_to', $user->id)
+                ->orWhere('created_by', $user->id));
         }
 
         return $query;
@@ -65,12 +73,12 @@ class TicketResource extends Resource
 
     public static function getModelLabel(): string
     {
-        return __('tickets.incoming_label');
+        return __('tickets.label');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('tickets.incoming');
+        return __('tickets.plural');
     }
 
     public static function getNavigationGroup(): ?string
@@ -139,11 +147,11 @@ class TicketResource extends Resource
         return auth()->user()?->can(Permission::ViewTickets->value) ?? false;
     }
 
-    // تیکتِ «ورودی» را مشتری از پرتال می‌سازد؛ ساختِ دستی در این منو معنی ندارد.
-    // ساختِ تیکت توسطِ پشتیبان در منوی «تیکت‌های خروجی» است.
+    // ساختِ تیکت توسطِ پشتیبان (مدیر یا کارشناس) در همین بخش در دسترس است؛ سازندهٔ
+    // تیکت خودکار همان کاربرِ پشتیبان می‌شود (TicketObserver::creating).
     public static function canCreate(): bool
     {
-        return false;
+        return auth()->user()?->can(Permission::CreateTickets->value) ?? false;
     }
 
     public static function canEdit(mixed $record): bool

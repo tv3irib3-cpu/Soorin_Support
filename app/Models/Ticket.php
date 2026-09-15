@@ -65,7 +65,7 @@ class Ticket extends Model
         'number', 'customer_id', 'customer_project_id', 'ticket_category_id',
         'system_name', 'contract_id', 'subject', 'description',
         'service_type', 'method', 'priority', 'status',
-        'assigned_to', 'created_by', 'work_minutes', 'resolution',
+        'assigned_to', 'customer_assigned_to', 'created_by', 'work_minutes', 'resolution',
         'first_response_at', 'resolved_at', 'closed_at', 'is_locked',
         'rating', 'rating_comment',
     ];
@@ -106,6 +106,12 @@ class Ticket extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    /** کارشناسِ خودِ مشتری که مدیرِ مشتری تیکت را به او سپرده (مستقل از پشتیبانِ شرکت). */
+    public function customerAssignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'customer_assigned_to');
     }
 
     public function creator(): BelongsTo
@@ -186,6 +192,15 @@ class Ticket extends Model
     public function isRated(): bool
     {
         return $this->rating !== null;
+    }
+
+    /**
+     * آیا این تیکت را پشتیبان ساخته است (نه مشتری)؟ مبنای تمایزِ ظاهری در جدول
+     * (نشانِ خاکستری + نوارِ کناری). تیکتِ بدونِ سازنده = از پرتالِ مشتری.
+     */
+    public function isCreatedBySupport(): bool
+    {
+        return $this->creator !== null && $this->creator->isSupportUser();
     }
 
     /**
@@ -281,6 +296,10 @@ class Ticket extends Model
         // فقط دامنهٔ دیدنِ تیکت‌های *دیگران* را گسترده‌تر می‌کند.
         return $query->where(function (Builder $sub) use ($user, $scope): void {
             $sub->where('created_by', $user->id);
+
+            // تیکتی که مدیرِ مشتری صریحاً به این کارشناس سپرده — همیشه دیده می‌شود،
+            // حتی اگر دامنهٔ تاریخچهٔ کارشناس «هیچ» باشد (اختصاص = واگذاریِ عمدیِ دسترسی).
+            $sub->orWhere('customer_assigned_to', $user->id);
 
             if ($scope === 'project') {
                 $sub->orWhereIn('customer_project_id', $user->accessibleProjectIds());

@@ -97,11 +97,23 @@ class TicketsTable
                     ->extraHeaderAttributes(['class' => 'hidden md:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden md:table-cell']),
 
-                // سازندهٔ تیکت — بینِ «پروژه» و «دسته‌بندی». برای تفکیکِ تیکتِ مشتری
-                // از تیکتِ ساخته‌شدهٔ پشتیبان (ورودی/خروجی).
+                // سازندهٔ تیکت — بینِ «پروژه» و «دسته‌بندی». تیکتِ ساختهٔ پشتیبان با
+                // نشانِ خاکستریِ «پشتیبان» کنارِ نام متمایز می‌شود (به‌همراه نوارِ
+                // کناری روی کلِ ردیف از طریقِ recordClasses).
                 TextColumn::make('creator.name')
                     ->label(__('tickets.creator'))
                     ->placeholder('—')
+                    ->html()
+                    ->formatStateUsing(function ($state, Ticket $record): string {
+                        $name = e($state ?? '—');
+
+                        if ($record->isCreatedBySupport()) {
+                            $name .= ' <span class="soorin-badge-support" title="' . e(__('tickets.by_support_hint')) . '">'
+                                . e(__('tickets.by_support')) . '</span>';
+                        }
+
+                        return $name;
+                    })
                     ->extraHeaderAttributes(['class' => 'hidden md:table-cell'])
                     ->extraCellAttributes(['class' => 'hidden md:table-cell']),
 
@@ -227,7 +239,9 @@ class TicketsTable
                 ->orderByRaw('COALESCE(last_message_at, created_at) DESC'))
             // رنگ‌بندیِ ردیف‌ها بر پایهٔ اولویت: بحرانی→قرمز، زیاد→نارنجی، عادی→آبی،
             // کم→بی‌رنگ. جداکنندهٔ خاکستریِ هر ردیف با کلاسِ پایهٔ ticket-row.
-            ->recordClasses(fn (Ticket $record): string => 'ticket-row ticket-row-' . $record->priority)
+            // تیکتِ ساختهٔ پشتیبان کلاسِ ticket-row-outgoing می‌گیرد (نوارِ کناری).
+            ->recordClasses(fn (Ticket $record): string => 'ticket-row ticket-row-' . $record->priority
+                . ($record->isCreatedBySupport() ? ' ticket-row-outgoing' : ''))
             ->emptyStateHeading(__('tickets.empty_heading'))
             ->emptyStateDescription(__('tickets.empty_body'));
     }

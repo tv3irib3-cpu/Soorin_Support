@@ -17,6 +17,9 @@ class TicketsByCustomerChart extends ChartWidget
 
     protected static bool $isLazy = false;
 
+    // بدونِ wire:pollِ ۵ ثانیه‌ای (هم‌راستا با نمودارِ روند و برای پرهیز از تازه‌سازیِ بی‌مورد).
+    protected ?string $pollingInterval = null;
+
     protected int|string|array $columnSpan = 'full';
 
     public function getHeading(): ?string
@@ -34,37 +37,65 @@ class TicketsByCustomerChart extends ChartWidget
         return 'doughnut';
     }
 
+    protected function getOptions(): array
+    {
+        return [
+            'cutout'  => '62%',
+            'plugins' => [
+                'legend' => [
+                    'position' => 'bottom',
+                    'labels'   => ['usePointStyle' => true, 'boxWidth' => 8, 'padding' => 14],
+                ],
+            ],
+        ];
+    }
+
     protected function getData(): array
     {
         $since = Carbon::now()->subDays(30);
 
-        $counts = Ticket::where('created_at', '>=', $since)
+        // تیکت‌های ساختهٔ مشتری به تفکیکِ شرکت — رنگِ اختصاصیِ هر شرکت.
+        $byCustomer = Ticket::createdByCustomer()
+            ->where('created_at', '>=', $since)
             ->selectRaw('customer_id, COUNT(*) as total')
             ->groupBy('customer_id')
             ->pluck('total', 'customer_id');
 
-        if ($counts->isEmpty()) {
+        // تیکت‌های ساختهٔ پشتیبان — یک بخشِ خاکستریِ واحد، جدا از رنگِ شرکت‌ها.
+        $supportTotal = Ticket::createdBySupport()
+            ->where('created_at', '>=', $since)
+            ->count();
+
+        if ($byCustomer->isEmpty() && $supportTotal === 0) {
             return ['datasets' => [['data' => []]], 'labels' => []];
         }
 
-        $customers = Customer::whereIn('id', $counts->keys())->get()->keyBy('id');
+        $customers = Customer::whereIn('id', $byCustomer->keys())->get()->keyBy('id');
 
         $labels = [];
         $data   = [];
         $colors = [];
 
-        foreach ($counts as $customerId => $total) {
+        foreach ($byCustomer as $customerId => $total) {
             $customer = $customers->get($customerId);
             $labels[] = $customer?->name ?? '—';
             $data[]   = (int) $total;
             $colors[] = $customer?->displayColor() ?? '#94a3b8';
         }
 
+        if ($supportTotal > 0) {
+            $labels[] = __('tickets.by_support');
+            $data[]   = $supportTotal;
+            $colors[] = '#94a3b8';   // خاکستری برای تیکت‌های پشتیبان
+        }
+
         return [
             'datasets' => [[
                 'data'            => $data,
                 'backgroundColor' => $colors,
-                'borderWidth'     => 0,
+                'borderColor'     => 'rgba(255, 255, 255, 0.6)',
+                'borderWidth'     => 2,
+                'hoverOffset'     => 6,
             ]],
             'labels' => $labels,
         ];

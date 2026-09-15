@@ -24,6 +24,11 @@ class TicketsTrendChart extends ChartWidget
 
     protected static bool $isLazy = false;
 
+    // بدونِ خودتازه‌سازی: پیش‌فرضِ ChartWidget هر ۵ ثانیه wire:poll می‌زند که باعث
+    // می‌شد دراپ‌داونِ فیلترِ بازه بعد از ۲-۳ ثانیه بسته شود و انتخاب سخت/غیرممکن
+    // شود. با null کردن، فیلتر باز می‌ماند تا کاربر آرام انتخاب کند.
+    protected ?string $pollingInterval = null;
+
     protected int|string|array $columnSpan = 'full';
 
     public function getHeading(): ?string
@@ -48,6 +53,16 @@ class TicketsTrendChart extends ChartWidget
                 'y' => [
                     'beginAtZero' => true,
                     'ticks'       => ['precision' => 0, 'stepSize' => 1],
+                    'grid'        => ['color' => 'rgba(148, 163, 184, 0.15)'],
+                ],
+                'x' => [
+                    'grid' => ['display' => false],
+                ],
+            ],
+            'plugins' => [
+                'legend' => [
+                    'position' => 'bottom',
+                    'labels'   => ['usePointStyle' => true, 'boxWidth' => 8, 'padding' => 16],
                 ],
             ],
         ];
@@ -120,8 +135,20 @@ class TicketsTrendChart extends ChartWidget
 
         return [
             'datasets' => [
-                ['label' => __('dashboard.created_tickets'), 'data' => $created],
-                ['label' => __('dashboard.resolved_tickets'), 'data' => $resolved],
+                [
+                    'label'           => __('dashboard.created_tickets'),
+                    'data'            => $created,
+                    'backgroundColor' => 'rgba(20, 184, 166, 0.85)',   // فیروزه‌ای (accent)
+                    'borderRadius'    => 6,
+                    'maxBarThickness' => 34,
+                ],
+                [
+                    'label'           => __('dashboard.resolved_tickets'),
+                    'data'            => $resolved,
+                    'backgroundColor' => 'rgba(5, 150, 105, 0.85)',    // سبز (success)
+                    'borderRadius'    => 6,
+                    'maxBarThickness' => 34,
+                ],
             ],
             'labels' => $labels,
         ];

@@ -210,6 +210,25 @@ body { background: var(--bg); color: var(--text); }
 .ticket-row-normal td   { background: color-mix(in srgb, #3b82f6 8%, transparent); }
 /* اولویتِ «کم» بی‌رنگ می‌ماند تا جدول شلوغ نشود. */
 
+/* تیکتِ ساختهٔ پشتیبان: نوارِ خاکستریِ کناری (لبهٔ آغازین = سمتِ راست در RTL). */
+.ticket-row-outgoing td:first-child {
+    border-inline-start: 3px solid color-mix(in srgb, var(--muted) 70%, transparent);
+}
+/* نشانِ خاکستریِ «پشتیبان» کنارِ نامِ سازنده. */
+.soorin-badge-support {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 3px 7px;
+    margin-inline-start: 6px;
+    border-radius: 999px;
+    color: var(--muted);
+    background: color-mix(in srgb, var(--muted) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--muted) 30%, transparent);
+    vertical-align: middle;
+}
+
 /* ---------- باکسِ امتیازِ کلیِ شرکت (داشبوردِ مدیر) ---------- */
 .rating-overall {
     text-align: center;

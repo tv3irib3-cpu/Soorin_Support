@@ -121,6 +121,8 @@ Route::prefix('portal')->name('portal.')->group(function () {
         Route::post('/tickets', [PortalTicketController::class, 'store'])->name('tickets.store');
         Route::get('/tickets/{ticket}', [PortalTicketController::class, 'show'])->name('tickets.show');
         Route::post('/tickets/{ticket}/reply', [PortalTicketController::class, 'reply'])->name('tickets.reply');
+        // اختصاصِ تیکت به کارشناسِ خودِ مشتری (فقط مدیرِ مشتری).
+        Route::post('/tickets/{ticket}/assign', [PortalTicketController::class, 'assign'])->name('tickets.assign');
 
         Route::get('/invoices', [PortalInvoiceController::class, 'index'])->name('invoices.index');
     });
