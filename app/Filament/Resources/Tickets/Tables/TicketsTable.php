@@ -220,9 +220,11 @@ class TicketsTable
             // ردیف یک کوئریِ جدا نزند (بدونِ N+1).
             ->modifyQueryUsing(fn (Builder $query): Builder => $query
                 ->addSelect(['last_message_at' => self::lastMessageSubquery($query)]))
-            // پیش‌فرض: تازه‌ترین تیکت بالا. سایرِ سورت‌ها (اولویت، وضعیت، شرکت،
-            // تاریخِ آخرین پیام، …) با کلیک روی سرستون در دسترس است.
-            ->defaultSort('created_at', 'desc')
+            // پیش‌فرض: بر پایهٔ آخرین فعالیت — تاریخِ آخرین پیام، و اگر تیکتی هنوز
+            // پیامی ندارد تاریخِ ثبتش (تا ته‌نشین نشود). تازه‌ترین فعالیت بالا.
+            // سایرِ سورت‌ها (اولویت، وضعیت، شرکت، تاریخِ ثبت، …) با کلیک روی سرستون.
+            ->defaultSort(fn (Builder $query): Builder => $query
+                ->orderByRaw('COALESCE(last_message_at, created_at) DESC'))
             // رنگ‌بندیِ ردیف‌ها بر پایهٔ اولویت: بحرانی→قرمز، زیاد→نارنجی، عادی→آبی،
             // کم→بی‌رنگ. جداکنندهٔ خاکستریِ هر ردیف با کلاسِ پایهٔ ticket-row.
             ->recordClasses(fn (Ticket $record): string => 'ticket-row ticket-row-' . $record->priority)

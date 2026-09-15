@@ -63,6 +63,22 @@ class TicketsTableSortTest extends TestCase
             ->assertCanSeeTableRecords([$new, $mid, $old], inOrder: true);
     }
 
+    public function test_default_sort_floats_ticket_with_recent_message_to_top(): void
+    {
+        // b تازه‌تر ساخته شده، ولی a پیامِ تازه‌تری دارد → طبقِ «آخرین فعالیت»
+        // باید a بالای b بیاید.
+        $a = $this->ticket('normal', '2026-01-01 10:00:00');
+        $b = $this->ticket('normal', '2026-02-01 10:00:00');
+
+        TicketMessage::create(['ticket_id' => $a->id, 'body' => 'x'])
+            ->forceFill(['created_at' => '2026-03-01 10:00:00'])->save();
+
+        $this->actingAs($this->admin());
+
+        Livewire::test(ListTickets::class)
+            ->assertCanSeeTableRecords([$a, $b], inOrder: true);
+    }
+
     public function test_can_sort_by_priority_desc_critical_first(): void
     {
         $low      = $this->ticket('low', '2026-03-01 10:00:00');
