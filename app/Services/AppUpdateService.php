@@ -262,6 +262,10 @@ class AppUpdateService
         // پوشهٔ اضافیِ «public» کنارِ «public_html» ساخته نشود.
         $this->copyOver($source, base_path(), ['.env', 'storage', '.git', 'public']);
 
+        // فایل‌های حذف‌شده در نسخهٔ تازه را از پوشه‌های «فقط-کد» پاک کن (copyOver
+        // افزودنی است). این مانعِ ماندنِ کدِ حذف‌شده روی نصب می‌شود.
+        $this->pruneMissingCode($source);
+
         if (is_dir($source . '/public')) {
             @mkdir(base_path($publicName), 0775, true);
             $this->copyOver($source . '/public', base_path($publicName), []);
@@ -628,6 +632,10 @@ class AppUpdateService
         // همه‌چیز جز public روی ریشه؛ public جدا به وب‌روتِ واقعی.
         $this->copyOver($tmp, base_path(), ['public']);
 
+        // فایل‌های حذف‌شده در پوشه‌های «فقط-کد» را پاک کن (اگر ساختارِ بسته سازگار باشد؛
+        // وگرنه بی‌اثر است).
+        $this->pruneMissingCode($tmp);
+
         if (is_dir($tmp . '/public')) {
             @mkdir(base_path($publicName), 0775, true);
             $this->copyOver($tmp . '/public', base_path($publicName), []);
@@ -754,6 +762,45 @@ class AppUpdateService
      *
      * @param  array<int, string>  $skip
      */
+    /**
+     * پوشه‌های «فقط-کد» که باید آینه شوند: فایلی که در نسخهٔ تازه حذف شده باید از
+     * نصب هم پاک شود (وگرنه مثلِ منبعِ حذف‌شدهٔ «تیکت‌های خروجی» باقی می‌ماند). این
+     * پوشه‌ها هیچ‌وقت دادهٔ کاربر یا فایلِ تولیدشدهٔ زمانِ اجرا ندارند.
+     */
+    private const MIRROR_DIRS = ['app', 'config', 'database', 'lang', 'resources', 'routes'];
+
+    /**
+     * فایل‌ها/پوشه‌هایی را که در بستهٔ تازه نیستند، فقط داخلِ پوشه‌های «فقط-کد» از
+     * نصب حذف می‌کند. copyOver افزودنی است و فایلِ حذف‌شده را باقی می‌گذارد؛ این
+     * متد آن نقص را جبران می‌کند. public/storage/vendor هرگز آینه نمی‌شوند.
+     */
+    private function pruneMissingCode(string $source): void
+    {
+        foreach (self::MIRROR_DIRS as $dir) {
+            $src = $source . '/' . $dir;
+            $dst = base_path($dir);
+
+            if (is_dir($src) && is_dir($dst)) {
+                $this->pruneExtraneous($src, $dst);
+            }
+        }
+    }
+
+    private function pruneExtraneous(string $src, string $dst): void
+    {
+        foreach (array_diff(scandir($dst) ?: [], ['.', '..']) as $name) {
+            $s = $src . '/' . $name;
+            $d = $dst . '/' . $name;
+
+            if (! file_exists($s)) {
+                // در بستهٔ تازه نیست → از نصب حذف شود.
+                is_dir($d) ? $this->rrmdir($d) : @unlink($d);
+            } elseif (is_dir($d) && is_dir($s)) {
+                $this->pruneExtraneous($s, $d);
+            }
+        }
+    }
+
     private function copyOver(string $src, string $dst, array $skip): void
     {
         foreach (array_diff(scandir($src) ?: [], ['.', '..']) as $name) {

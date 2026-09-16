@@ -27,7 +27,7 @@ class StorageManager extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedServerStack;
 
-    protected static ?int $navigationSort = 97;
+    protected static ?int $navigationSort = 92;
 
     /** @var array<int, array<string, mixed>> */
     public array $summary = [];

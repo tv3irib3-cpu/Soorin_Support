@@ -69,7 +69,9 @@ class DashboardTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(LatestTicketsWidget::class)
             ->assertOk()
-            ->assertSee('T-1001');
+            ->assertSee('T-1001')
+            ->assertSee(__('dashboard.latest_tickets'))   // عنوانِ فارسی، نه نامِ کلاسِ انگلیسی
+            ->assertDontSee('Latest Tickets');
     }
 
     /**

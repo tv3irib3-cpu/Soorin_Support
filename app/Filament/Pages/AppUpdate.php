@@ -22,7 +22,7 @@ class AppUpdate extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowPath;
 
-    protected static ?int $navigationSort = 96;
+    protected static ?int $navigationSort = 99;
 
     /** نتیجهٔ آخرین بررسی به‌روزرسانی. */
     public array $status = [];

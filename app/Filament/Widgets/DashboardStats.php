@@ -86,10 +86,13 @@ class DashboardStats extends StatsOverviewWidget
             ->color('warning')
             ->url(InvoiceResource::getUrl('index'));
 
+        // مقدارِ بدهی رشتهٔ بلندی است (عدد + «ریال»)؛ با کلاسِ stat-debt فونتش
+        // در theme.css ریزتر می‌شود تا مثلِ بقیه بیش‌ازحد درشت نباشد.
         $stats[] = Stat::make(__('dashboard.total_debt'), \App\Support\Jalali::money($totalDebt) . ' ' . __('common.currency'))
             ->description(__('dashboard.total_debt_hint'))
             ->icon('heroicon-o-exclamation-circle')
             ->color($totalDebt > 0 ? 'danger' : 'success')
+            ->extraAttributes(['class' => 'stat-debt'])
             ->url(InvoiceResource::getUrl('index'));
 
         // امتیازِ رضایت در ویجتِ اختصاصیِ AgentRatingsWidget نمایش داده می‌شود

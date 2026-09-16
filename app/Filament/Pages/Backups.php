@@ -36,7 +36,7 @@ class Backups extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCircleStack;
 
-    protected static ?int $navigationSort = 95;
+    protected static ?int $navigationSort = 90;
 
     /** @var array<int, array{name: string, size: int, created_at: \Illuminate\Support\Carbon}> */
     public array $backups = [];

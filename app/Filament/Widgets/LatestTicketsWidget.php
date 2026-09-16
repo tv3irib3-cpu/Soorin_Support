@@ -37,7 +37,11 @@ class LatestTicketsWidget extends TableWidget
         return auth()->user()?->can(\App\Enums\Permission::ViewTickets->value) ?? false;
     }
 
-    public function getHeading(): ?string
+    /**
+     * عنوانِ جدولِ ویجت. TableWidget عنوان را از همین متد می‌گیرد و در نبودِ آن نامِ
+     * کلاس را (به انگلیسیِ «Latest Tickets») نشان می‌داد؛ پس اینجا فارسی می‌شود.
+     */
+    protected function getTableHeading(): ?string
     {
         return __('dashboard.latest_tickets');
     }

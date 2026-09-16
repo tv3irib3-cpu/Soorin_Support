@@ -26,10 +26,13 @@ class GoogleDriveBackup extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCloudArrowUp;
 
-    protected static ?int $navigationSort = 98;
+    protected static ?int $navigationSort = 91;
 
     /** @var array<int, array<string, mixed>> فایل‌های روی درایو (با «تازه‌سازیِ فهرست» پر می‌شود) */
     public array $files = [];
+
+    /** @var array<int, string> شناسه‌های فایلِ تیک‌خورده برای حذفِ گروهی */
+    public array $selected = [];
 
     public bool $listed = false;
 
@@ -244,11 +247,91 @@ class GoogleDriveBackup extends Page
             ->action(function (): void {
                 try {
                     $this->files = $this->service()->listFiles();
+                    $this->selected = [];
                     $this->listed = true;
                 } catch (\Throwable $e) {
                     Notification::make()->danger()->title(__('gdrive.list_failed'))->body($e->getMessage())->persistent()->send();
                 }
             });
+    }
+
+    /**
+     * گروه‌بندیِ فایل‌ها بر پایهٔ «دستهٔ پشتیبان»: فایل‌هایی که در یک بار پشتیبان‌گیری
+     * ساخته شده‌اند زمانِ تغییرِ یکسان (تا دقیقه) دارند. هر گروه یک برچسبِ تاریخ/ساعت
+     * و مجموعِ حجم دارد؛ در نما با رنگ و دیوایدر از هم جدا می‌شوند.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function groupedFiles(): array
+    {
+        $groups = [];
+
+        foreach ($this->files as $f) {
+            $ts  = $f['modified'] ?? null;
+            $key = $ts ? substr((string) $ts, 0, 16) : 'unknown';   // YYYY-MM-DDTHH:MM
+
+            if (! isset($groups[$key])) {
+                $groups[$key] = [
+                    'label' => $ts ? Jalali::formatDateTime($ts) : '—',
+                    'files' => [],
+                    'bytes' => 0,
+                    'ids'   => [],
+                ];
+            }
+
+            $groups[$key]['files'][] = $f;
+            $groups[$key]['ids'][]   = $f['id'];
+            $groups[$key]['bytes']  += (int) $f['size'];
+        }
+
+        // فهرست از قبل بر پایهٔ modifiedTime نزولی است، پس گروه‌ها هم تازه‌ترین‌بالا می‌مانند.
+        return array_values($groups);
+    }
+
+    /** تیک‌زدن/برداشتنِ کلِ یک دستهٔ پشتیبان با یک کلیک. */
+    public function toggleGroup(array $ids): void
+    {
+        $allSelected = array_diff($ids, $this->selected) === [];
+
+        $this->selected = $allSelected
+            ? array_values(array_diff($this->selected, $ids))
+            : array_values(array_unique(array_merge($this->selected, $ids)));
+    }
+
+    /** حذفِ گروهیِ فایل‌های تیک‌خورده از روی درایو. */
+    public function deleteSelected(): void
+    {
+        $ids = array_values(array_intersect($this->selected, array_column($this->files, 'id')));
+
+        if ($ids === []) {
+            Notification::make()->warning()->title(__('gdrive.nothing_selected'))->send();
+
+            return;
+        }
+
+        $ok = 0;
+        $errors = [];
+
+        foreach ($ids as $id) {
+            try {
+                $this->service()->deleteFile($id);
+                $ok++;
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
+
+        // حذف‌شده‌ها را از فهرستِ نمایش و انتخاب بردار.
+        $this->files = array_values(array_filter($this->files, fn ($f) => ! in_array($f['id'], $ids, true)));
+        $this->selected = [];
+
+        if ($errors === []) {
+            Notification::make()->success()->title(__('gdrive.deleted'))
+                ->body(__('gdrive.deleted_count', ['count' => Jalali::digits((string) $ok)]))->send();
+        } else {
+            Notification::make()->warning()->title(__('gdrive.delete_partial'))
+                ->body(implode("\n", $errors))->persistent()->send();
+        }
     }
 
     public function disconnectAction(): Action
@@ -263,6 +346,7 @@ class GoogleDriveBackup extends Page
             ->action(function (): void {
                 $this->service()->disconnect();
                 $this->files = [];
+                $this->selected = [];
                 $this->listed = false;
 
                 Notification::make()->success()->title(__('gdrive.disconnected'))->send();

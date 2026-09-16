@@ -22,7 +22,7 @@ class SslSettings extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedLockClosed;
 
-    protected static ?int $navigationSort = 93;
+    protected static ?int $navigationSort = 98;
 
     /** وضعیت فعلی SSL (از دستیارِ سرور). */
     public array $status = [];

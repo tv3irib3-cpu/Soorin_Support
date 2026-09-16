@@ -66,10 +66,25 @@
             @elseif (empty($files))
                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('gdrive.no_files') }}</p>
             @else
+                {{-- نوارِ ابزارِ حذفِ گروهی + راهنمای دسته‌بندی --}}
+                <div class="mb-3 flex flex-wrap items-center gap-3">
+                    <x-filament::button
+                        size="sm" color="danger" icon="heroicon-o-trash"
+                        wire:click="deleteSelected"
+                        wire:confirm="{{ __('gdrive.delete_selected_confirm') }}">
+                        {{ __('gdrive.delete_selected') }}
+                        @if (count($selected))
+                            <span class="mx-1">({{ \App\Support\Jalali::digits((string) count($selected)) }})</span>
+                        @endif
+                    </x-filament::button>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('gdrive.group_hint') }}</span>
+                </div>
+
                 <div class="overflow-x-auto">
-                    <table class="soorin-grid">
+                    <table class="soorin-grid gdrive-grid">
                         <thead>
                             <tr>
+                                <th style="width:40px;"></th>
                                 <th>{{ __('gdrive.file_name') }}</th>
                                 <th>{{ __('storage.size') }}</th>
                                 <th>{{ __('gdrive.modified') }}</th>
@@ -77,28 +92,52 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($files as $f)
-                                <tr>
-                                    <td><span class="soorin-code">{{ $f['name'] }}</span></td>
-                                    <td>{{ $this->humanSize((int) $f['size']) }}</td>
-                                    <td>{{ $f['modified'] ? \App\Support\Jalali::formatDateTime($f['modified']) : '—' }}</td>
+                            @foreach ($this->groupedFiles() as $gi => $group)
+                                @php $groupChecked = array_diff($group['ids'], $selected) === []; @endphp
+                                {{-- سرِ دسته: تاریخ/ساعتِ پشتیبان + تعداد + حجم، با رنگِ متمایز --}}
+                                <tr class="gdrive-batch gdrive-batch--{{ $gi % 2 }}">
                                     <td>
-                                        <div class="flex items-center justify-center gap-2">
-                                            <x-filament::button
-                                                size="sm" color="warning" icon="heroicon-o-arrow-down-tray"
-                                                wire:click="restoreFromDrive('{{ $f['id'] }}')"
-                                                wire:confirm="{{ __('gdrive.restore_confirm') }}">
-                                                {{ __('gdrive.restore') }}
-                                            </x-filament::button>
-                                            <x-filament::button
-                                                size="sm" color="danger" icon="heroicon-o-trash"
-                                                wire:click="deleteFromDrive('{{ $f['id'] }}')"
-                                                wire:confirm="{{ __('gdrive.delete_confirm') }}">
-                                                {{ __('gdrive.delete') }}
-                                            </x-filament::button>
-                                        </div>
+                                        <input type="checkbox" class="gdrive-check"
+                                            wire:click="toggleGroup(@js($group['ids']))"
+                                            @checked($groupChecked)>
+                                    </td>
+                                    <td colspan="4" style="text-align:start;">
+                                        <span class="gdrive-batch__label">{{ __('gdrive.backup_batch') }}</span>
+                                        <span class="gdrive-batch__time">{{ $group['label'] }}</span>
+                                        <span class="gdrive-batch__meta">
+                                            {{ __('gdrive.batch_files', ['count' => \App\Support\Jalali::digits((string) count($group['files']))]) }}
+                                            · {{ $this->humanSize((int) $group['bytes']) }}
+                                        </span>
                                     </td>
                                 </tr>
+
+                                @foreach ($group['files'] as $f)
+                                    <tr class="gdrive-row gdrive-row--{{ $gi % 2 }}">
+                                        <td>
+                                            <input type="checkbox" class="gdrive-check"
+                                                value="{{ $f['id'] }}" wire:model.live="selected">
+                                        </td>
+                                        <td><span class="soorin-code">{{ $f['name'] }}</span></td>
+                                        <td>{{ $this->humanSize((int) $f['size']) }}</td>
+                                        <td>{{ $f['modified'] ? \App\Support\Jalali::formatDateTime($f['modified']) : '—' }}</td>
+                                        <td>
+                                            <div class="flex items-center justify-center gap-2">
+                                                <x-filament::button
+                                                    size="sm" color="warning" icon="heroicon-o-arrow-down-tray"
+                                                    wire:click="restoreFromDrive('{{ $f['id'] }}')"
+                                                    wire:confirm="{{ __('gdrive.restore_confirm') }}">
+                                                    {{ __('gdrive.restore') }}
+                                                </x-filament::button>
+                                                <x-filament::button
+                                                    size="sm" color="danger" icon="heroicon-o-trash"
+                                                    wire:click="deleteFromDrive('{{ $f['id'] }}')"
+                                                    wire:confirm="{{ __('gdrive.delete_confirm') }}">
+                                                    {{ __('gdrive.delete') }}
+                                                </x-filament::button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
                             @endforeach
                         </tbody>
                     </table>
