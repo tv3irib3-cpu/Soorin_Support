@@ -46,7 +46,7 @@
     {{-- کارت‌های آمار — کلیک‌پذیر --}}
     <div class="stat-grid">
         @if ($unreadCount > 0)
-        <a class="stat" href="{{ route('portal.tickets.index') }}">
+        <a class="stat" href="{{ route('portal.tickets.index', ['unread' => 1]) }}">
             <span class="stat__icon danger">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </span>
@@ -57,7 +57,7 @@
         </a>
         @endif
         @if (($resolvedUnrated ?? 0) > 0)
-        <a class="stat" href="{{ route('portal.tickets.index') }}">
+        <a class="stat" href="{{ route('portal.tickets.index', ['unrated' => 1]) }}">
             <span class="stat__icon" style="background: color-mix(in srgb, #f59e0b 16%, transparent); color:#f59e0b;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
             </span>

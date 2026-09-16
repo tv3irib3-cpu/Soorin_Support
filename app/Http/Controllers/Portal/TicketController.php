@@ -36,6 +36,21 @@ class TicketController extends Controller
             $query->whereIn('status', $statusFilter);
         }
 
+        // فیلترِ «پیام‌های خوانده‌نشده» (از باکسِ داشبورد) — فقط تیکت‌هایی که برای این
+        // کاربر پیامِ خوانده‌نشده دارند.
+        if ($request->boolean('unread')) {
+            $unreadIds = collect(\App\Models\TicketRead::unreadCountsFor($user, Ticket::visibleTo($user)->pluck('id')))
+                ->filter(fn (int $count) => $count > 0)
+                ->keys();
+
+            $query->whereIn('id', $unreadIds);
+        }
+
+        // فیلترِ «حل‌شده بدونِ امتیاز» (از باکسِ داشبورد).
+        if ($request->boolean('unrated')) {
+            $query->where('status', Ticket::STATUS_RESOLVED)->whereNull('rating');
+        }
+
         $tickets = $query->latest()->paginate(15)->withQueryString();
 
         // تعدادِ پیام‌های خوانده‌نشده به تفکیکِ هر تیکت (یک کوئری، بدونِ N+1)

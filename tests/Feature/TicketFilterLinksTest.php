@@ -69,4 +69,36 @@ class TicketFilterLinksTest extends TestCase
             ->assertSee('PPROG')
             ->assertDontSee('PDONE');
     }
+
+    public function test_portal_unrated_filter(): void
+    {
+        $admin = User::create(['name' => 'مدیرِ مشتری', 'email' => 'ca@t.test', 'password' => 'secret123', 'user_type' => User::TYPE_CUSTOMER_ADMIN, 'customer_id' => $this->customer->id, 'is_active' => true]);
+
+        $unrated = $this->ticket(Ticket::STATUS_RESOLVED, 'NEEDS-STARS');
+        $rated   = $this->ticket(Ticket::STATUS_RESOLVED, 'ALREADY-STARRED');
+        $rated->forceFill(['rating' => 5])->save();
+
+        $this->actingAs($admin)
+            ->get(route('portal.tickets.index', ['unrated' => 1]))
+            ->assertOk()
+            ->assertSee('NEEDS-STARS')
+            ->assertDontSee('ALREADY-STARRED');
+    }
+
+    public function test_portal_unread_filter(): void
+    {
+        $admin   = User::create(['name' => 'مدیرِ مشتری', 'email' => 'ca@t.test', 'password' => 'secret123', 'user_type' => User::TYPE_CUSTOMER_ADMIN, 'customer_id' => $this->customer->id, 'is_active' => true]);
+        $support = User::create(['name' => 'پشتیبان', 'email' => 'sp@t.test', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_ADMIN]);
+
+        $withUnread = $this->ticket(Ticket::STATUS_WAITING_CUSTOMER, 'HAS-UNREAD');
+        $withUnread->messages()->create(['user_id' => $support->id, 'body' => 'پاسخِ پشتیبان', 'is_internal' => false]);
+
+        $noUnread = $this->ticket(Ticket::STATUS_WAITING_CUSTOMER, 'NO-UNREAD');
+
+        $this->actingAs($admin)
+            ->get(route('portal.tickets.index', ['unread' => 1]))
+            ->assertOk()
+            ->assertSee('HAS-UNREAD')
+            ->assertDontSee('NO-UNREAD');
+    }
 }

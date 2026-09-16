@@ -280,6 +280,9 @@ body { background: var(--bg); color: var(--text); }
 .rating-overall__count { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
 /* ---------- نوارِ بالای پنلِ پشتیبان: نام + روز/شب + خروج ---------- */
+/* منوی پیش‌فرضِ کاربرِ Filament (دایرهٔ حروفِ نام) پنهان می‌شود چون نوارِ سفارشیِ
+   soorin-topbar (نام + روز/شب + خروج) جایگزینش شده است. */
+.fi-user-menu { display: none !important; }
 .soorin-topbar { display: flex; align-items: center; gap: 8px; }
 .soorin-topbar__name { font-size: 13px; font-weight: 700; color: var(--text); margin-inline-end: 2px; }
 .soorin-topbar__btn {

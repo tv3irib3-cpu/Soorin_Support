@@ -51,7 +51,7 @@
     </div>
 
     {{-- فیلترِ کشویی وضعیت (چندانتخابی) — سبکِ دکمهٔ فیلترِ پنلِ پشتیبان --}}
-    <details class="pfilter" @if ($statusFilter) open @endif>
+    <details class="pfilter">
         <summary>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
             {{ __('portal.filter_status') }}
