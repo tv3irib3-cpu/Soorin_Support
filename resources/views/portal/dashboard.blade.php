@@ -24,7 +24,7 @@
             <div>
                 <h1>{{ __('portal.welcome', ['name' => $user->name]) }}</h1>
                 <div class="sub">
-                    @if ($user->customer){{ $user->customer->name }} — @endif{{ \App\Support\Branding::companyName() }}
+                    @if ($user->customer){{ $user->customer->name }}@endif
                 </div>
             </div>
         </div>
@@ -67,24 +67,14 @@
             </div>
         </a>
         @endif
-        {{-- نیازمندِ رسیدگی (در انتظار پاسخ پشتیبان) — کلیک: فهرست با همین فیلتر --}}
-        <a class="stat" href="{{ route('portal.tickets.index', ['status' => ['waiting_support']]) }}">
+        {{-- نیازمندِ رسیدگی = همهٔ تیکت‌های فعال (منتظر پشتیبان/مشتری، در حال بررسی، منتظر پرداخت) --}}
+        <a class="stat" href="{{ route('portal.tickets.index', ['status' => ['waiting_support', 'waiting_customer', 'in_progress', 'waiting_payment']]) }}">
             <span class="stat__icon @if ($needsAttention > 0) danger @endif">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             </span>
             <div>
                 <div class="stat__num">{{ \App\Support\Jalali::digits((string) $needsAttention) }}</div>
                 <div class="stat__label">{{ __('dashboard.needs_attention') }}</div>
-            </div>
-        </a>
-        {{-- باز (منتظر پاسخ مشتری یا در حال بررسی) --}}
-        <a class="stat" href="{{ route('portal.tickets.index', ['status' => ['waiting_customer', 'in_progress']]) }}">
-            <span class="stat__icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-            </span>
-            <div>
-                <div class="stat__num">{{ \App\Support\Jalali::digits((string) $openTickets) }}</div>
-                <div class="stat__label">{{ __('portal.open_tickets') }}</div>
             </div>
         </a>
         {{-- حل‌شده --}}

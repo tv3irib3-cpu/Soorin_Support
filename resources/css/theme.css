@@ -279,6 +279,21 @@ body { background: var(--bg); color: var(--text); }
 .rating-overall__num { font-size: 30px; font-weight: 800; color: var(--text); margin-top: 4px; }
 .rating-overall__count { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
+/* ---------- نوارِ بالای پنلِ پشتیبان: نام + روز/شب + خروج ---------- */
+.soorin-topbar { display: flex; align-items: center; gap: 8px; }
+.soorin-topbar__name { font-size: 13px; font-weight: 700; color: var(--text); margin-inline-end: 2px; }
+.soorin-topbar__btn {
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    padding: 7px 10px; border-radius: 9px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font-family: inherit; font-size: 12.5px; font-weight: 600;
+}
+.soorin-topbar__btn:hover { border-color: var(--accent); }
+.soorin-topbar__btn svg { width: 17px; height: 17px; }
+.soorin-topbar__logout { color: var(--danger); }
+@media (max-width: 700px) {
+    .soorin-topbar__name, .soorin-topbar__logout-text { display: none; }
+}
+
 /* ---------- زیباسازیِ کارت‌های آمارِ داشبورد ---------- */
 /* کارت‌ها کمی برجسته‌تر و با هاورِ ملایم، تا داشبورد حرفه‌ای‌تر دیده شود. */
 .fi-wi-stats-overview-stat {

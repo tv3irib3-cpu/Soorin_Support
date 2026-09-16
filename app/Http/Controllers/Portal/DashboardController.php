@@ -12,12 +12,16 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        // همان سه‌باکسِ داشبوردِ پشتیبان، بدونِ هم‌پوشانی:
-        //   نیازمندِ رسیدگی = در انتظار پاسخ پشتیبان
-        //   باز            = منتظر پاسخ مشتری یا در حال بررسی
+        // داشبوردِ مشتری دو باکس دارد (بدونِ هم‌پوشانی):
+        //   نیازمندِ رسیدگی = هر تیکتِ فعال (منتظر پشتیبان/مشتری، در حال بررسی، منتظر پرداخت)
         //   حل‌شده         = فقط حل‌شده
-        $needsAttention = Ticket::visibleTo($user)->where('status', Ticket::STATUS_WAITING_SUPPORT)->count();
-        $openTickets    = Ticket::visibleTo($user)->whereIn('status', [Ticket::STATUS_WAITING_CUSTOMER, Ticket::STATUS_IN_PROGRESS])->count();
+        $activeStatuses = [
+            Ticket::STATUS_WAITING_SUPPORT,
+            Ticket::STATUS_WAITING_CUSTOMER,
+            Ticket::STATUS_IN_PROGRESS,
+            Ticket::STATUS_WAITING_PAYMENT,
+        ];
+        $needsAttention = Ticket::visibleTo($user)->whereIn('status', $activeStatuses)->count();
         $resolvedCount  = Ticket::visibleTo($user)->where('status', Ticket::STATUS_RESOLVED)->count();
 
         // تیکت‌های حل‌شده‌ای که مشتری هنوز به آن‌ها امتیاز نداده — برای یادآوریِ نظرسنجی.
@@ -36,6 +40,6 @@ class DashboardController extends Controller
 
         $unreadCount = \App\Models\TicketRead::unreadCountFor($user);
 
-        return view('portal.dashboard', compact('needsAttention', 'openTickets', 'resolvedCount', 'resolvedUnrated', 'unpaidInvoices', 'recentTickets', 'unreadCount'));
+        return view('portal.dashboard', compact('needsAttention', 'resolvedCount', 'resolvedUnrated', 'unpaidInvoices', 'recentTickets', 'unreadCount'));
     }
 }

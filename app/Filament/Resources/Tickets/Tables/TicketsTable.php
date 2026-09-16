@@ -8,6 +8,9 @@ use App\Models\TicketMessage;
 use App\Models\TicketRead;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -246,6 +249,16 @@ class TicketsTable
             // تیکتِ ساختهٔ پشتیبان کلاسِ ticket-row-outgoing می‌گیرد (نوارِ کناری).
             ->recordClasses(fn (Ticket $record): string => 'ticket-row ticket-row-' . $record->priority
                 . ($record->isCreatedBySupport() ? ' ticket-row-outgoing' : ''))
+            // حذفِ نرم — فقط مدیرِ پشتیبان (DeleteAction به canDelete احترام می‌گذارد،
+            // پس برای کارشناس خودکار پنهان می‌شود). حذفِ گروهی با انتخابِ ردیف‌ها.
+            ->recordActions([
+                DeleteAction::make(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
+            ])
             ->emptyStateHeading(__('tickets.empty_heading'))
             ->emptyStateDescription(__('tickets.empty_body'));
     }

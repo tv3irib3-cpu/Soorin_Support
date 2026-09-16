@@ -68,6 +68,11 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::FOOTER,
                 fn () => view('components.footer'),
             )
+            // نامِ کاربر + کلیدِ روز/شب + خروج در نوارِ بالا — مثلِ پنلِ مشتری.
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn () => view('filament.topbar-user'),
+            )
             // نقطهٔ قرمزِ «نسخهٔ جدید» کنار تیترِ گروهِ منو.
             ->renderHook(
                 PanelsRenderHook::BODY_END,

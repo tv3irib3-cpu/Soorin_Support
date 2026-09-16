@@ -161,9 +161,17 @@ class TicketResource extends Resource
         return auth()->user()?->isSupportAdmin() ?? false;
     }
 
-    /** تیکت هرگز حذف نمی‌شود — فقط قفل می‌شود. جدول اصلاً ستون حذف نرم ندارد. */
+    /**
+     * حذفِ تیکت فقط برای مدیرِ پشتیبان و به‌صورتِ نرم (SoftDelete) است — رکورد در
+     * دیتابیس می‌ماند (گزارش‌های تاریخی حفظ می‌شوند) و فقط از فهرست‌ها پنهان می‌شود.
+     */
     public static function canDelete(mixed $record): bool
     {
-        return false;
+        return auth()->user()?->isSupportAdmin() ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->isSupportAdmin() ?? false;
     }
 }

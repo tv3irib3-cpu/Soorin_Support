@@ -44,4 +44,27 @@ class TicketEditAccessTest extends TestCase
         $this->actingAs($admin);
         $this->assertTrue(TicketResource::canEdit($this->ticket));
     }
+
+    public function test_only_admin_can_delete(): void
+    {
+        $staff = User::create(['name' => 'کارشناس', 'email' => 's2@t.test', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_STAFF]);
+        $staff->assignRole(User::TYPE_SUPPORT_STAFF);
+        $admin = User::create(['name' => 'مدیر', 'email' => 'a2@t.test', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_ADMIN]);
+        $admin->assignRole(User::TYPE_SUPPORT_ADMIN);
+
+        $this->actingAs($staff);
+        $this->assertFalse(TicketResource::canDelete($this->ticket));
+
+        $this->actingAs($admin);
+        $this->assertTrue(TicketResource::canDelete($this->ticket));
+    }
+
+    public function test_delete_is_soft(): void
+    {
+        // حذفِ تیکت نباید رکورد را واقعاً پاک کند — فقط deleted_at ست شود.
+        $this->ticket->delete();
+
+        $this->assertSoftDeleted('tickets', ['id' => $this->ticket->id]);
+        $this->assertDatabaseHas('tickets', ['id' => $this->ticket->id]);
+    }
 }
