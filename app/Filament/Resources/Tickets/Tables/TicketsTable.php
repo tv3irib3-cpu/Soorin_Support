@@ -198,16 +198,20 @@ class TicketsTable
                     ->extraCellAttributes(['class' => 'hidden xl:table-cell']),
             ])
             ->filters([
+                // فیلترهای چندانتخابی: می‌توان چند وضعیت/اولویت/کارشناس را هم‌زمان تیک زد.
                 SelectFilter::make('status')
                     ->label(__('tickets.status'))
+                    ->multiple()
                     ->options(__('tickets.statuses')),
 
                 SelectFilter::make('priority')
                     ->label(__('tickets.priority'))
+                    ->multiple()
                     ->options(__('tickets.priorities')),
 
                 SelectFilter::make('assigned_to')
                     ->label(__('tickets.assigned_to'))
+                    ->multiple()
                     ->options(fn () => User::whereIn('user_type', [User::TYPE_SUPPORT_ADMIN, User::TYPE_SUPPORT_STAFF])
                         ->pluck('name', 'id')),
 

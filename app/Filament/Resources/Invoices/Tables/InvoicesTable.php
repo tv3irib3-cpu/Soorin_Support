@@ -87,7 +87,7 @@ class InvoicesTable
             ->filters([
                 SelectFilter::make('status')
                     ->label(__('invoices.status'))
-                    ->options(__('invoices.statuses')),
+                    ->multiple()->options(__('invoices.statuses')),
             ])
             ->recordActions([
                 // حذفِ فاکتور فقط برای مدیرِ پشتیبان.

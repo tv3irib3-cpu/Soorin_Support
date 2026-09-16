@@ -74,7 +74,7 @@ class UsersTable
                     ELSE 0 END")
                 ->orderBy('name'))
             ->filters([
-                SelectFilter::make('user_type')->label(__('users.user_type'))->options(__('auth.types')),
+                SelectFilter::make('user_type')->label(__('users.user_type'))->multiple()->options(__('auth.types')),
             ])
             ->recordActions([EditAction::make(), DeleteAction::make()])
             ->emptyStateHeading(__('users.empty'));

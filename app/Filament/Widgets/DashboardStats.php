@@ -30,28 +30,20 @@ class DashboardStats extends StatsOverviewWidget
         // تیکت‌های خودش. (وگرنه اعداد بینِ کارشناسان مشترک می‌شد.)
         $mine = fn () => $user ? Ticket::visibleTo($user) : Ticket::query()->whereRaw('1=0');
 
-        // سه باکس بدونِ هم‌پوشانی تعریف می‌شوند تا محتوای یکسان نشان ندهند:
-        //   نیازمندِ رسیدگی = توپ در زمینِ پشتیبان (جدید یا منتظرِ پاسخِ پشتیبان)
-        //   باز            = در جریان ولی توپ در زمینِ پشتیبان نیست (بررسی/منتظرِ مشتری)
-        //   حل‌شده         = حل‌شده یا بسته‌شده (در این ماه)
+        // سه باکس بدونِ هم‌پوشانی، هرکدام دقیقاً یک مجموعهٔ وضعیت. با کلیک روی هر
+        // باکس، فهرستِ تیکت‌ها با همان فیلترِ وضعیت باز می‌شود (نه فقط صفحهٔ تیکت‌ها).
+        $needsStatuses = [\App\Models\Ticket::STATUS_WAITING_SUPPORT];
+        $openStatuses  = [\App\Models\Ticket::STATUS_WAITING_CUSTOMER, \App\Models\Ticket::STATUS_IN_PROGRESS];
+        $doneStatuses  = [\App\Models\Ticket::STATUS_RESOLVED];
 
-        // «نیازمندِ رسیدگی» = تیکت‌های جدید یا در انتظارِ پاسخِ پشتیبان.
-        $needsAttention = $mine()->whereIn('status', [
-            \App\Models\Ticket::STATUS_NEW,
-            \App\Models\Ticket::STATUS_WAITING_SUPPORT,
-        ])->count();
+        // «نیازمندِ رسیدگی» = فقط «در انتظار پاسخ پشتیبان».
+        $needsAttention = $mine()->whereIn('status', $needsStatuses)->count();
 
-        // «باز» = در حال بررسی یا در انتظارِ پاسخِ مشتری (نه جدید/منتظرِ پشتیبان،
-        // تا با باکسِ نیازمندِ رسیدگی هم‌پوشانی نداشته باشد).
-        $openTickets = $mine()->whereIn('status', [
-            \App\Models\Ticket::STATUS_IN_PROGRESS,
-            \App\Models\Ticket::STATUS_WAITING_CUSTOMER,
-        ])->count();
+        // «باز» = «منتظر پاسخ مشتری» یا «در حال بررسی».
+        $openTickets = $mine()->whereIn('status', $openStatuses)->count();
 
-        $resolvedThisMonth = $mine()->whereIn('status', ['resolved', 'closed'])
-            ->whereMonth('resolved_at', now()->month)
-            ->whereYear('resolved_at', now()->year)
-            ->count();
+        // «حل‌شده» = فقط وضعیتِ «حل‌شده».
+        $resolvedCount = $mine()->whereIn('status', $doneStatuses)->count();
 
         $unpaidInvoices = Invoice::whereNotIn('status', ['paid', 'cancelled', 'draft'])->count();
 
@@ -59,27 +51,30 @@ class DashboardStats extends StatsOverviewWidget
             ->selectRaw('COALESCE(SUM(GREATEST(payable_amount - paid_amount, 0)), 0) as d')
             ->value('d');
 
-        $ticketsUrl = TicketResource::getUrl('index');
+        // آدرسِ فهرستِ تیکت‌ها با پارامترِ ساده‌ی status[]؛ صفحهٔ ListTickets در mount
+        // این را می‌خواند و فیلترِ وضعیت را ست می‌کند (tableFilters خودش به URL بند
+        // نیست، پس این‌طور فیلتر هم اعمال و هم در UI دیده می‌شود).
+        $statusUrl = fn (array $statuses) => TicketResource::getUrl('index', ['status' => array_values($statuses)]);
         $fa = fn (int $n) => \App\Support\Jalali::digits((string) $n);
 
         $stats = [];
 
-        // نیازمندِ رسیدگی (جدید/منتظر پشتیبان) — همیشه نمایش، قرمز اگر بزرگ‌تر از صفر.
+        // نیازمندِ رسیدگی (منتظر پشتیبان) — قرمز اگر بزرگ‌تر از صفر.
         $stats[] = Stat::make(__('dashboard.needs_attention'), $fa($needsAttention))
             ->icon('heroicon-o-bell-alert')
             ->description(__('dashboard.needs_attention_hint'))
             ->color($needsAttention > 0 ? 'danger' : 'success')
-            ->url($ticketsUrl);
+            ->url($statusUrl($needsStatuses));
 
         $stats[] = Stat::make(__('portal.open_tickets'), $fa($openTickets))
             ->icon('heroicon-o-ticket')
             ->color('info')
-            ->url($ticketsUrl);
+            ->url($statusUrl($openStatuses));
 
-        $stats[] = Stat::make(__('tickets.statuses.resolved'), $fa($resolvedThisMonth))
+        $stats[] = Stat::make(__('tickets.statuses.resolved'), $fa($resolvedCount))
             ->icon('heroicon-o-check-circle')
             ->color('success')
-            ->url($ticketsUrl);
+            ->url($statusUrl($doneStatuses));
 
         $stats[] = Stat::make(__('invoices.plural'), $fa($unpaidInvoices))
             ->icon('heroicon-o-banknotes')

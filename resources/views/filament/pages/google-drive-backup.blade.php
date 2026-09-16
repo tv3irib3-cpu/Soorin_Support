@@ -59,15 +59,11 @@
             <x-slot name="heading">{{ __('gdrive.files_on_drive') }}</x-slot>
             <x-slot name="description">{{ __('gdrive.files_hint') }}</x-slot>
 
-            <div class="mb-4">{{ $this->refreshAction }}</div>
+            {{-- نوارِ ابزار: «تازه‌سازی فهرست» و «حذفِ انتخاب‌شده‌ها» کنارِ هم با فاصلهٔ روشن --}}
+            <div class="mb-4 flex flex-wrap items-center gap-4">
+                {{ $this->refreshAction }}
 
-            @if (! $listed)
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('gdrive.press_refresh') }}</p>
-            @elseif (empty($files))
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('gdrive.no_files') }}</p>
-            @else
-                {{-- نوارِ ابزارِ حذفِ گروهی + راهنمای دسته‌بندی --}}
-                <div class="mb-3 flex flex-wrap items-center gap-3">
+                @if ($listed && ! empty($files))
                     <x-filament::button
                         size="sm" color="danger" icon="heroicon-o-trash"
                         wire:click="deleteSelected"
@@ -77,8 +73,15 @@
                             <span class="mx-1">({{ \App\Support\Jalali::digits((string) count($selected)) }})</span>
                         @endif
                     </x-filament::button>
-                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('gdrive.group_hint') }}</span>
-                </div>
+                @endif
+            </div>
+
+            @if (! $listed)
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('gdrive.press_refresh') }}</p>
+            @elseif (empty($files))
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('gdrive.no_files') }}</p>
+            @else
+                <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">{{ __('gdrive.group_hint') }}</p>
 
                 <div class="overflow-x-auto">
                     <table class="soorin-grid gdrive-grid">

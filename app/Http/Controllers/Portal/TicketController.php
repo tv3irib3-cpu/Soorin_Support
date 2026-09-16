@@ -22,19 +22,26 @@ use Illuminate\Http\Request;
  */
 class TicketController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $user = auth()->user();
 
-        $tickets = Ticket::visibleTo($user)
-            ->with(['category', 'project'])
-            ->latest()
-            ->paginate(15);
+        // فیلترِ چندانتخابیِ وضعیت (از داشبورد یا فرمِ فیلترِ خودِ فهرست).
+        $allStatuses  = array_keys(__('tickets.statuses'));
+        $statusFilter = array_values(array_intersect((array) $request->input('status', []), $allStatuses));
+
+        $query = Ticket::visibleTo($user)->with(['category', 'project', 'creator']);
+
+        if ($statusFilter !== []) {
+            $query->whereIn('status', $statusFilter);
+        }
+
+        $tickets = $query->latest()->paginate(15)->withQueryString();
 
         // تعدادِ پیام‌های خوانده‌نشده به تفکیکِ هر تیکت (یک کوئری، بدونِ N+1)
         $unread = \App\Models\TicketRead::unreadCountsFor($user, $tickets->pluck('id'));
 
-        return view('portal.tickets.index', compact('tickets', 'unread'));
+        return view('portal.tickets.index', compact('tickets', 'unread', 'statusFilter'));
     }
 
     /** شمارندهٔ پیام‌های خوانده‌نشده — برای به‌روزرسانیِ زندهٔ نشانِ منو (JSON). */

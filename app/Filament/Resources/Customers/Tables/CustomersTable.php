@@ -81,7 +81,7 @@ class CustomersTable
             ->filters([
                 SelectFilter::make('service_status')
                     ->label(__('customers.service_status'))
-                    ->options(__('customers.service_statuses')),
+                    ->multiple()->options(__('customers.service_statuses')),
 
                 TrashedFilter::make()
                     ->label(__('common.trashed')),

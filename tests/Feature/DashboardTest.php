@@ -75,9 +75,11 @@ class DashboardTest extends TestCase
     }
 
     /**
-     * سه باکسِ داشبورد بدونِ هم‌پوشانی: نیازمندِ رسیدگی (جدید+منتظرِ پشتیبان)،
-     * باز (بررسی+منتظرِ مشتری)، حل‌شده (حل/بسته این ماه). waiting_payment در
-     * هیچ‌کدام شمرده نمی‌شود، پس اگر اشتباهاً در «باز» بیاید عدد فرق می‌کند.
+     * سه باکسِ داشبورد بدونِ هم‌پوشانی و دقیقاً طبقِ تعریفِ تازه:
+     *   نیازمندِ رسیدگی = فقط «در انتظار پاسخ پشتیبان»
+     *   باز            = «در حال بررسی» یا «منتظر پاسخ مشتری»
+     *   حل‌شده         = فقط «حل‌شده»
+     * تیکتِ «جدید» و «منتظر پرداخت» در هیچ باکسی نباید شمرده شوند.
      */
     public function test_dashboard_boxes_are_partitioned(): void
     {
@@ -87,7 +89,7 @@ class DashboardTest extends TestCase
             $t->forceFill(['status' => $status, 'resolved_at' => $status === Ticket::STATUS_RESOLVED ? now() : null])->save();
         };
 
-        // نیازمندِ رسیدگی = ۴ (۱ جدید + ۳ منتظرِ پشتیبان)
+        // نیازمندِ رسیدگی = ۳ (فقط منتظرِ پشتیبان؛ «جدید» شمرده نمی‌شود)
         $mk(Ticket::STATUS_NEW);
         $mk(Ticket::STATUS_WAITING_SUPPORT);
         $mk(Ticket::STATUS_WAITING_SUPPORT);
@@ -95,7 +97,7 @@ class DashboardTest extends TestCase
         // باز = ۲ (بررسی + منتظرِ مشتری)
         $mk(Ticket::STATUS_IN_PROGRESS);
         $mk(Ticket::STATUS_WAITING_CUSTOMER);
-        // حل‌شده این ماه = ۱
+        // حل‌شده = ۱
         $mk(Ticket::STATUS_RESOLVED);
         // یتیم: در هیچ باکسی نباید بیاید
         $mk(Ticket::STATUS_WAITING_PAYMENT);
@@ -103,8 +105,8 @@ class DashboardTest extends TestCase
         Livewire::actingAs($this->admin())
             ->test(DashboardStats::class)
             ->assertOk()
-            ->assertSee(Jalali::digits('4'))   // نیازمندِ رسیدگی
-            ->assertSee(Jalali::digits('2'))   // باز (اگر waiting_payment اشتباهاً می‌آمد ۳ می‌شد)
+            ->assertSee(Jalali::digits('3'))   // نیازمندِ رسیدگی (فقط waiting_support)
+            ->assertSee(Jalali::digits('2'))   // باز
             ->assertSee(Jalali::digits('1'));  // حل‌شده
     }
 }

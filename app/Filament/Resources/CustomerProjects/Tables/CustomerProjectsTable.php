@@ -87,7 +87,7 @@ class CustomerProjectsTable
             ->filters([
                 SelectFilter::make('customer_id')
                     ->label(__('projects.customer'))
-                    ->relationship('customer', 'name')
+                    ->relationship('customer', 'name')->multiple()
                     ->searchable()
                     ->preload(),
 

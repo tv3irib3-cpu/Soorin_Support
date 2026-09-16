@@ -72,4 +72,9 @@ return [
     'assign_unassign'       => '— بدون اختصاص —',
     'assign_submit'         => 'ثبت اختصاص',
     'assigned_done'         => 'اختصاص تیکت ثبت شد.',
+
+    // فیلترِ فهرستِ تیکت‌ها
+    'filter_status'         => 'فیلترِ وضعیت:',
+    'apply_filter'          => 'اعمالِ فیلتر',
+    'clear_filter'          => 'پاک‌کردنِ فیلتر',
 ];

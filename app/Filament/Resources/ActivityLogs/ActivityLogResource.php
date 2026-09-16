@@ -95,7 +95,7 @@ class ActivityLogResource extends Resource
             ->filters([
                 SelectFilter::make('action')
                     ->label(__('activity.action'))
-                    ->options(__('activity.actions')),
+                    ->multiple()->options(__('activity.actions')),
             ])
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading(__('activity.empty_heading'));

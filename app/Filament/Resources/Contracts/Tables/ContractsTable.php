@@ -60,7 +60,7 @@ class ContractsTable
             ->filters([
                 SelectFilter::make('status')
                     ->label(__('contracts.status'))
-                    ->options(__('contracts.statuses')),
+                    ->multiple()->options(__('contracts.statuses')),
             ])
             ->recordActions([
                 // ویرایش و حذف فقط برای دارندهٔ مجوزِ مدیریتِ قرارداد (کارشناسِ بدونِ

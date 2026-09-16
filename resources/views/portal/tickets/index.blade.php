@@ -7,6 +7,22 @@
         };
     @endphp
 
+    <style>
+        .filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+        .filter-bar__label { font-size: 13px; font-weight: 700; color: var(--muted); }
+        .filter-chip {
+            display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+            font-size: 12.5px; padding: 5px 11px; border-radius: 999px;
+            border: 1px solid var(--border); background: var(--card); color: var(--text);
+            user-select: none;
+        }
+        .filter-chip input { accent-color: var(--accent); width: 14px; height: 14px; }
+        .filter-chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-text); font-weight: 700; }
+        .filter-clear { font-size: 12.5px; color: var(--muted); text-decoration: none; }
+        .filter-clear:hover { color: var(--accent-text); text-decoration: underline; }
+        .btn.sm { padding: 6px 12px; font-size: 12.5px; }
+    </style>
+
     <div class="page-head">
         <h1>{{ __('portal.my_tickets') }}</h1>
         @if (auth()->user()->canCreateTicket())
@@ -16,6 +32,21 @@
             </a>
         @endif
     </div>
+
+    {{-- فیلترِ چندانتخابیِ وضعیت --}}
+    <form method="GET" action="{{ route('portal.tickets.index') }}" class="filter-bar">
+        <span class="filter-bar__label">{{ __('portal.filter_status') }}</span>
+        @foreach (__('tickets.statuses') as $key => $label)
+            <label class="filter-chip @if (in_array($key, $statusFilter, true)) on @endif">
+                <input type="checkbox" name="status[]" value="{{ $key }}" @checked(in_array($key, $statusFilter, true))>
+                {{ $label }}
+            </label>
+        @endforeach
+        <button type="submit" class="btn secondary sm">{{ __('portal.apply_filter') }}</button>
+        @if ($statusFilter)
+            <a href="{{ route('portal.tickets.index') }}" class="filter-clear">{{ __('portal.clear_filter') }}</a>
+        @endif
+    </form>
 
     <div class="card" style="padding:0;">
         @if ($tickets->isEmpty())
@@ -29,6 +60,7 @@
                     <tr>
                         <th>{{ __('tickets.number') }}</th>
                         <th>{{ __('tickets.subject') }}</th>
+                        <th class="col-hide-mobile">{{ __('tickets.creator') }}</th>
                         <th class="col-hide-mobile">{{ __('tickets.category') }}</th>
                         <th class="col-hide-mobile">{{ __('tickets.date') }}</th>
                         <th>{{ __('tickets.status') }}</th>
@@ -40,7 +72,9 @@
                         $__url = route('portal.tickets.show', $ticket);
                         $__unread = $unread[$ticket->id] ?? 0;
                     @endphp
-                    <tr onclick="window.location='{{ $__url }}'" style="cursor:pointer;" @class(['row-unread' => $__unread > 0])>
+                    <tr onclick="window.location='{{ $__url }}'" style="cursor:pointer;"
+                        class="ticket-row ticket-row-{{ $ticket->priority }}@if ($ticket->isCreatedBySupport()) ticket-row-outgoing @endif"
+                        @class(['row-unread' => $__unread > 0])>
                         <td style="font-family:monospace;" dir="ltr"><a href="{{ $__url }}">{{ $ticket->number }}</a></td>
                         <td>
                             <a href="{{ $__url }}" @style(['font-weight:700' => $__unread > 0])>{{ $ticket->subject }}</a>
@@ -49,6 +83,12 @@
                                     {{ \App\Support\Jalali::digits((string) $__unread) }}
                                     {{ __('portal.unread_new') }}
                                 </span>
+                            @endif
+                        </td>
+                        <td class="col-hide-mobile">
+                            {{ $ticket->creator?->name ?? '—' }}
+                            @if ($ticket->isCreatedBySupport())
+                                <span class="soorin-badge-support" title="{{ __('tickets.by_support_hint') }}">{{ __('tickets.by_support') }}</span>
                             @endif
                         </td>
                         <td class="col-hide-mobile">{{ $ticket->category?->name ?? '—' }}</td>

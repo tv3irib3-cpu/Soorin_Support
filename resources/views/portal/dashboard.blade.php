@@ -67,7 +67,18 @@
             </div>
         </a>
         @endif
-        <a class="stat" href="{{ route('portal.tickets.index') }}">
+        {{-- نیازمندِ رسیدگی (در انتظار پاسخ پشتیبان) — کلیک: فهرست با همین فیلتر --}}
+        <a class="stat" href="{{ route('portal.tickets.index', ['status' => ['waiting_support']]) }}">
+            <span class="stat__icon @if ($needsAttention > 0) danger @endif">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </span>
+            <div>
+                <div class="stat__num">{{ \App\Support\Jalali::digits((string) $needsAttention) }}</div>
+                <div class="stat__label">{{ __('dashboard.needs_attention') }}</div>
+            </div>
+        </a>
+        {{-- باز (منتظر پاسخ مشتری یا در حال بررسی) --}}
+        <a class="stat" href="{{ route('portal.tickets.index', ['status' => ['waiting_customer', 'in_progress']]) }}">
             <span class="stat__icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
             </span>
@@ -76,13 +87,14 @@
                 <div class="stat__label">{{ __('portal.open_tickets') }}</div>
             </div>
         </a>
-        <a class="stat" href="{{ route('portal.tickets.index') }}">
+        {{-- حل‌شده --}}
+        <a class="stat" href="{{ route('portal.tickets.index', ['status' => ['resolved']]) }}">
             <span class="stat__icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
             </span>
             <div>
-                <div class="stat__num">{{ \App\Support\Jalali::digits((string) $closedTickets) }}</div>
-                <div class="stat__label">{{ __('portal.closed_tickets') }}</div>
+                <div class="stat__num">{{ \App\Support\Jalali::digits((string) $resolvedCount) }}</div>
+                <div class="stat__label">{{ __('tickets.statuses.resolved') }}</div>
             </div>
         </a>
         @if ($user->canViewInvoices())

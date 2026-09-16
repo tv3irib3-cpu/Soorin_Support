@@ -8,7 +8,7 @@ return [
     'latest_tickets'   => 'آخرین تیکت‌ها',
 
     'needs_attention'      => 'نیازمندِ رسیدگی',
-    'needs_attention_hint' => 'تیکت‌های جدید یا در انتظارِ پاسخِ پشتیبان',
+    'needs_attention_hint' => 'تیکت‌های در انتظارِ پاسخِ پشتیبان',
 
     // امتیازِ رضایت
     'ratings_title'           => 'امتیازِ رضایت',

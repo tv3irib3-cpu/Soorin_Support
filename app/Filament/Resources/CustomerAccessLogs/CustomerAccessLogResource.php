@@ -169,15 +169,15 @@ class CustomerAccessLogResource extends Resource
             ->filters([
                 SelectFilter::make('event')
                     ->label(__('access.event'))
-                    ->options(__('access.events')),
+                    ->multiple()->options(__('access.events')),
 
                 SelectFilter::make('device')
                     ->label(__('access.device'))
-                    ->options(__('access.devices')),
+                    ->multiple()->options(__('access.devices')),
 
                 SelectFilter::make('customer_id')
                     ->label(__('access.customer'))
-                    ->relationship('customer', 'name')
+                    ->relationship('customer', 'name')->multiple()
                     ->searchable()
                     ->preload(),
 
