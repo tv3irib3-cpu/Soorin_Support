@@ -284,8 +284,10 @@ class User extends Authenticatable implements FilamentUser
             return false;
         }
 
-        // پیش‌فرض: فقط مدیر مشتری فاکتور می‌بیند
-        return $this->can_view_invoices ?? $this->isCustomerAdmin();
+        // پیش‌فرض: هم مدیرِ مشتری و هم کارشناسِ مشتری فاکتور می‌بینند (کارشناس فقط
+        // فاکتورهای تیکت‌های خودش — دامنه در Invoice::scopeVisibleToCustomer). مدیر
+        // می‌تواند این دسترسی را برای کارشناسِ خاصی خاموش کند.
+        return $this->can_view_invoices ?? true;
     }
 
     public function canPrintInvoices(): bool

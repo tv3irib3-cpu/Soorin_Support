@@ -49,8 +49,14 @@ class InvoicePdfController extends Controller
             return;
         }
 
-        abort_unless($invoice->customer_id === $user->customer_id, 403, __('portal.no_access_invoices'));
         abort_unless($user->canViewInvoices(), 403, __('portal.no_access_invoices'));
+        // مدیرِ مشتری همهٔ فاکتورهای شرکت را می‌بیند؛ کارشناس فقط فاکتورهای تیکت‌های
+        // خودش (دامنه در scopeVisibleToCustomer). این شرط جایگزینِ چکِ صرفِ customer_id شد.
+        abort_unless(
+            Invoice::visibleToCustomer($user)->whereKey($invoice->id)->exists(),
+            403,
+            __('portal.no_access_invoices'),
+        );
 
         // فاکتورِ لغوشده برای مشتری باز نمی‌شود — فقط وضعیتِ «لغو شده» را می‌بیند.
         abort_if($invoice->status === Invoice::STATUS_CANCELLED, 404);

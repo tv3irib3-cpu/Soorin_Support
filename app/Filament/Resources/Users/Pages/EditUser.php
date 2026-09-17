@@ -36,6 +36,15 @@ class EditUser extends EditRecord
                 : $user->getAllPermissions()->pluck('name')->all();
         }
 
+        // چک‌باکس‌های کاربرِ مشتری با «دسترسیِ مؤثرِ فعلی» پر می‌شوند (اگر ستون null باشد،
+        // پیش‌فرضِ نقش) تا ویرایش هیچ دسترسی‌ای را ناخواسته عوض نکند.
+        if ($user->isCustomerUser()) {
+            $data['can_create_ticket']  = $user->can_create_ticket  ?? true;
+            $data['can_view_invoices']  = $user->can_view_invoices  ?? true;
+            $data['can_print_invoices'] = $user->can_print_invoices ?? $user->isCustomerAdmin();
+            $data['history_scope']      = $user->history_scope ?? ($user->isCustomerAdmin() ? 'customer' : 'none');
+        }
+
         return $data;
     }
 

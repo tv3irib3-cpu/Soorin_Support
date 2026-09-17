@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -103,6 +104,34 @@ class Invoice extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    // -------------------------------------------------------- دامنهٔ دیدِ مشتری
+
+    /**
+     * فاکتورهایی که یک کاربرِ مشتری حق دیدنشان را دارد.
+     *
+     *   مدیرِ مشتری   → همهٔ فاکتورهای شرکتِ خودش (مستقل از تیکت)
+     *   کارشناسِ مشتری → فقط فاکتورهای تیکت‌هایی که خودش ساخته یا به او تخصیص یافته؛
+     *                    فاکتورِ تیکت‌های دیگران یا فاکتورِ بدونِ تیکت را نمی‌بیند.
+     */
+    public function scopeVisibleToCustomer(Builder $query, User $user): Builder
+    {
+        $query->where('customer_id', $user->customer_id);
+
+        if ($user->isCustomerAdmin()) {
+            return $query;
+        }
+
+        $ticketIds = Ticket::query()
+            ->where('customer_id', $user->customer_id)
+            ->where(function (Builder $q) use ($user): void {
+                $q->where('created_by', $user->id)
+                    ->orWhere('customer_assigned_to', $user->id);
+            })
+            ->pluck('id');
+
+        return $query->whereIn('ticket_id', $ticketIds);
     }
 
     // --------------------------------------------------------------- محاسبه

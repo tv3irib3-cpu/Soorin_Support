@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\Invoice;
 use App\Models\InvoiceRead;
 use Illuminate\Contracts\View\View;
 
@@ -19,7 +20,8 @@ class InvoiceController extends Controller
         // بعد نشانِ منو صفر شود (مثلِ خوانده‌شدنِ تیکت).
         $lastSeen = InvoiceRead::lastSeenAt($user);
 
-        $invoices = $user->customer->invoices()->latest('issue_date')->paginate(15);
+        // مدیرِ مشتری همهٔ فاکتورهای شرکت را می‌بیند؛ کارشناس فقط فاکتورهای تیکت‌های خودش.
+        $invoices = Invoice::visibleToCustomer($user)->latest('issue_date')->paginate(15);
 
         InvoiceRead::markSeen($user);
 

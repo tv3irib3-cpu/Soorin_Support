@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Users\Schemas;
 use App\Enums\Permission;
 use App\Models\Customer;
 use App\Models\User;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -46,11 +47,19 @@ class UserForm
                         ->required()
                         ->native(false)
                         ->live()
-                        // با تغییرِ نوعِ حساب، تیک‌های مجوز به پیش‌فرضِ همان نقش برمی‌گردند.
-                        ->afterStateUpdated(fn ($state, callable $set) => $set(
-                            'permissions',
-                            Permission::defaultsByRole()[$state] ?? [],
-                        )),
+                        // با تغییرِ نوعِ حساب، تیک‌ها به پیش‌فرضِ همان نقش برمی‌گردند —
+                        // هم مجوزهای پشتیبان و هم دسترسی‌های مشتری.
+                        ->afterStateUpdated(function ($state, callable $set): void {
+                            $set('permissions', Permission::defaultsByRole()[$state] ?? []);
+
+                            if (in_array($state, [User::TYPE_CUSTOMER_ADMIN, User::TYPE_CUSTOMER_STAFF], true)) {
+                                $isAdmin = $state === User::TYPE_CUSTOMER_ADMIN;
+                                $set('can_create_ticket', true);
+                                $set('can_view_invoices', true);
+                                $set('can_print_invoices', $isAdmin);
+                                $set('history_scope', $isAdmin ? 'customer' : 'none');
+                            }
+                        }),
 
                     Select::make('customer_id')
                         ->label(__('users.customer'))
@@ -74,30 +83,20 @@ class UserForm
                 ->columns(2)
                 ->visible(fn ($get) => in_array($get('user_type'), [User::TYPE_CUSTOMER_ADMIN, User::TYPE_CUSTOMER_STAFF]))
                 ->schema([
-                    // زیرِ هر گزینه، «پیش‌فرضِ این نقش» بر پایهٔ نوعِ حسابِ انتخاب‌شده نوشته
-                    // می‌شود (مدیرِ مشتری با کارشناسِ مشتری پیش‌فرضِ متفاوت دارند).
-                    Select::make('can_create_ticket')
+                    // دسترسی‌ها به‌صورتِ چک‌باکس (تیک = فعال). پیش‌فرضِ هر نقش زیرِ گزینه
+                    // نوشته شده و با انتخابِ نوعِ حساب خودکار تیک می‌خورد.
+                    Checkbox::make('can_create_ticket')
                         ->label(__('customers.can_create_ticket'))
-                        ->options([1 => __('common.yes'), 0 => __('common.no')])
-                        ->placeholder(__('users.follow_default'))
-                        ->helperText(fn () => __('users.default_for_role') . ': ' . __('common.yes'))
-                        ->native(false),
+                        ->helperText(fn () => __('users.default_for_role') . ': ' . __('common.yes')),
 
-                    Select::make('can_view_invoices')
+                    Checkbox::make('can_view_invoices')
                         ->label(__('customers.can_view_invoices'))
-                        ->options([1 => __('common.yes'), 0 => __('common.no')])
-                        ->placeholder(__('users.follow_default'))
-                        ->helperText(fn (callable $get) => __('users.default_for_role') . ': '
-                            . ($get('user_type') === User::TYPE_CUSTOMER_ADMIN ? __('common.yes') : __('common.no')))
-                        ->native(false),
+                        ->helperText(__('users.can_view_invoices_scope_hint')),
 
-                    Select::make('can_print_invoices')
+                    Checkbox::make('can_print_invoices')
                         ->label(__('customers.can_print_invoices'))
-                        ->options([1 => __('common.yes'), 0 => __('common.no')])
-                        ->placeholder(__('users.follow_default'))
                         ->helperText(fn (callable $get) => __('users.default_for_role') . ': '
-                            . ($get('user_type') === User::TYPE_CUSTOMER_ADMIN ? __('users.default_yes_if_allowed') : __('common.no')))
-                        ->native(false),
+                            . ($get('user_type') === User::TYPE_CUSTOMER_ADMIN ? __('users.default_yes_if_allowed') : __('common.no'))),
 
                     Select::make('history_scope')
                         ->label(__('users.history_scope'))

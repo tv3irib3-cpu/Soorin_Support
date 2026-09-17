@@ -31,7 +31,7 @@ class DashboardController extends Controller
             ->count();
 
         $unpaidInvoices = $user->canViewInvoices()
-            ? $user->customer->invoices()
+            ? \App\Models\Invoice::visibleToCustomer($user)
                 ->whereNotIn('status', ['paid', 'cancelled', 'draft'])
                 ->count()
             : 0;
