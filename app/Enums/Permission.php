@@ -98,9 +98,11 @@ enum Permission: string
      */
     public static function defaultsByRole(): array
     {
+        // «تخصیص کارشناس» (AssignTickets) در پیش‌فرضِ کارشناس نیست: تخصیص/بازتخصیصِ
+        // تیکت کارِ مدیر است. اگر مدیر بخواهد، می‌تواند این مجوز را به کارشناسِ خاصی بدهد.
         $supportStaff = [
             self::ViewCustomers, self::ViewTickets, self::CreateTickets,
-            self::ManageTickets, self::AssignTickets, self::InternalNotes,
+            self::ManageTickets, self::InternalNotes,
             self::ViewContracts, self::ViewInvoices, self::ManageInvoices,
             self::PrintInvoices, self::ManagePayments, self::ViewReports,
         ];

@@ -120,6 +120,20 @@ class TicketSupportPanelTest extends TestCase
             ->assertActionVisible('assign');
     }
 
+    /** اگر مدیر مجوزِ «تخصیص کارشناس» را به کارشناسی بدهد، آن کارشناس می‌تواند تخصیص دهد. */
+    public function test_staff_granted_assign_permission_can_reassign(): void
+    {
+        $ticket = $this->ticket();
+
+        $defaults = \App\Enums\Permission::defaultsByRole()['support_staff'];
+        $this->staff->forceFill(['permissions_customized' => true])->save();
+        $this->staff->syncPermissions(array_merge($defaults, [\App\Enums\Permission::AssignTickets->value]));
+
+        $this->actingAs($this->staff->fresh());
+        Livewire::test(ViewTicket::class, ['record' => $ticket->getKey()])
+            ->assertActionVisible('assign');
+    }
+
     public function test_dashboard_unread_excludes_waiting_customer(): void
     {
         $other    = User::create(['name' => 'دیگر', 'email' => 'o@t.test', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_ADMIN]);

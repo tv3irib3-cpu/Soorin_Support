@@ -334,10 +334,10 @@ class ViewTicket extends ViewRecord
             Action::make('assign')
                 ->label(__('tickets.assign'))
                 ->icon('heroicon-o-user-plus')
-                // فقط مدیرِ پشتیبان می‌تواند تخصیص را عوض کند؛ کارشناس نباید تیکت را
-                // به دیگری (به‌ویژه مدیران) واگذار کند.
+                // تخصیص/بازتخصیص با مجوزِ «تخصیص کارشناس» کنترل می‌شود — پیش‌فرض فقط
+                // مدیر آن را دارد؛ ولی مدیر می‌تواند به کارشناسِ خاصی هم بدهد.
                 ->visible(fn () => ! $ticket->is_locked
-                    && (auth()->user()?->isSupportAdmin() ?? false))
+                    && (auth()->user()?->can(\App\Enums\Permission::AssignTickets->value) ?? false))
                 ->schema([
                     Select::make('assigned_to')
                         ->label(__('tickets.assigned_to'))
