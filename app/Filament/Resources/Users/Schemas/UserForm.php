@@ -74,28 +74,37 @@ class UserForm
                 ->columns(2)
                 ->visible(fn ($get) => in_array($get('user_type'), [User::TYPE_CUSTOMER_ADMIN, User::TYPE_CUSTOMER_STAFF]))
                 ->schema([
+                    // زیرِ هر گزینه، «پیش‌فرضِ این نقش» بر پایهٔ نوعِ حسابِ انتخاب‌شده نوشته
+                    // می‌شود (مدیرِ مشتری با کارشناسِ مشتری پیش‌فرضِ متفاوت دارند).
                     Select::make('can_create_ticket')
                         ->label(__('customers.can_create_ticket'))
                         ->options([1 => __('common.yes'), 0 => __('common.no')])
                         ->placeholder(__('users.follow_default'))
+                        ->helperText(fn () => __('users.default_for_role') . ': ' . __('common.yes'))
                         ->native(false),
 
                     Select::make('can_view_invoices')
                         ->label(__('customers.can_view_invoices'))
                         ->options([1 => __('common.yes'), 0 => __('common.no')])
                         ->placeholder(__('users.follow_default'))
+                        ->helperText(fn (callable $get) => __('users.default_for_role') . ': '
+                            . ($get('user_type') === User::TYPE_CUSTOMER_ADMIN ? __('common.yes') : __('common.no')))
                         ->native(false),
 
                     Select::make('can_print_invoices')
                         ->label(__('customers.can_print_invoices'))
                         ->options([1 => __('common.yes'), 0 => __('common.no')])
                         ->placeholder(__('users.follow_default'))
+                        ->helperText(fn (callable $get) => __('users.default_for_role') . ': '
+                            . ($get('user_type') === User::TYPE_CUSTOMER_ADMIN ? __('users.default_yes_if_allowed') : __('common.no')))
                         ->native(false),
 
                     Select::make('history_scope')
                         ->label(__('users.history_scope'))
                         ->options(__('users.history_scope_options'))
                         ->placeholder(__('users.follow_default'))
+                        ->helperText(fn (callable $get) => __('users.default_for_role') . ': '
+                            . (__('users.history_scope_options')[$get('user_type') === User::TYPE_CUSTOMER_ADMIN ? 'customer' : 'none'] ?? '—'))
                         ->native(false),
                 ]),
 

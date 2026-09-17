@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Tickets\RelationManagers;
 
+use App\Enums\Permission;
 use App\Models\Ticket;
 use App\Support\Jalali;
 use Filament\Actions\CreateAction;
@@ -42,6 +43,7 @@ class MessagesRelationManager extends RelationManager
             Toggle::make('is_internal')
                 ->label(__('tickets.internal_note'))
                 ->helperText(__('tickets.internal_note_hint'))
+                ->visible(fn () => auth()->user()?->can(Permission::InternalNotes->value) ?? false)
                 ->default(false),
         ]);
     }

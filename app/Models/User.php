@@ -290,8 +290,9 @@ class User extends Authenticatable implements FilamentUser
 
     public function canPrintInvoices(): bool
     {
+        // کاربرِ پشتیبان با مجوزِ «چاپ فاکتور» — تا این مجوز قابلِ‌کنترل باشد، نه همیشه‌روشن.
         if ($this->isSupportUser()) {
-            return true;
+            return $this->can(\App\Enums\Permission::PrintInvoices->value);
         }
 
         if (! $this->canViewInvoices() || ! $this->customer?->can_print_invoices) {

@@ -83,6 +83,24 @@ class InvoicePdfTest extends TestCase
         $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
     }
 
+    /** دانلود/چاپِ فاکتور برای پشتیبان با مجوزِ «چاپ فاکتور» کنترل می‌شود. */
+    public function test_support_download_requires_print_permission(): void
+    {
+        $staff = User::create(['name' => 'کارشناس', 'email' => 's@dpst.ir', 'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_STAFF]);
+        $staff->assignRole(User::TYPE_SUPPORT_STAFF);
+
+        // کارشناسِ عادی (پیش‌فرض invoices.print را دارد) → دانلود مجاز
+        $this->actingAs($staff)->get(route('invoices.pdf.download', $this->invoice))->assertOk();
+
+        // مدیر مجوزِ چاپ را از او می‌گیرد (سفارشی‌سازی) → دانلود ۴۰۳، ولی نمایش هنوز مجاز
+        $staff->forceFill(['permissions_customized' => true])->save();
+        $staff->syncPermissions([\App\Enums\Permission::ViewInvoices->value]); // چاپ نیست
+        $staff = $staff->fresh();
+
+        $this->actingAs($staff)->get(route('invoices.pdf.download', $this->invoice))->assertForbidden();
+        $this->actingAs($staff)->get(route('invoices.pdf.view', $this->invoice))->assertOk();
+    }
+
     public function test_customer_from_other_company_cannot_view_invoice(): void
     {
         $outsider = User::create([

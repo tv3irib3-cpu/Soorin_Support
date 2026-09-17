@@ -196,6 +196,8 @@ class ViewTicket extends ViewRecord
                 Toggle::make('is_internal')
                     ->label(__('tickets.internal_note'))
                     ->helperText(__('tickets.internal_note_hint'))
+                    // فقط کاربرِ دارای مجوزِ «یادداشت داخلی» می‌تواند پیام را داخلی کند.
+                    ->visible(fn () => auth()->user()?->can(Permission::InternalNotes->value) ?? false)
                     ->default(false),
             ])
             ->action(function (array $data) use ($ticket) {

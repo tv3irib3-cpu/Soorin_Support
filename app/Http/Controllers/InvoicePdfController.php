@@ -41,6 +41,11 @@ class InvoicePdfController extends Controller
         $user = auth()->user();
 
         if ($user->isSupportUser()) {
+            // پشتیبان هر فاکتوری را می‌بیند؛ ولی «چاپ/دانلود» با مجوزِ چاپ کنترل می‌شود.
+            if ($requirePrint) {
+                abort_unless($user->canPrintInvoices(), 403, __('portal.no_access_print'));
+            }
+
             return;
         }
 

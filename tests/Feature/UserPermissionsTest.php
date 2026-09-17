@@ -168,7 +168,7 @@ class UserPermissionsTest extends TestCase
         $admin = $admin->fresh();
 
         $this->assertFalse($admin->permissions_customized);
-        $this->assertTrue($admin->can(Permission::ManageUsers->value)); // هنوز همه‌چیز را دارد
+        $this->assertTrue($admin->can(Permission::ViewUsers->value));      // هنوز همه‌چیز را دارد
         $this->assertTrue($admin->can(Permission::ManageSettings->value));
     }
 }

@@ -17,9 +17,9 @@ enum Permission: string
     // پروژه‌های مشتری
     case ManageProjects = 'projects.manage';
 
-    // کاربران — فقط مدیر پشتیبان
-    case ViewUsers   = 'users.view';
-    case ManageUsers = 'users.manage';
+    // کاربران — فقط مدیر پشتیبان (ساخت/ویرایش/حذفِ کاربر با isSupportAdmin کنترل
+    // می‌شود نه مجوز، طبقِ قاعدهٔ پروژه؛ پس مجوزِ جداگانه‌ای برای «مدیریت کاربر» نیست).
+    case ViewUsers = 'users.view';
 
     // تیکت‌ها
     case ViewTickets     = 'tickets.view';
@@ -60,7 +60,6 @@ enum Permission: string
             self::ManageCustomers => 'مدیریت مشتریان',
             self::ManageProjects  => 'مدیریت پروژه‌های مشتری',
             self::ViewUsers       => 'مشاهده کاربران',
-            self::ManageUsers     => 'مدیریت کاربران و ساخت حساب',
             self::ViewTickets     => 'مشاهده تیکت‌ها',
             self::CreateTickets   => 'ثبت تیکت',
             self::ManageTickets   => 'مدیریت تیکت‌ها',

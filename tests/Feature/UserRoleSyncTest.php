@@ -40,7 +40,7 @@ class UserRoleSyncTest extends TestCase
             'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_ADMIN,
         ]);
 
-        $this->assertTrue($user->can(Permission::ManageUsers->value));
+        $this->assertTrue($user->can(Permission::ManageSettings->value));
         $this->assertTrue($user->can(Permission::ViewReports->value));
     }
 
@@ -50,14 +50,14 @@ class UserRoleSyncTest extends TestCase
             'name' => 'کاربر', 'email' => 'u@dpst.ir',
             'password' => 'secret123', 'user_type' => User::TYPE_SUPPORT_STAFF,
         ]);
-        $this->assertFalse($user->can(Permission::ManageUsers->value));
+        $this->assertFalse($user->can(Permission::ManageSettings->value));
 
         $user->update(['user_type' => User::TYPE_SUPPORT_ADMIN]);
 
         $user->refresh();
         $this->assertTrue($user->hasRole(User::TYPE_SUPPORT_ADMIN));
         $this->assertFalse($user->hasRole(User::TYPE_SUPPORT_STAFF));
-        $this->assertTrue($user->can(Permission::ManageUsers->value));
+        $this->assertTrue($user->can(Permission::ManageSettings->value));
     }
 
     public function test_new_staff_can_actually_see_panel_resources(): void
