@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use App\Enums\Permission;
 use App\Models\Customer;
 use App\Models\User;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -43,7 +45,12 @@ class UserForm
                         ->default(User::TYPE_SUPPORT_STAFF)
                         ->required()
                         ->native(false)
-                        ->live(),
+                        ->live()
+                        // با تغییرِ نوعِ حساب، تیک‌های مجوز به پیش‌فرضِ همان نقش برمی‌گردند.
+                        ->afterStateUpdated(fn ($state, callable $set) => $set(
+                            'permissions',
+                            Permission::defaultsByRole()[$state] ?? [],
+                        )),
 
                     Select::make('customer_id')
                         ->label(__('users.customer'))
@@ -90,6 +97,40 @@ class UserForm
                         ->options(__('users.history_scope_options'))
                         ->placeholder(__('users.follow_default'))
                         ->native(false),
+                ]),
+
+            // ------ دسترسی‌های کاربرِ پشتیبان (مدیر/کارشناس) ------
+            // فهرستِ کاملِ مجوزها با نوشتنِ «وضعیتِ پیش‌فرض» کنارِ هرکدام. تیک‌ها روی
+            // پیش‌فرضِ نقش تنظیم‌اند و مدیر می‌تواند تغییرشان دهد. برای جلوگیری از
+            // قفل‌شدنِ خودِ مدیر، این بخش هنگام ویرایشِ حسابِ خودِ او پنهان است.
+            Section::make(__('users.permissions_section'))
+                ->description(__('users.permissions_hint'))
+                ->columns(2)
+                ->visible(fn (callable $get, ?User $record) => in_array($get('user_type'), [
+                    User::TYPE_SUPPORT_ADMIN, User::TYPE_SUPPORT_STAFF,
+                ], true) && (! $record || $record->id !== auth()->id()))
+                ->schema([
+                    CheckboxList::make('permissions')
+                        ->hiddenLabel()
+                        ->columnSpanFull()
+                        ->columns(2)
+                        ->bulkToggleable()
+                        ->dehydrated(false)
+                        ->options(function (callable $get): array {
+                            $defaults = Permission::defaultsByRole()[$get('user_type')] ?? [];
+                            $options = [];
+
+                            foreach (Permission::cases() as $perm) {
+                                $mark = in_array($perm->value, $defaults, true)
+                                    ? __('users.perm_default_on')
+                                    : __('users.perm_default_off');
+
+                                $options[$perm->value] = $perm->label() . ' — ' . $mark;
+                            }
+
+                            return $options;
+                        })
+                        ->default(fn (callable $get): array => Permission::defaultsByRole()[$get('user_type')] ?? []),
                 ]),
         ]);
     }

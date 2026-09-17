@@ -38,7 +38,7 @@ class User extends Authenticatable implements FilamentUser
 
     protected $fillable = [
         'name', 'email', 'mobile', 'password', 'user_type', 'customer_id',
-        'theme', 'is_active', 'can_create_ticket', 'can_view_invoices',
+        'theme', 'is_active', 'permissions_customized', 'can_create_ticket', 'can_view_invoices',
         'can_print_invoices', 'history_scope',
     ];
 
@@ -58,12 +58,13 @@ class User extends Authenticatable implements FilamentUser
     protected function casts(): array
     {
         return [
-            'password'           => 'hashed',
-            'is_active'          => 'boolean',
-            'can_create_ticket'  => 'boolean',
-            'can_view_invoices'  => 'boolean',
-            'can_print_invoices' => 'boolean',
-            'last_login_at'      => 'datetime',
+            'password'                => 'hashed',
+            'is_active'               => 'boolean',
+            'permissions_customized'  => 'boolean',
+            'can_create_ticket'       => 'boolean',
+            'can_view_invoices'       => 'boolean',
+            'can_print_invoices'      => 'boolean',
+            'last_login_at'           => 'datetime',
         ];
     }
 
@@ -169,6 +170,34 @@ class User extends Authenticatable implements FilamentUser
     }
 
     // ------------------------------------------------------------- دسترسی‌ها
+
+    /**
+     * بازنویسیِ سنجشِ مجوز (همان متدی که Spatie از Gate::before صدا می‌زند).
+     *
+     * اگر این کاربرِ پشتیبان «سفارشی‌شده» باشد (مدیر در فرم مجوزهایش را تنظیم کرده)،
+     * دسترسی فقط از مجوزهای «مستقیمِ» خودِ کاربر خوانده می‌شود، نه از نقش — پس مدیر
+     * می‌تواند هم مجوز اضافه کند و هم مجوزِ پیش‌فرضِ نقش را بردارد. کاربرانِ
+     * غیرسفارشی دقیقاً مثلِ قبل از نقش پیروی می‌کنند (رفتار بدونِ تغییر).
+     */
+    public function checkPermissionTo($permission, $guardName = null): bool
+    {
+        if ($this->isSupportUser() && $this->permissions_customized) {
+            $name = is_string($permission)
+                ? $permission
+                : ($permission->name ?? (string) $permission);
+
+            return $this->permissions->contains('name', $name);
+        }
+
+        // رفتارِ استانداردِ Spatie برای کاربرِ غیرسفارشی (همان بدنهٔ checkPermissionTo
+        // در traitِ HasPermissions؛ چون متد از trait می‌آید نه کلاسِ والد، parent:: در
+        // دسترس نیست، پس مستقیم hasPermissionTo را صدا می‌زنیم).
+        try {
+            return $this->hasPermissionTo($permission, $guardName);
+        } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist) {
+            return false;
+        }
+    }
 
     /**
      * شناسه پروژه‌هایی که این کاربر حق دیدنشان را دارد.
