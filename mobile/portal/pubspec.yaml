@@ -1,0 +1,25 @@
+name: soorin_portal
+description: اپِ مشتریِ سورین — پرتالِ خدمات و پشتیبانی روی موبایل (نیتیو، سریع).
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.2
+  package_info_plus: ^8.0.2
+  url_launcher: ^6.3.0
+  path_provider: ^2.1.4
+  open_filex: ^4.5.0
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

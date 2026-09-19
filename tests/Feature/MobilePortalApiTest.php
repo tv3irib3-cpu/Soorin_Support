@@ -79,6 +79,25 @@ class MobilePortalApiTest extends TestCase
             ->assertJsonStructure(['data', 'meta']);
     }
 
+    public function test_ticket_show_returns_full_detail(): void
+    {
+        $t = $this->ticket(['created_by' => $this->admin->id]);
+        $t->messages()->create(['user_id' => $this->admin->id, 'body' => 'سلام', 'is_internal' => false]);
+        // پیامِ داخلی نباید به مشتری نشان داده شود.
+        $t->messages()->create(['user_id' => $this->admin->id, 'body' => 'محرمانه', 'is_internal' => true]);
+
+        $res = $this->withToken($this->token('ca'))->getJson("/api/portal/tickets/{$t->id}")->assertOk()
+            ->assertJsonStructure([
+                'ticket' => ['id', 'number', 'subject', 'status', 'description'],
+                'messages', 'ticket_attachments', 'abilities' => ['reply', 'rate', 'assign'],
+            ]);
+
+        $bodies = collect($res->json('messages'))->pluck('body');
+        $this->assertContains('سلام', $bodies);
+        $this->assertNotContains('محرمانه', $bodies);
+        $this->assertTrue($res->json('abilities.assign')); // مدیرِ مشتری
+    }
+
     public function test_customer_can_create_reply_and_rate(): void
     {
         $token = $this->token('ca');
