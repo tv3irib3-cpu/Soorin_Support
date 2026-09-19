@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\Permission;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Ticket;
@@ -23,17 +24,21 @@ class DashboardController extends Controller
         $open     = (clone $mine())->whereIn('status', [Ticket::STATUS_IN_PROGRESS, Ticket::STATUS_WAITING_CUSTOMER])->count();
         $resolved = (clone $mine())->where('status', Ticket::STATUS_RESOLVED)->count();
 
+        $canViewInvoices = $user->can(Permission::ViewInvoices->value);
+
         $unpaid = 0;
-        if ($user->isSupportUser()) {
+        if ($canViewInvoices) {
             $unpaid = Invoice::whereNotIn('status', ['paid', 'cancelled', 'draft'])->count();
         }
 
         return response()->json([
-            'needs_attention' => $needs,
-            'open'            => $open,
-            'resolved'        => $resolved,
-            'unpaid_invoices' => $unpaid,
-            'unread'          => TicketRead::unreadCountFor($user),
+            'needs_attention'   => $needs,
+            'open'              => $open,
+            'resolved'          => $resolved,
+            'unpaid_invoices'   => $unpaid,
+            'unread'            => TicketRead::unreadCountFor($user),
+            'can_view_invoices' => $canViewInvoices,
+            'can_create_ticket' => $user->can(Permission::CreateTickets->value),
         ]);
     }
 }

@@ -5,6 +5,7 @@ import '../theme.dart';
 import 'login_screen.dart';
 import 'ticket_detail_screen.dart';
 import 'create_ticket_screen.dart';
+import 'invoices_tab.dart';
 
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -15,7 +16,24 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _tab = 0;
+  Map<String, dynamic>? _dash;
+  String? _error;
   final _ticketsKey = GlobalKey<_TicketsTabState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDash();
+  }
+
+  Future<void> _loadDash() async {
+    try {
+      final d = await Api.dashboard();
+      if (mounted) setState(() { _dash = d; _error = null; });
+    } catch (e) {
+      if (mounted) setState(() => _error = '$e');
+    }
+  }
 
   Future<void> _logout() async {
     await Api.logout();
@@ -28,39 +46,60 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_error != null && _dash == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('پشتیبانِ سورین')),
+        body: _ErrorView(_error!, _loadDash),
+      );
+    }
+    if (_dash == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final canInvoices = _dash!['can_view_invoices'] == true;
+    final canCreate = _dash!['can_create_ticket'] == true;
+
+    final tabs = <Widget>[
+      _DashboardTab(data: _dash!, onRefresh: _loadDash),
+      _TicketsTab(key: _ticketsKey),
+      if (canInvoices) const InvoicesTab(),
+    ];
+    final destinations = <NavigationDestination>[
+      const NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'داشبورد'),
+      const NavigationDestination(icon: Icon(Icons.confirmation_number_outlined), selectedIcon: Icon(Icons.confirmation_number), label: 'تیکت‌ها'),
+      if (canInvoices)
+        const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'فاکتورها'),
+    ];
+    final titles = ['داشبورد', 'تیکت‌ها', if (canInvoices) 'فاکتورها'];
+    final safeTab = _tab < tabs.length ? _tab : 0;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_tab == 0 ? 'داشبورد' : 'تیکت‌ها'),
+        title: Text(titles[safeTab]),
         actions: [
           Center(child: Text(widget.user['name'] ?? '', style: const TextStyle(fontSize: 13))),
           IconButton(onPressed: _logout, icon: const Icon(Icons.logout), tooltip: 'خروج'),
         ],
       ),
-      body: IndexedStack(
-        index: _tab,
-        children: [
-          const _DashboardTab(),
-          _TicketsTab(key: _ticketsKey),
-        ],
-      ),
-      floatingActionButton: _tab == 1
+      body: IndexedStack(index: safeTab, children: tabs),
+      floatingActionButton: (safeTab == 1 && canCreate)
           ? FloatingActionButton(
               backgroundColor: AppTheme.accent,
               onPressed: () async {
                 final created = await Navigator.push(
                     context, MaterialPageRoute(builder: (_) => const CreateTicketScreen()));
-                if (created == true) _ticketsKey.currentState?.refresh();
+                if (created == true) {
+                  _ticketsKey.currentState?.refresh();
+                  _loadDash();
+                }
               },
               child: const Icon(Icons.add, color: Colors.white),
             )
           : null,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
+        selectedIndex: safeTab,
         onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'داشبورد'),
-          NavigationDestination(icon: Icon(Icons.confirmation_number_outlined), selectedIcon: Icon(Icons.confirmation_number), label: 'تیکت‌ها'),
-        ],
+        destinations: destinations,
       ),
     );
   }
@@ -68,45 +107,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // ---------------------------------------------------------------- داشبورد
 
-class _DashboardTab extends StatefulWidget {
-  const _DashboardTab();
-  @override
-  State<_DashboardTab> createState() => _DashboardTabState();
-}
-
-class _DashboardTabState extends State<_DashboardTab> {
-  Map<String, dynamic>? _data;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final d = await Api.dashboard();
-      if (mounted) setState(() { _data = d; _error = null; });
-    } catch (e) {
-      if (mounted) setState(() => _error = '$e');
-    }
-  }
+class _DashboardTab extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final Future<void> Function() onRefresh;
+  const _DashboardTab({required this.data, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null) return _ErrorView(_error!, _load);
-    if (_data == null) return const Center(child: CircularProgressIndicator());
-    final d = _data!;
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: onRefresh,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _stat('نیازمندِ رسیدگی', d['needs_attention'], AppTheme.danger, Icons.notifications_active),
-          _stat('تیکت‌های باز', d['open'], AppTheme.info, Icons.chat_bubble_outline),
-          _stat('حل‌شده', d['resolved'], AppTheme.success, Icons.check_circle_outline),
-          _stat('پیام‌های خوانده‌نشده', d['unread'], AppTheme.warning, Icons.mark_email_unread_outlined),
+          _stat('نیازمندِ رسیدگی', data['needs_attention'], AppTheme.danger, Icons.notifications_active),
+          _stat('تیکت‌های باز', data['open'], AppTheme.info, Icons.chat_bubble_outline),
+          _stat('حل‌شده', data['resolved'], AppTheme.success, Icons.check_circle_outline),
+          _stat('پیام‌های خوانده‌نشده', data['unread'], AppTheme.warning, Icons.mark_email_unread_outlined),
+          if (data['can_view_invoices'] == true)
+            _stat('فاکتورهای پرداخت‌نشده', data['unpaid_invoices'], AppTheme.danger, Icons.request_quote_outlined),
         ],
       ),
     );

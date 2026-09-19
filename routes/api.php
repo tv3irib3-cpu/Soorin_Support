@@ -35,11 +35,16 @@ Route::middleware(AuthenticateApiToken::class . ':support')->group(function () {
     Route::get('tickets', [TicketController::class, 'index']);
     Route::get('tickets/meta', [TicketController::class, 'meta']);          // پیش از {ticket}
     Route::get('tickets/form-data', [TicketController::class, 'formData']); // پیش از {ticket}
+    Route::get('tickets/staff', [TicketController::class, 'staff']);        // پیش از {ticket}
     Route::post('tickets', [TicketController::class, 'store']);
     Route::get('tickets/{ticket}', [TicketController::class, 'show']);
     Route::post('tickets/{ticket}/reply', [TicketController::class, 'reply']);
     Route::post('tickets/{ticket}/resolve', [TicketController::class, 'resolve']);
     Route::post('tickets/{ticket}/status', [TicketController::class, 'changeStatus']);
+    Route::post('tickets/{ticket}/assign', [TicketController::class, 'assign']);
+
+    Route::get('invoices', [\App\Http\Controllers\Api\InvoiceController::class, 'index']);
+    Route::get('invoices/{invoice}/pdf', [\App\Http\Controllers\InvoicePdfController::class, 'view']);
 });
 
 // ---- اپِ مشتری (فقط توکنِ portal) ----

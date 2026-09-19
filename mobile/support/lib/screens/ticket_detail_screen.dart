@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../api.dart';
 import '../store.dart';
 import '../theme.dart';
@@ -170,6 +171,10 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       buttons.add(const SizedBox(width: 8));
       buttons.add(IconButton.filledTonal(onPressed: _changeStatus, icon: const Icon(Icons.swap_horiz), tooltip: 'تغییر وضعیت'));
     }
+    if (ab['assign'] == true) {
+      buttons.add(const SizedBox(width: 8));
+      buttons.add(IconButton.filledTonal(onPressed: _assign, icon: const Icon(Icons.person_add_alt), tooltip: 'تخصیص کارشناس'));
+    }
     if (buttons.isEmpty) return const SizedBox.shrink();
     return SafeArea(child: Padding(padding: const EdgeInsets.all(12), child: Row(children: buttons)));
   }
@@ -181,31 +186,67 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     final body = TextEditingController();
     final minutes = TextEditingController(text: '0');
     bool internal = false;
+    final files = <PlatformFile>[];
 
     final ok = await showModalBottomSheet<bool>(
       context: context, isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 16, right: 16, top: 16),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('پاسخ به تیکت', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          TextField(controller: body, maxLines: 4, decoration: const InputDecoration(labelText: 'متنِ پاسخ')),
-          const SizedBox(height: 10),
-          TextField(controller: minutes, keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'مدتِ کارکرد (دقیقه)')),
-          if (ab['internal_note'] == true)
-            SwitchListTile(value: internal, onChanged: (v) => setSheet(() => internal = v),
-                title: const Text('یادداشت داخلی (مشتری نمی‌بیند)')),
-          const SizedBox(height: 8),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ارسال')),
-          const SizedBox(height: 16),
-        ]),
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('پاسخ به تیکت', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            TextField(controller: body, maxLines: 4, decoration: const InputDecoration(labelText: 'متنِ پاسخ')),
+            const SizedBox(height: 10),
+            TextField(controller: minutes, keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'مدتِ کارکرد (دقیقه)')),
+            if (ab['internal_note'] == true)
+              SwitchListTile(value: internal, onChanged: (v) => setSheet(() => internal = v),
+                  title: const Text('یادداشت داخلی (مشتری نمی‌بیند)')),
+            _attachmentPicker(files, setSheet),
+            const SizedBox(height: 8),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ارسال')),
+            const SizedBox(height: 16),
+          ]),
+        ),
       )),
     );
 
     if (ok == true && body.text.trim().isNotEmpty) {
-      await _run(() => Api.reply(widget.id, body.text.trim(), int.tryParse(minutes.text) ?? 0, internal: internal));
+      final paths = files.where((f) => f.path != null).map((f) => f.path!).toList();
+      await _run(() => Api.reply(widget.id, body.text.trim(), int.tryParse(minutes.text) ?? 0,
+          internal: internal, files: paths));
     }
+  }
+
+  /// انتخابِ پیوست + نمایشِ فایل‌های انتخاب‌شده (مشترک بینِ پاسخ و ساختِ تیکت).
+  Widget _attachmentPicker(List<PlatformFile> files, void Function(void Function()) setSheet) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: OutlinedButton.icon(
+            onPressed: () async {
+              final res = await FilePicker.platform.pickFiles(allowMultiple: true, withData: false);
+              if (res != null) setSheet(() {
+                for (final f in res.files) {
+                  if (files.length < 10) files.add(f);
+                }
+              });
+            },
+            icon: const Icon(Icons.attach_file, size: 18),
+            label: const Text('افزودنِ پیوست'),
+          ),
+        ),
+        if (files.isNotEmpty)
+          Wrap(spacing: 6, runSpacing: 6, children: files.map((f) => Chip(
+                label: Text(f.name, style: const TextStyle(fontSize: 11)),
+                onDeleted: () => setSheet(() => files.remove(f)),
+              )).toList()),
+      ],
+    );
   }
 
   Future<void> _resolve() async {
@@ -280,6 +321,44 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       await _run(() => Api.changeStatus(widget.id, chosen!,
           methods: chosen == 'resolved' ? selectedMethods.toList() : null,
           resolution: chosen == 'resolved' ? resolution.text.trim() : null));
+    }
+  }
+
+  Future<void> _assign() async {
+    List staff;
+    try {
+      staff = await Api.staff();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: AppTheme.danger));
+      return;
+    }
+    if (!mounted) return;
+    int? chosen;
+    final ok = await showModalBottomSheet<bool>(
+      context: context, isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 16, right: 16, top: 16),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('تخصیص به کارشناس', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int?>(
+            value: chosen,
+            isExpanded: true,
+            items: [
+              const DropdownMenuItem<int?>(value: null, child: Text('— بدونِ کارشناس —')),
+              ...staff.map((s) => DropdownMenuItem<int?>(value: s['id'] as int, child: Text(s['name'] ?? ''))),
+            ],
+            onChanged: (v) => setSheet(() => chosen = v),
+            decoration: const InputDecoration(labelText: 'کارشناس'),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ثبت')),
+          const SizedBox(height: 16),
+        ]),
+      )),
+    );
+    if (ok == true) {
+      await _run(() => Api.assign(widget.id, chosen));
     }
   }
 

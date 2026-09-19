@@ -77,4 +77,20 @@ class AppTheme {
         return const Color(0xFF94A3B8);
     }
   }
+
+  /// رنگِ نشانِ وضعیتِ فاکتور.
+  static Color invoiceStatusColor(String status) {
+    switch (status) {
+      case 'paid':
+        return success;
+      case 'partially_paid':
+        return warning;
+      case 'cancelled':
+        return const Color(0xFF64748B);
+      case 'draft':
+        return const Color(0xFF94A3B8);
+      default: // issued …
+        return danger;
+    }
+  }
 }

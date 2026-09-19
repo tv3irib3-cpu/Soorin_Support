@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\Ticket;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -170,5 +171,62 @@ class MobileApiTest extends TestCase
         ])->assertStatus(201);
 
         $this->assertDatabaseHas('tickets', ['id' => $res->json('id'), 'subject' => 'تیکتِ اپ', 'created_by' => $this->admin->id]);
+    }
+
+    public function test_assign_requires_permission(): void
+    {
+        $ticket = $this->ticketAssignedTo($this->admin);
+
+        // کارشناس پیش‌فرض مجوزِ «تخصیص کارشناس» ندارد → ۴۰۳
+        $this->withToken($this->tokenFor('staff'))
+            ->postJson("/api/tickets/{$ticket->id}/assign", ['assigned_to' => $this->staff->id])
+            ->assertStatus(403);
+
+        // مدیر دارد → موفق و assigned_to ثبت می‌شود
+        $this->withToken($this->tokenFor('admin'))
+            ->postJson("/api/tickets/{$ticket->id}/assign", ['assigned_to' => $this->staff->id])
+            ->assertOk();
+        $this->assertSame($this->staff->id, $ticket->fresh()->assigned_to);
+
+        // بازتخصیص به «بدونِ کارشناس»
+        $this->withToken($this->tokenFor('admin'))
+            ->postJson("/api/tickets/{$ticket->id}/assign", ['assigned_to' => null])
+            ->assertOk();
+        $this->assertNull($ticket->fresh()->assigned_to);
+    }
+
+    public function test_staff_list_is_permission_gated(): void
+    {
+        $this->withToken($this->tokenFor('staff'))->getJson('/api/tickets/staff')->assertStatus(403);
+
+        $this->withToken($this->tokenFor('admin'))->getJson('/api/tickets/staff')
+            ->assertOk()->assertJsonStructure(['staff' => [['id', 'name']]])
+            ->assertJsonFragment(['name' => 'کارشناس']);
+    }
+
+    public function test_form_data_includes_categories(): void
+    {
+        $this->withToken($this->tokenFor('admin'))->getJson('/api/tickets/form-data')
+            ->assertOk()->assertJsonStructure(['customers', 'categories', 'projects', 'priorities']);
+    }
+
+    public function test_invoice_list_is_visible_to_support_with_search(): void
+    {
+        $ticket = $this->ticketAssignedTo($this->admin);
+        Invoice::create(['number' => 'INV-9', 'customer_id' => $this->customer->id, 'ticket_id' => $ticket->id,
+            'issue_date' => now(), 'status' => Invoice::STATUS_ISSUED]);
+
+        $token = $this->tokenFor('admin');
+
+        $numbers = collect($this->withToken($token)->getJson('/api/invoices')->assertOk()->json('data'))->pluck('number');
+        $this->assertContains('INV-9', $numbers);
+
+        // جستجو بر پایهٔ نامِ مشتری
+        $byName = collect($this->withToken($token)->getJson('/api/invoices?search=آریا')->json('data'))->pluck('number');
+        $this->assertContains('INV-9', $byName);
+
+        // جستجویِ بی‌نتیجه
+        $none = $this->withToken($token)->getJson('/api/invoices?search=ناموجود')->json('data');
+        $this->assertCount(0, $none);
     }
 }

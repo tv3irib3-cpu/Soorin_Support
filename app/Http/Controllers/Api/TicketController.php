@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
+use App\Models\Customer;
 use App\Models\Ticket;
+use App\Models\TicketCategory;
 use App\Models\TicketMessage;
 use App\Models\TicketRead;
+use App\Models\User;
 use App\Services\TicketAttachmentService;
 use App\Services\TicketReplyService;
 use App\Support\Jalali;
@@ -147,7 +151,18 @@ class TicketController extends Controller
             'customer_project_id' => ['nullable', 'exists:customer_projects,id'],
             'ticket_category_id'  => ['nullable', 'exists:ticket_categories,id'],
             'priority'            => ['nullable', 'in:low,normal,high,critical'],
+            'attachments'         => ['nullable', 'array', 'max:10'],
+            'attachments.*'       => TicketAttachmentService::validationRule(),
         ]);
+
+        // پروژه باید متعلق به همان مشتری باشد.
+        if (! empty($data['customer_project_id'])) {
+            $ok = \App\Models\CustomerProject::whereKey($data['customer_project_id'])
+                ->where('customer_id', $data['customer_id'])->exists();
+            abort_unless($ok, 422, __('tickets.project_customer_mismatch'));
+        }
+
+        $category = ! empty($data['ticket_category_id']) ? TicketCategory::find($data['ticket_category_id']) : null;
 
         $ticket = Ticket::create([
             'customer_id'         => $data['customer_id'],
@@ -155,11 +170,56 @@ class TicketController extends Controller
             'description'         => $data['description'],
             'customer_project_id' => $data['customer_project_id'] ?? null,
             'ticket_category_id'  => $data['ticket_category_id'] ?? null,
+            'service_type'        => $category?->service_type ?? 'hardware',
             'priority'            => $data['priority'] ?? 'normal',
             'created_by'          => $user->id,
         ]);
 
+        if ($request->hasFile('attachments')) {
+            $service = app(TicketAttachmentService::class);
+            foreach ($request->file('attachments') as $file) {
+                $service->store($file, $ticket, null, $user);
+            }
+        }
+
         return response()->json(['id' => $ticket->id, 'number' => $ticket->number], 201);
+    }
+
+    /** تخصیص/بازتخصیصِ تیکت به کارشناسِ پشتیبان — با مجوزِ «تخصیص کارشناس». */
+    public function assign(Request $request, Ticket $ticket): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user->can(Permission::AssignTickets->value), 403);
+        abort_unless(Ticket::visibleTo($user)->whereKey($ticket->id)->exists(), 404);
+        abort_if($ticket->is_locked, 422, __('tickets.locked_notice'));
+
+        $data = $request->validate(['assigned_to' => ['nullable', 'exists:users,id']]);
+
+        if (! empty($data['assigned_to'])) {
+            $ok = User::whereKey($data['assigned_to'])
+                ->whereIn('user_type', [User::TYPE_SUPPORT_ADMIN, User::TYPE_SUPPORT_STAFF])
+                ->where('is_active', true)->exists();
+            abort_unless($ok, 422);
+        }
+
+        $ticket->update(['assigned_to' => $data['assigned_to'] ?: null]);
+        ActivityLog::record('assigned', $ticket, ['assigned_to' => $data['assigned_to'] ?: null]);
+
+        return response()->json(['message' => 'ok']);
+    }
+
+    /** کارشناسانِ پشتیبانِ فعال — برای فرمِ تخصیص (فقط دارندهٔ مجوزِ تخصیص). */
+    public function staff(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user->can(Permission::AssignTickets->value), 403);
+
+        return response()->json([
+            'staff' => User::whereIn('user_type', [User::TYPE_SUPPORT_ADMIN, User::TYPE_SUPPORT_STAFF])
+                ->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+        ]);
     }
 
     /** «مشکل حل شد» — روش‌های انجام (اجباری) + شرحِ راه‌حل. */
@@ -243,8 +303,18 @@ class TicketController extends Controller
 
         abort_unless($user->can(Permission::CreateTickets->value), 403);
 
+        // پروژه‌های یک مشتری فقط وقتی خواسته شود (پس از انتخابِ مشتری در فرم).
+        $projects = [];
+        if ($customerId = $request->integer('customer_id')) {
+            $projects = \App\Models\CustomerProject::where('customer_id', $customerId)
+                ->orderBy('name')->get(['id', 'name']);
+        }
+
         return response()->json([
-            'customers'  => \App\Models\Customer::orderBy('name')->get(['id', 'name']),
+            'customers'  => Customer::orderBy('name')->get(['id', 'name']),
+            'categories' => TicketCategory::whereNotNull('parent_id')->where('is_active', true)->with('parent')->get()
+                ->map(fn (TicketCategory $c) => ['id' => $c->id, 'name' => $c->fullName()]),
+            'projects'   => $projects,
             'priorities' => __('tickets.priorities'),
         ]);
     }

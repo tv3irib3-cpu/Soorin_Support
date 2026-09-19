@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'store.dart';
 
@@ -51,6 +52,19 @@ class Api {
     return _decode(r);
   }
 
+  /// POSTِ چندبخشی (multipart) برای آپلودِ فایل. فیلدها رشته‌اند و فایل‌ها با
+  /// نامِ «attachments[]» می‌روند تا Laravel آن‌ها را آرایه ببیند.
+  static Future<dynamic> _multipart(String path, Map<String, String> fields, List<String> filePaths) async {
+    final req = http.MultipartRequest('POST', await _uri(path));
+    req.headers.addAll(await _headers()); // Accept + Authorization (بدونِ Content-Type — خودش می‌گذارد)
+    req.fields.addAll(fields);
+    for (final p in filePaths) {
+      req.files.add(await http.MultipartFile.fromPath('attachments[]', p));
+    }
+    final streamed = await req.send();
+    return _decode(await http.Response.fromStream(streamed));
+  }
+
   // ---- عمومی ----
 
   static Future<Map<String, dynamic>> appVersion() async =>
@@ -87,11 +101,20 @@ class Api {
   static Future<Map<String, dynamic>> meta() async =>
       (await _get('tickets/meta')) as Map<String, dynamic>;
 
-  static Future<Map<String, dynamic>> formData() async =>
-      (await _get('tickets/form-data')) as Map<String, dynamic>;
+  /// دادهٔ فرمِ ساختِ تیکت. با دادنِ customerId، پروژه‌های همان مشتری هم می‌آید.
+  static Future<Map<String, dynamic>> formData({int? customerId}) async =>
+      (await _get('tickets/form-data', customerId != null ? {'customer_id': '$customerId'} : null))
+          as Map<String, dynamic>;
 
-  static Future<void> reply(int id, String body, int workMinutes, {bool internal = false}) =>
-      _post('tickets/$id/reply', {'body': body, 'work_minutes': workMinutes, 'is_internal': internal});
+  static Future<void> reply(int id, String body, int workMinutes,
+      {bool internal = false, List<String> files = const []}) async {
+    if (files.isEmpty) {
+      await _post('tickets/$id/reply', {'body': body, 'work_minutes': workMinutes, 'is_internal': internal});
+    } else {
+      await _multipart('tickets/$id/reply',
+          {'body': body, 'work_minutes': '$workMinutes', 'is_internal': internal ? '1' : '0'}, files);
+    }
+  }
 
   static Future<void> resolve(int id, List<String> methods, String? resolution) =>
       _post('tickets/$id/resolve', {'method': methods, 'resolution': resolution});
@@ -103,6 +126,39 @@ class Api {
         if (methods != null && methods.isNotEmpty) 'method': methods,
       });
 
-  static Future<int> createTicket(Map<String, dynamic> data) async =>
-      (await _post('tickets', data))['id'] as int;
+  static Future<int> createTicket(Map<String, dynamic> data, {List<String> files = const []}) async {
+    if (files.isEmpty) {
+      return (await _post('tickets', data))['id'] as int;
+    }
+    final fields = <String, String>{};
+    data.forEach((k, v) { if (v != null) fields[k] = '$v'; });
+    return (await _multipart('tickets', fields, files))['id'] as int;
+  }
+
+  static Future<void> assign(int id, int? staffId) =>
+      _post('tickets/$id/assign', {'assigned_to': staffId});
+
+  static Future<List> staff() async =>
+      (await _get('tickets/staff'))['staff'] as List;
+
+  // ---- فاکتورها ----
+
+  static Future<Map<String, dynamic>> invoices({String? search, List<String>? status, int page = 1}) async {
+    final q = <String, dynamic>{'page': '$page'};
+    if (search != null && search.isNotEmpty) q['search'] = search;
+    if (status != null && status.isNotEmpty) q['status[]'] = status;
+    return (await _get('invoices', q)) as Map<String, dynamic>;
+  }
+
+  /// بایت‌های PDFِ فاکتور با توکن — برای ذخیره و بازکردن در اپ.
+  static Future<Uint8List> invoicePdf(int id) async {
+    final r = await http.get(await _uri('invoices/$id/pdf'), headers: await _headers());
+    if (r.statusCode >= 200 && r.statusCode < 300) return r.bodyBytes;
+    String msg = 'خطا (${r.statusCode})';
+    try {
+      final j = jsonDecode(r.body);
+      if (j is Map && j['message'] is String) msg = j['message'] as String;
+    } catch (_) {}
+    throw ApiException(r.statusCode, msg);
+  }
 }
