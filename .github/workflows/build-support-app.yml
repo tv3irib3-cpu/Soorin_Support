@@ -48,14 +48,18 @@ jobs:
           appg=android/app/build.gradle.kts
           [ -f "$appg" ] || appg=android/app/build.gradle
           sed -i -E 's/compileSdk(Version)?[[:space:]]*=?[[:space:]]*flutter\.compileSdkVersion/compileSdk = 36/' "$appg"
-          # ۲) همهٔ ماژول‌های پلاگین هم با compileSdk 36 کامپایل شوند:
+          # ۲) همهٔ ماژول‌های پلاگین هم با compileSdk 36 کامپایل شوند. بلوک باید
+          #    *پیش از* خطِ evaluationDependsOn(":app") درج شود؛ وگرنه :app زودتر
+          #    ارزیابی شده و afterEvaluate خطای «already evaluated» می‌دهد.
           rootg=android/build.gradle.kts
           if [ -f "$rootg" ]; then
-            printf '\nsubprojects {\n    afterEvaluate {\n        val a = extensions.findByName("android")\n        if (a is com.android.build.gradle.BaseExtension) { a.compileSdkVersion(36) }\n    }\n}\n' >> "$rootg"
+            line='subprojects { afterEvaluate { val a = extensions.findByName("android"); if (a is com.android.build.gradle.BaseExtension) { a.compileSdkVersion(36) } } }'
           else
             rootg=android/build.gradle
-            printf '\nsubprojects {\n    afterEvaluate { p ->\n        if (p.hasProperty("android")) { p.android { compileSdkVersion 36 } }\n    }\n}\n' >> "$rootg"
+            line='subprojects { afterEvaluate { p -> if (p.hasProperty("android")) { p.android { compileSdkVersion 36 } } } }'
           fi
+          awk -v ins="$line" '/evaluationDependsOn/ && !d {print ins; d=1} {print}' "$rootg" > "$rootg.tmp" && mv "$rootg.tmp" "$rootg"
+          echo '--- root gradle after patch ---'; cat "$rootg"
 
           flutter pub get
           flutter build apk --release
