@@ -42,26 +42,23 @@ jobs:
             sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' "$manifest"
           fi
 
-          # برخی پلاگین‌ها (file_picker → flutter_plugin_android_lifecycle) اپ و ماژول‌های
-          # خود را ملزم به compileSdk 36 می‌کنند؛ flutter create پیش‌فرض 34 می‌گذارد.
-          # ۱) compileSdkِ اپ:
+          # file_picker (از راهِ flutter_plugin_android_lifecycle) اپ و ماژولِ خود را
+          # ملزم به compileSdk 36 می‌کند؛ flutter create پیش‌فرض 34 می‌گذارد.
+          # ۱) compileSdkِ اپ → 36
           appg=android/app/build.gradle.kts
           [ -f "$appg" ] || appg=android/app/build.gradle
           sed -i -E 's/compileSdk(Version)?[[:space:]]*=?[[:space:]]*flutter\.compileSdkVersion/compileSdk = 36/' "$appg"
-          # ۲) همهٔ ماژول‌های پلاگین هم با compileSdk 36 کامپایل شوند. بلوک باید
-          #    *پیش از* خطِ evaluationDependsOn(":app") درج شود؛ وگرنه :app زودتر
-          #    ارزیابی شده و afterEvaluate خطای «already evaluated» می‌دهد.
-          rootg=android/build.gradle.kts
-          if [ -f "$rootg" ]; then
-            line='subprojects { afterEvaluate { val a = extensions.findByName("android"); if (a is com.android.build.gradle.BaseExtension) { a.compileSdkVersion(36) } } }'
-          else
-            rootg=android/build.gradle
-            line='subprojects { afterEvaluate { p -> if (p.hasProperty("android")) { p.android { compileSdkVersion 36 } } } }'
-          fi
-          awk -v ins="$line" '/evaluationDependsOn/ && !d {print ins; d=1} {print}' "$rootg" > "$rootg.tmp" && mv "$rootg.tmp" "$rootg"
-          echo '--- root gradle after patch ---'; cat "$rootg"
 
           flutter pub get
+
+          # ۲) خودِ ماژولِ file_picker در pub cache هنوز با 34 کامپایل می‌شود (چون از
+          #    flutter.compileSdkVersion پیروی می‌کند که 34 است). build.gradle آن را
+          #    مستقیم به 36 ببر — قطعی‌ترین راه، مستقل از نوعِ extension.
+          for fp in $(find "${PUB_CACHE:-$HOME/.pub-cache}" -path '*file_picker*/android/build.gradle' 2>/dev/null); do
+            sed -i -E 's/compileSdk(Version)?[[:space:]]*=?[[:space:]]*flutter\.compileSdkVersion/compileSdk 36/' "$fp"
+            sed -i -E 's/compileSdk(Version)?[[:space:]]*=?[[:space:]]*3[0-9]/compileSdk 36/' "$fp"
+            echo "--- patched $fp ---"; grep -n compileSdk "$fp" || true
+          done
           flutter build apk --release
           cp build/app/outputs/flutter-apk/app-release.apk soorin-support.apk
 
