@@ -42,6 +42,12 @@ jobs:
             sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' "$manifest"
           fi
 
+          # برخی پلاگین‌ها (file_picker → flutter_plugin_android_lifecycle) به compileSdk 36
+          # نیاز دارند؛ flutter create پیش‌فرض 34 می‌گذارد. آن را به 36 ببر.
+          gradle=android/app/build.gradle.kts
+          [ -f "$gradle" ] || gradle=android/app/build.gradle
+          sed -i -E 's/compileSdk(Version)?[[:space:]]*=?[[:space:]]*flutter\.compileSdkVersion/compileSdk = 36/' "$gradle"
+
           flutter pub get
           flutter build apk --release
           cp build/app/outputs/flutter-apk/app-release.apk soorin-support.apk
