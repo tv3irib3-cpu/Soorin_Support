@@ -1,0 +1,60 @@
+name: build-support-app
+
+# APKِ اپِ پشتیبان را می‌سازد و به همان Release پیوست می‌کند.
+# با انتشارِ هر Release خودکار اجرا می‌شود؛ با workflow_dispatch هم دستی.
+# آدرسِ ثابتِ دانلود:
+#   https://github.com/<owner>/<repo>/releases/latest/download/soorin-support.apk
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: ساختِ APK
+        working-directory: mobile/support
+        run: |
+          set -e
+          # اسکلتِ پلتفرمِ اندروید را می‌سازد (lib و pubspecِ ما را بازمی‌گردانیم).
+          flutter create --org ir.dpst --project-name soorin_support --platforms=android .
+          git checkout -- lib pubspec.yaml
+
+          # مجوزِ اینترنت را به منیفستِ اصلی (نسخهٔ release) اضافه کن.
+          manifest=android/app/src/main/AndroidManifest.xml
+          if ! grep -q 'android.permission.INTERNET' "$manifest"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' "$manifest"
+          fi
+
+          flutter pub get
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk soorin-support.apk
+
+      - name: پیوست به Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: mobile/support/soorin-support.apk
+
+      - name: آپلود به‌عنوان Artifact
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: soorin-support-apk
+          path: mobile/support/soorin-support.apk
