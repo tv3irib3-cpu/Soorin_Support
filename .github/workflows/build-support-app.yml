@@ -42,11 +42,20 @@ jobs:
             sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' "$manifest"
           fi
 
-          # برخی پلاگین‌ها (file_picker → flutter_plugin_android_lifecycle) به compileSdk 36
-          # نیاز دارند؛ flutter create پیش‌فرض 34 می‌گذارد. آن را به 36 ببر.
-          gradle=android/app/build.gradle.kts
-          [ -f "$gradle" ] || gradle=android/app/build.gradle
-          sed -i -E 's/compileSdk(Version)?[[:space:]]*=?[[:space:]]*flutter\.compileSdkVersion/compileSdk = 36/' "$gradle"
+          # برخی پلاگین‌ها (file_picker → flutter_plugin_android_lifecycle) اپ و ماژول‌های
+          # خود را ملزم به compileSdk 36 می‌کنند؛ flutter create پیش‌فرض 34 می‌گذارد.
+          # ۱) compileSdkِ اپ:
+          appg=android/app/build.gradle.kts
+          [ -f "$appg" ] || appg=android/app/build.gradle
+          sed -i -E 's/compileSdk(Version)?[[:space:]]*=?[[:space:]]*flutter\.compileSdkVersion/compileSdk = 36/' "$appg"
+          # ۲) همهٔ ماژول‌های پلاگین هم با compileSdk 36 کامپایل شوند:
+          rootg=android/build.gradle.kts
+          if [ -f "$rootg" ]; then
+            printf '\nsubprojects {\n    afterEvaluate {\n        val a = extensions.findByName("android")\n        if (a is com.android.build.gradle.BaseExtension) { a.compileSdkVersion(36) }\n    }\n}\n' >> "$rootg"
+          else
+            rootg=android/build.gradle
+            printf '\nsubprojects {\n    afterEvaluate { p ->\n        if (p.hasProperty("android")) { p.android { compileSdkVersion 36 } }\n    }\n}\n' >> "$rootg"
+          fi
 
           flutter pub get
           flutter build apk --release
