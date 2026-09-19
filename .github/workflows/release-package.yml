@@ -1,0 +1,127 @@
+name: build-install-package
+
+# با انتشارِ هر Release دو بسته ساخته و پیوست می‌شود:
+#
+#   ۱) soorin-crm-install.zip  — «بستهٔ آماده‌ی نصب» (همراهِ vendor، چیدمانِ
+#      public_html، .env آماده بدونِ رمز). برای نصبِ تازه روی هاست اشتراکی.
+#
+#   ۲) soorin-crm-update.zip    — «بستهٔ سبکِ به‌روزرسانی» (بدونِ vendor، با پوشهٔ
+#      public، بدونِ .env). حجمِ ~۱۰ برابر کمتر → آپدیتِ تک‌کلیکیِ سریع. نصبِ مقصد
+#      vendorِ خودش را نگه می‌دارد (applyPackageZip فقط copy-over می‌کند).
+#      وقتی وابستگی‌ها عوض نشده باشند این بسته کافی و بی‌خطر است.
+#
+#   مانیفستِ latest.json به بستهٔ «به‌روزرسانی» اشاره می‌کند تا آپدیت سبک بماند.
+#
+# آدرس‌های ثابت:
+#   نصب:      https://github.com/<owner>/<repo>/releases/latest/download/soorin-crm-install.zip
+#   آپدیت:    https://github.com/<owner>/<repo>/releases/latest/download/soorin-crm-update.zip
+#   مانیفست:  https://github.com/<owner>/<repo>/releases/latest/download/latest.json
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, gd, zip, bcmath, pdo_mysql, fileinfo, curl
+          tools: composer:v2
+
+      - name: نصبِ وابستگی‌های production
+        run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+      - name: ساختِ بسته‌ی نصب + بسته‌ی به‌روزرسانی + مانیفست
+        run: |
+          set -e
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          BASE="https://github.com/${{ github.repository }}/releases/latest/download"
+          rm -rf build && mkdir -p build
+
+          # ---------- بستهٔ آماده‌ی نصب (کامل، با vendor، چیدمانِ public_html) ----------
+          STAGE="build/soorin-crm"
+          mkdir -p "$STAGE"
+          for item in app bootstrap config database lang resources routes storage vendor \
+                      artisan composer.json composer.lock VERSION; do
+            [ -e "$item" ] && cp -a "$item" "$STAGE/"
+          done
+          # ریشهٔ وب روی هاست اشتراکی public_html است، نه public
+          cp -a public "$STAGE/public_html"
+          # داده و کشِ محلی داخلِ بسته نباشد (ساختارِ پوشه می‌ماند)
+          rm -rf "$STAGE/storage/app/backups"/* \
+                 "$STAGE/storage/logs"/* \
+                 "$STAGE/storage/framework/cache"/* \
+                 "$STAGE/storage/framework/sessions"/* \
+                 "$STAGE/storage/framework/views"/* \
+                 "$STAGE/bootstrap/cache"/*.php 2>/dev/null || true
+          # .env آماده و بدونِ رمز — ویزاردِ /install بقیه را پر می‌کند
+          cat > "$STAGE/.env" <<'ENV'
+          APP_NAME="Soorin Support"
+          APP_ENV=production
+          APP_KEY=base64:2Dx5Ak8mZoHhGfb6BIxraewxRaoPGnZWuiw+NmOsIE4=
+          APP_DEBUG=false
+          APP_TIMEZONE=Asia/Tehran
+          APP_URL=
+          APP_LOCALE=fa
+          APP_PUBLIC_PATH=public_html
+          DB_CONNECTION=mysql
+          DB_HOST=localhost
+          DB_PORT=3306
+          DB_DATABASE=
+          DB_USERNAME=
+          DB_PASSWORD=
+          DB_TABLE_PREFIX=
+          CACHE_STORE=file
+          SESSION_DRIVER=file
+          QUEUE_CONNECTION=sync
+          SESSION_SECURE_COOKIE=true
+          FILESYSTEM_DISK=local
+          LOG_CHANNEL=daily
+          LOG_LEVEL=error
+          APP_UPDATE_MANIFEST=https://github.com/${{ github.repository }}/releases/latest/download/latest.json
+          MAIL_MAILER=log
+          MAIL_FROM_ADDRESS=no-reply@dpst.ir
+          MAIL_FROM_NAME="Soorin Support"
+          ENV
+          ( cd build && zip -rq soorin-crm-install.zip soorin-crm )
+
+          # ---------- بستهٔ سبکِ به‌روزرسانی (بدونِ vendor، پوشهٔ public می‌ماند) ----------
+          USTAGE="build/soorin-crm-update"
+          mkdir -p "$USTAGE"
+          for item in app bootstrap config database lang resources routes public \
+                      artisan composer.json composer.lock VERSION; do
+            [ -e "$item" ] && cp -a "$item" "$USTAGE/"
+          done
+          rm -rf "$USTAGE/bootstrap/cache"/*.php 2>/dev/null || true
+          ( cd build && zip -rq soorin-crm-update.zip soorin-crm-update )
+
+          # ---------- مانیفست → به بستهٔ سبکِ به‌روزرسانی اشاره می‌کند ----------
+          SHA="$(sha256sum build/soorin-crm-update.zip | cut -d' ' -f1)"
+          cat > build/latest.json <<JSON
+          {
+            "version": "$VERSION",
+            "zip": "$BASE/soorin-crm-update.zip",
+            "sha256": "$SHA",
+            "notes": "نسخهٔ $VERSION"
+          }
+          JSON
+
+          echo "version=$VERSION update_sha256=$SHA"
+          ls -lh build/*.zip
+
+      - name: پیوست به Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/soorin-crm-install.zip
+            build/soorin-crm-update.zip
+            build/latest.json
