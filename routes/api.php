@@ -17,11 +17,19 @@ Route::get('app-version', [\App\Http\Controllers\Api\AppController::class, 'vers
 Route::post('support/login', [AuthController::class, 'loginSupport']);
 Route::post('portal/login', [AuthController::class, 'loginPortal']);
 
-// ---- مسیرهای نیازمندِ توکن ----
+// ---- مشترک بینِ هر دو اپ (هر توکنِ معتبر) ----
+// me/logout و دانلودِ پیوست هر دو اپ لازم دارند؛ کنترلرِ پیوست خودش دسترسی را
+// بر اساسِ Ticket::visibleTo بررسی می‌کند، پس بازبودنش برای مشتری امن است.
 Route::middleware(AuthenticateApiToken::class)->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
 
+    Route::get('attachments/{attachment}', [TicketAttachmentController::class, 'download'])
+        ->name('api.attachments.show');
+});
+
+// ---- اپِ پشتیبان (فقط توکنِ support) ----
+Route::middleware(AuthenticateApiToken::class . ':support')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index']);
 
     Route::get('tickets', [TicketController::class, 'index']);
@@ -32,7 +40,21 @@ Route::middleware(AuthenticateApiToken::class)->group(function () {
     Route::post('tickets/{ticket}/reply', [TicketController::class, 'reply']);
     Route::post('tickets/{ticket}/resolve', [TicketController::class, 'resolve']);
     Route::post('tickets/{ticket}/status', [TicketController::class, 'changeStatus']);
+});
 
-    Route::get('attachments/{attachment}', [TicketAttachmentController::class, 'download'])
-        ->name('api.attachments.show');
+// ---- اپِ مشتری (فقط توکنِ portal) ----
+Route::middleware(AuthenticateApiToken::class . ':portal')->prefix('portal')->group(function () {
+    Route::get('dashboard', [\App\Http\Controllers\Api\Portal\DashboardController::class, 'index']);
+
+    Route::get('tickets', [\App\Http\Controllers\Api\Portal\TicketController::class, 'index']);
+    Route::get('tickets/form-data', [\App\Http\Controllers\Api\Portal\TicketController::class, 'formData']);
+    Route::get('tickets/staff', [\App\Http\Controllers\Api\Portal\TicketController::class, 'staff']);
+    Route::post('tickets', [\App\Http\Controllers\Api\Portal\TicketController::class, 'store']);
+    Route::get('tickets/{ticket}', [\App\Http\Controllers\Api\Portal\TicketController::class, 'show']);
+    Route::post('tickets/{ticket}/reply', [\App\Http\Controllers\Api\Portal\TicketController::class, 'reply']);
+    Route::post('tickets/{ticket}/rate', [\App\Http\Controllers\Api\Portal\TicketController::class, 'rate']);
+    Route::post('tickets/{ticket}/assign', [\App\Http\Controllers\Api\Portal\TicketController::class, 'assign']);
+
+    Route::get('invoices', [\App\Http\Controllers\Api\Portal\InvoiceController::class, 'index']);
+    Route::get('invoices/{invoice}/pdf', [\App\Http\Controllers\InvoicePdfController::class, 'view']);
 });
