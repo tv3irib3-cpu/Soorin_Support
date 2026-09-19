@@ -226,13 +226,26 @@ class TicketController extends Controller
         return response()->json(['message' => 'ok']);
     }
 
-    /** فهرستِ گزینه‌ها برای فرمِ ساختِ تیکت / تغییر وضعیت. */
+    /** گزینه‌های وضعیت/اولویت/روش — برای فرمِ پاسخ و تغییر وضعیت. */
     public function meta(Request $request): JsonResponse
     {
         return response()->json([
             'statuses'   => __('tickets.statuses'),
             'priorities' => __('tickets.priorities'),
             'methods'    => __('tickets.methods'),
+        ]);
+    }
+
+    /** دادهٔ فرمِ ساختِ تیکت — فهرستِ مشتریان (برای پشتیبان) + اولویت‌ها. */
+    public function formData(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user->can(Permission::CreateTickets->value), 403);
+
+        return response()->json([
+            'customers'  => \App\Models\Customer::orderBy('name')->get(['id', 'name']),
+            'priorities' => __('tickets.priorities'),
         ]);
     }
 

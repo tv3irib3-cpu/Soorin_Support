@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Route;
 | نشستِ وب، پس امنیتِ سایت را تغییر نمی‌دهد. همهٔ آدرس‌ها با پیشوندِ /api.
 */
 
-// ---- ورود (بدونِ توکن) ----
+// ---- عمومی (بدونِ توکن) ----
+Route::get('app-version', [\App\Http\Controllers\Api\AppController::class, 'version']);
 Route::post('support/login', [AuthController::class, 'loginSupport']);
 Route::post('portal/login', [AuthController::class, 'loginPortal']);
 
@@ -24,7 +25,8 @@ Route::middleware(AuthenticateApiToken::class)->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index']);
 
     Route::get('tickets', [TicketController::class, 'index']);
-    Route::get('tickets/meta', [TicketController::class, 'meta']);   // پیش از {ticket}
+    Route::get('tickets/meta', [TicketController::class, 'meta']);          // پیش از {ticket}
+    Route::get('tickets/form-data', [TicketController::class, 'formData']); // پیش از {ticket}
     Route::post('tickets', [TicketController::class, 'store']);
     Route::get('tickets/{ticket}', [TicketController::class, 'show']);
     Route::post('tickets/{ticket}/reply', [TicketController::class, 'reply']);

@@ -147,6 +147,22 @@ class MobileApiTest extends TestCase
         $this->assertSame(Ticket::STATUS_WAITING_CUSTOMER, $ticket->fresh()->status);
     }
 
+    public function test_app_version_endpoint_is_public(): void
+    {
+        $this->getJson('/api/app-version?platform=support')
+            ->assertOk()
+            ->assertJsonStructure(['platform', 'version', 'min_supported', 'apk_url'])
+            ->assertJsonPath('platform', 'support');
+    }
+
+    public function test_form_data_returns_customers(): void
+    {
+        $this->withToken($this->tokenFor('admin'))->getJson('/api/tickets/form-data')
+            ->assertOk()
+            ->assertJsonStructure(['customers', 'priorities'])
+            ->assertJsonFragment(['name' => 'آریا']);
+    }
+
     public function test_support_can_create_ticket(): void
     {
         $res = $this->withToken($this->tokenFor('admin'))->postJson('/api/tickets', [
