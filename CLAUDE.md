@@ -142,3 +142,45 @@ PDF با mPDF و فونت وزیرمتن · تاریخ شمسی (hesabro/hesabix
    (کلیدِ خالی، دیتابیسِ خالی) باید `/install` با ۲۰۰ بالا بیاید؛ و پس از نصب،
    `/admin/login` باید `window.Livewire` را تعریف کند و فرم واقعاً به سرور ارسال شود
    (نه ری‌لودِ خالی).
+
+## اپ‌های موبایل (اندروید، نیتیو) — این قواعد را نشکن
+
+دو اپِ اندرویدِ نیتیو (Flutter) داریم که فقط داده را از API می‌گیرند (صفحه لود
+نمی‌کنند): **اپِ پشتیبان** (`mobile/support/`) و **اپِ مشتری** (`mobile/portal/`).
+
+### لینکِ دانلود (همیشه به آخرین نسخه اشاره می‌کند)
+
+- اپِ پشتیبان: <https://github.com/tv3irib3-cpu/Soorin_Support/releases/latest/download/soorin-support.apk>
+- اپِ مشتری: <https://github.com/tv3irib3-cpu/Soorin_Support/releases/latest/download/soorin-portal.apk>
+
+### قواعد
+
+1. **احرازِ هویتِ اپ جدا از نشستِ وب است** (جدولِ `api_tokens`، توکنِ Bearerِ ماندگار،
+   بدونِ Sanctum). این عمداً است: آپدیتِ کدی روی هاست، vendor را sync نمی‌کند.
+   **امنیتِ سایت را برای ماندگاریِ لاگینِ اپ پایین نیاور** — لایهٔ توکن مستقل است.
+
+2. **تفکیکِ پلتفرم اجباری است.** توکنِ `support` فقط به endpointهای پشتیبان و توکنِ
+   `portal` فقط به endpointهای مشتری دسترسی دارد. در `routes/api.php`: گروهِ پشتیبان با
+   `AuthenticateApiToken:support`، گروهِ مشتری با `:portal`؛ فقط `me`/`logout`/دانلودِ
+   پیوست مشترک‌اند. هر endpointِ تازه را در گروهِ درست بگذار.
+
+3. **SQLِ مقاوم به پیشوند.** هرگز نامِ جدول را با `soorin_` هاردکد نکن؛ از subqueryِ مدل
+   با `getQualifiedKeyName()` استفاده کن (پیشوندِ `DB_TABLE_PREFIX` روی سرور فعال است).
+
+4. **دامنهٔ دیدِ فاکتور و تیکت در اپ = دقیقاً مثلِ پنل** (`Ticket::visibleTo`،
+   `Invoice::visibleToCustomer`، مجوزها با `$user->can(...)`). منطق را دوباره ننویس؛ همان
+   را صدا بزن تا رفتار یکی بماند.
+
+5. **APK را GitHub Actions می‌سازد** (`.github/workflows/build-support-app.yml` و
+   `build-portal-app.yml`)؛ با انتشارِ هر Release خودکار ساخته و به همان Release پیوست
+   می‌شود. ساختِ محلیِ Flutter لازم نیست.
+
+6. **compileSdkِ اپِ پشتیبان روی ۳۶ pin شده** چون `file_picker` (از راهِ
+   `flutter_plugin_android_lifecycle`) آن را لازم دارد و `flutter create` پیش‌فرض ۳۴
+   می‌گذارد. رفع در workflow: بعد از `flutter pub get`، فایلِ `build.gradle`ِ ماژولِ
+   file_picker در pub cache به ۳۶ ویرایش می‌شود. **این گام را از workflow برندار.**
+
+7. **آپدیتِ درون‌اپ:** اپ هنگامِ باز شدن از `/api/app-version?platform=…` نسخه می‌پرسد.
+   بعد از هر تغییرِ اپ، نسخه را در **دو جا** بالا ببر تا آپدیت فعال شود: `config/mobile.php`
+   (`version`/`min_supported`) و `pubspec.yaml`ِ همان اپ. دادهٔ اپ همیشه زنده است و
+   آپدیت نمی‌خواهد؛ فقط تغییرِ صفحه‌ها نیازمندِ ساختِ APKِ تازه است.
