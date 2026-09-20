@@ -36,6 +36,13 @@ jobs:
           flutter create --org ir.dpst --project-name soorin_portal --platforms=android .
           git checkout -- lib pubspec.yaml
 
+          # امضای پایدار: keystoreِ ثابتِ مخزن را جای keystoreِ debug بگذار تا امضای
+          # همهٔ بیلدها یکی بماند و آپدیت روی نسخهٔ قبلی نصب شود (نه «حذف و نصبِ دوباره»).
+          if [ -f ../debug.keystore ]; then
+            mkdir -p ~/.android
+            cp ../debug.keystore ~/.android/debug.keystore
+          fi
+
           # مجوزِ اینترنت را به منیفستِ اصلی (نسخهٔ release) اضافه کن.
           manifest=android/app/src/main/AndroidManifest.xml
           if ! grep -q 'android.permission.INTERNET' "$manifest"; then
