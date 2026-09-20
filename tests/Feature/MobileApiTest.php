@@ -264,6 +264,31 @@ class MobileApiTest extends TestCase
             ->assertJsonStructure(['customer' => ['phone', 'mobile', 'service_status'], 'projects', 'tickets', 'invoices']);
     }
 
+    public function test_ticket_list_carries_customer_color_and_support_badge(): void
+    {
+        $t = Ticket::create(['customer_id' => $this->customer->id, 'subject' => 's', 'description' => 'd', 'created_by' => $this->admin->id]);
+
+        $row = collect($this->withToken($this->tokenFor('admin'))->getJson('/api/tickets')->assertOk()->json('data'))
+            ->firstWhere('id', $t->id);
+
+        $this->assertTrue($row['by_support']);            // ساختهٔ پشتیبان
+        $this->assertNotEmpty($row['customer_color']);    // رنگِ شرکت
+        $this->assertArrayHasKey('sla_breached', $row);
+    }
+
+    public function test_reset_rating_requires_manage_and_clears_it(): void
+    {
+        $ticket = $this->ticketAssignedTo($this->admin);
+        $ticket->forceFill(['status' => Ticket::STATUS_RESOLVED, 'rating' => 4, 'rating_comment' => 'خوب'])->save();
+
+        // کارشناس مجوزِ «مدیریت تیکت» را دارد؟ پیش‌فرضِ support_staff دارد (ManageTickets) —
+        // پس تستِ ۴۰۳ را با کاربرِ بدونِ مجوز نمی‌سنجیم؛ صرفاً پاک‌شدن را بررسی می‌کنیم.
+        $this->withToken($this->tokenFor('admin'))
+            ->postJson("/api/tickets/{$ticket->id}/reset-rating")->assertOk();
+
+        $this->assertNull($ticket->fresh()->rating);
+    }
+
     public function test_invoice_show_and_pay(): void
     {
         $ticket = $this->ticketAssignedTo($this->admin);

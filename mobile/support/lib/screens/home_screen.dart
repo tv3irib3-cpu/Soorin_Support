@@ -272,6 +272,9 @@ class _TicketsTabState extends State<_TicketsTab> {
 
   Widget _tile(Map<String, dynamic> t) {
     final unread = (t['unread'] ?? 0) as int;
+    final custColor = _hex(t['customer_color']) ?? AppTheme.priorityColor(t['priority'] ?? 'low');
+    final rating = t['rating'];
+    final bySupport = t['by_support'] == true;
     return Card(
       child: ListTile(
         onTap: () async {
@@ -279,12 +282,17 @@ class _TicketsTabState extends State<_TicketsTab> {
           refresh();
         },
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: Container(width: 6, height: 44, decoration: BoxDecoration(
-            color: AppTheme.priorityColor(t['priority'] ?? 'low'), borderRadius: BorderRadius.circular(4))),
+        // نوارِ رنگیِ سمتِ راست = رنگِ شرکتِ مشتری (مثلِ سایت).
+        leading: Container(width: 6, height: 46, decoration: BoxDecoration(
+            color: custColor, borderRadius: BorderRadius.circular(4))),
         title: Row(
           children: [
             Expanded(child: Text(t['subject'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.w600))),
+            if (t['sla_breached'] == true) ...[
+              const Icon(Icons.warning_amber_rounded, size: 16, color: AppTheme.danger),
+              const SizedBox(width: 4),
+            ],
             if (unread > 0)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -294,18 +302,43 @@ class _TicketsTabState extends State<_TicketsTab> {
           ],
         ),
         subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(
+          padding: const EdgeInsets.only(top: 5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(t['customer'] ?? '—', style: const TextStyle(fontSize: 12)),
-              const Spacer(),
-              _badge(t['status_label'] ?? '', AppTheme.statusColor(t['status'] ?? '')),
+              Row(children: [
+                Container(width: 9, height: 9, decoration: BoxDecoration(color: custColor, shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                Expanded(child: Text(t['customer'] ?? '—', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                if (rating != null) ...[
+                  const Icon(Icons.star, size: 13, color: AppTheme.warning),
+                  Text('$rating', style: const TextStyle(fontSize: 11, color: AppTheme.warning)),
+                ],
+              ]),
+              const SizedBox(height: 5),
+              Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                _badge(t['status_label'] ?? '', AppTheme.statusColor(t['status'] ?? '')),
+                _badge(t['priority_label'] ?? '', AppTheme.priorityColor(t['priority'] ?? '')),
+                if (bySupport) _badge('پشتیبان ساخته', AppTheme.info),
+                if (t['assignee'] != null) _chip(Icons.person_outline, t['assignee']),
+              ]),
             ],
           ),
         ),
       ),
     );
   }
+
+  Color? _hex(dynamic v) {
+    if (v is! String || !v.startsWith('#') || v.length < 7) return null;
+    return Color(int.parse('FF${v.substring(1)}', radix: 16));
+  }
+
+  Widget _chip(IconData icon, String text) => Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 13, color: Colors.black45),
+        const SizedBox(width: 3),
+        Text(text, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+      ]);
 
   Widget _badge(String text, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

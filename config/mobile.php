@@ -15,16 +15,16 @@ $repo = 'tv3irib3-cpu/Soorin_Support';
 
 return [
     'support' => [
-        'version'       => '1.0.2',
+        'version'       => '1.0.3',
         'min_supported' => '1.0.0',
         'apk_url'       => "https://github.com/{$repo}/releases/latest/download/soorin-support.apk",
-        'notes'         => 'مشتریان، جستجوی تیکت، جزئیات و ثبتِ پرداختِ فاکتور اضافه شد.',
+        'notes'         => 'رنگ و لوگوی شرکت، بجِ «پشتیبان‌ساخته»، امتیاز/SLA و نظرخواهیِ مجدد.',
     ],
 
     'portal' => [
-        'version'       => '1.0.2',
+        'version'       => '1.0.3',
         'min_supported' => '1.0.0',
         'apk_url'       => "https://github.com/{$repo}/releases/latest/download/soorin-portal.apk",
-        'notes'         => 'امضای پایدار برای به‌روزرسانیِ بی‌دردسرِ نسخه‌های بعد.',
+        'notes'         => 'نمایشِ امتیاز و دستهٔ تیکت در فهرست.',
     ],
 ];

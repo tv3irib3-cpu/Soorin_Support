@@ -285,6 +285,11 @@ class _TicketsTabState extends State<_TicketsTab> {
                 const SizedBox(width: 6),
                 _badge('از طرفِ پشتیبانی', AppTheme.info),
               ],
+              if (t['rating'] != null) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.star, size: 13, color: AppTheme.warning),
+                Text('${t['rating']}', style: const TextStyle(fontSize: 11, color: AppTheme.warning)),
+              ],
               const Spacer(),
               _badge(t['status_label'] ?? '', AppTheme.statusColor(t['status'] ?? '')),
             ],

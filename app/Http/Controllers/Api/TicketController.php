@@ -33,7 +33,7 @@ class TicketController extends Controller
             array_keys(__('tickets.statuses')),
         ));
 
-        $query = Ticket::visibleTo($user)->with(['customer', 'project', 'creator']);
+        $query = Ticket::visibleTo($user)->with(['customer', 'project', 'creator', 'assignee', 'category']);
 
         if ($statuses !== []) {
             $query->whereIn('status', $statuses);
@@ -118,6 +118,7 @@ class TicketController extends Controller
                 'resolve'       => $ticket->canReceiveMessages() && $user->isSupportUser(),
                 'change_status' => $user->isSupportAdmin(),
                 'assign'        => $user->can(Permission::AssignTickets->value),
+                'reset_rating'  => $ticket->rating !== null && $user->can(Permission::ManageTickets->value),
             ],
         ]);
     }
@@ -219,6 +220,19 @@ class TicketController extends Controller
 
         $ticket->update(['assigned_to' => $data['assigned_to'] ?: null]);
         ActivityLog::record('assigned', $ticket, ['assigned_to' => $data['assigned_to'] ?: null]);
+
+        return response()->json(['message' => 'ok']);
+    }
+
+    /** نظرخواهیِ مجدد — امتیازِ فعلی را پاک می‌کند تا مشتری دوباره امتیاز دهد. */
+    public function resetRating(Request $request, Ticket $ticket): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->can(Permission::ManageTickets->value), 403);
+        abort_unless(Ticket::visibleTo($user)->whereKey($ticket->id)->exists(), 404);
+
+        $ticket->update(['rating' => null, 'rating_comment' => null]);
+        ActivityLog::record('rating_reset', $ticket);
 
         return response()->json(['message' => 'ok']);
     }
@@ -348,7 +362,12 @@ class TicketController extends Controller
             'customer'     => $t->customer?->name,
             'customer_color' => $t->customer?->displayColor(),
             'project'      => $t->project?->name,
+            'category'     => $t->category?->name,
+            'assignee'     => $t->assignee?->name,
+            'rating'       => $t->rating,
             'by_support'   => $t->isCreatedBySupport(),
+            'sla_breached' => $t->isSlaBreached(),
+            'is_locked'    => (bool) $t->is_locked,
             'unread'       => $unread,
             'created_at'   => optional($t->created_at)->toIso8601String(),
             'created_at_jalali' => Jalali::format($t->created_at),
@@ -358,13 +377,18 @@ class TicketController extends Controller
     private function detail(Ticket $t): array
     {
         return array_merge($this->listItem($t, 0), [
-            'description'  => $t->description,
-            'creator'      => $t->creator?->name,
-            'assignee'     => $t->assignee?->name,
-            'category'     => $t->category?->name,
-            'work_minutes' => (int) $t->work_minutes,
-            'method'       => (array) $t->method,
-            'resolution'   => $t->resolution,
+            'description'      => $t->description,
+            'creator'          => $t->creator?->name,
+            'customer_logo'    => $t->customer?->logoData(),
+            'customer_code'    => $t->customer?->code,
+            'customer_phone'   => $t->customer?->mobile ?? $t->customer?->phone,
+            'work_minutes'     => (int) $t->work_minutes,
+            'method'           => (array) $t->method,
+            'method_labels'    => collect((array) $t->method)->map(fn ($m) => __("tickets.methods.$m"))->all(),
+            'resolution'       => $t->resolution,
+            'rating_comment'   => $t->rating_comment,
+            'first_response_jalali' => $t->first_response_at ? Jalali::formatDateTime($t->first_response_at) : null,
+            'closed_at_jalali' => $t->closed_at ? Jalali::formatDateTime($t->closed_at) : null,
         ]);
     }
 

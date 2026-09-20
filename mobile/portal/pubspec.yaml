@@ -1,7 +1,7 @@
 name: soorin_portal
 description: اپِ مشتریِ سورین — پرتالِ خدمات و پشتیبانی روی موبایل (نیتیو، سریع).
 publish_to: "none"
-version: 1.0.1+2
+version: 1.0.3+4
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

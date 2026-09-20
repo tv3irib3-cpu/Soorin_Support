@@ -42,6 +42,7 @@ Route::middleware(AuthenticateApiToken::class . ':support')->group(function () {
     Route::post('tickets/{ticket}/resolve', [TicketController::class, 'resolve']);
     Route::post('tickets/{ticket}/status', [TicketController::class, 'changeStatus']);
     Route::post('tickets/{ticket}/assign', [TicketController::class, 'assign']);
+    Route::post('tickets/{ticket}/reset-rating', [TicketController::class, 'resetRating']);
 
     Route::get('invoices', [\App\Http\Controllers\Api\InvoiceController::class, 'index']);
     Route::get('invoices/{invoice}', [\App\Http\Controllers\Api\InvoiceController::class, 'show']);

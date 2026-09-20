@@ -140,6 +140,8 @@ class Api {
   static Future<void> assign(int id, int? staffId) =>
       _post('tickets/$id/assign', {'assigned_to': staffId});
 
+  static Future<void> resetRating(int id) => _post('tickets/$id/reset-rating', {});
+
   static Future<List> staff() async =>
       (await _get('tickets/staff'))['staff'] as List;
 

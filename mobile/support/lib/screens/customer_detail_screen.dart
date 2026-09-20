@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../api.dart';
@@ -72,13 +73,17 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(children: [
-                    Expanded(child: Text(c['name'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                    _logoAvatar(c),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(c['name'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      if (c['code'] != null) ...[
+                        const SizedBox(height: 2),
+                        Text('کد: ${c['code']}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                      ],
+                    ])),
                     _badge(active ? 'فعال' : 'معلق', active ? AppTheme.success : AppTheme.danger),
                   ]),
-                  if (c['code'] != null) ...[
-                    const SizedBox(height: 4),
-                    Text('کد: ${c['code']}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                  ],
                   if (!active && c['suspension_message'] != null) ...[
                     const SizedBox(height: 8),
                     Container(
@@ -167,6 +172,37 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
           ]),
         ),
       );
+
+  Widget _logoAvatar(Map<String, dynamic> c) {
+    final color = _hex(c['color']) ?? AppTheme.accent;
+    final logo = c['logo'];
+    if (logo is String && logo.startsWith('data:image/') && !logo.contains('svg')) {
+      try {
+        final bytes = base64Decode(logo.substring(logo.indexOf(',') + 1));
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.memory(bytes, width: 54, height: 54, fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _initial(c, color)),
+        );
+      } catch (_) {}
+    }
+    return _initial(c, color);
+  }
+
+  Widget _initial(Map<String, dynamic> c, Color color) {
+    final name = (c['name'] ?? '؟').toString().trim();
+    return CircleAvatar(
+      radius: 27,
+      backgroundColor: color.withOpacity(0.15),
+      child: Text(name.isEmpty ? '؟' : name.substring(0, 1),
+          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 20)),
+    );
+  }
+
+  Color? _hex(dynamic v) {
+    if (v is! String || !v.startsWith('#') || v.length < 7) return null;
+    return Color(int.parse('FF${v.substring(1)}', radix: 16));
+  }
 
   Widget _section(String title) => Padding(
         padding: const EdgeInsets.fromLTRB(4, 14, 4, 6),

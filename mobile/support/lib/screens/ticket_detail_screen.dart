@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../api.dart';
 import '../store.dart';
 import '../theme.dart';
@@ -63,17 +65,42 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // سرصفحهٔ مشتری: لوگو/رنگِ شرکت + نام + کد + تماسِ سریع.
+                  Row(children: [
+                    _customerAvatar(t),
+                    const SizedBox(width: 10),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(t['customer'] ?? '—', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                      if (t['customer_code'] != null)
+                        Text('کد: ${t['customer_code']}', style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                    ])),
+                    if (t['customer_phone'] != null)
+                      IconButton(
+                        onPressed: () async {
+                          final u = Uri.parse('tel:${t['customer_phone']}');
+                          if (await canLaunchUrl(u)) await launchUrl(u, mode: LaunchMode.externalApplication);
+                        },
+                        icon: const Icon(Icons.call, color: AppTheme.success),
+                      ),
+                  ]),
+                  const Divider(height: 20),
                   Text(t['subject'] ?? '', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   Wrap(spacing: 8, runSpacing: 8, children: [
                     _badge(t['status_label'] ?? '', AppTheme.statusColor(t['status'] ?? '')),
                     _badge(t['priority_label'] ?? '', AppTheme.priorityColor(t['priority'] ?? '')),
-                    if (t['customer'] != null) _chip(Icons.business, t['customer']),
+                    if (t['by_support'] == true) _badge('پشتیبان ساخته', AppTheme.info),
+                    if (t['category'] != null) _chip(Icons.category_outlined, t['category']),
                     if (t['project'] != null) _chip(Icons.folder_outlined, t['project']),
+                    if (t['assignee'] != null) _chip(Icons.person_outline, t['assignee']),
+                    if ((t['work_minutes'] ?? 0) > 0) _chip(Icons.timer_outlined, '${t['work_minutes']} دقیقه'),
                   ]),
+                  if (t['sla_breached'] == true) _banner(Icons.warning_amber_rounded, 'مهلتِ اولین پاسخ گذشته است', AppTheme.danger),
+                  if (t['is_locked'] == true) _banner(Icons.lock_outline, 'این تیکت قفل است', AppTheme.warning),
                   const Divider(height: 24),
                   Text(t['description'] ?? '', style: const TextStyle(height: 1.7)),
                   ..._attachments(_data!['ticket_attachments'] as List),
+                  if (t['rating'] != null) _ratingBox(t),
                 ],
               ),
             ),
@@ -174,6 +201,10 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     if (ab['assign'] == true) {
       buttons.add(const SizedBox(width: 8));
       buttons.add(IconButton.filledTonal(onPressed: _assign, icon: const Icon(Icons.person_add_alt), tooltip: 'تخصیص کارشناس'));
+    }
+    if (ab['reset_rating'] == true) {
+      buttons.add(const SizedBox(width: 8));
+      buttons.add(IconButton.filledTonal(onPressed: _resetRating, icon: const Icon(Icons.star_outline), tooltip: 'نظرخواهیِ مجدد'));
     }
     if (buttons.isEmpty) return const SizedBox.shrink();
     return SafeArea(child: Padding(padding: const EdgeInsets.all(12), child: Row(children: buttons)));
@@ -362,6 +393,21 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     }
   }
 
+  Future<void> _resetRating() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('نظرخواهیِ مجدد'),
+        content: const Text('امتیازِ فعلی پاک می‌شود تا مشتری دوباره امتیاز دهد. ادامه؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('انصراف')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('پاک کن')),
+        ],
+      ),
+    );
+    if (ok == true) await _run(() => Api.resetRating(widget.id));
+  }
+
   Future<void> _run(Future<void> Function() action) async {
     try {
       await action();
@@ -370,6 +416,71 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: AppTheme.danger));
     }
+  }
+
+  /// آواتارِ مشتری: اگر لوگوی رستری (png/jpg/webp) باشد نشانش می‌دهد، وگرنه
+  /// دایره‌ای با رنگِ شرکت و حرفِ اول.
+  Widget _customerAvatar(Map<String, dynamic> t) {
+    final color = _hex(t['customer_color']) ?? AppTheme.accent;
+    final logo = t['customer_logo'];
+    if (logo is String && logo.startsWith('data:image/') && !logo.contains('svg')) {
+      try {
+        final bytes = base64Decode(logo.substring(logo.indexOf(',') + 1));
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.memory(bytes, width: 46, height: 46, fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _initialAvatar(t, color)),
+        );
+      } catch (_) {}
+    }
+    return _initialAvatar(t, color);
+  }
+
+  Widget _initialAvatar(Map<String, dynamic> t, Color color) {
+    final name = (t['customer'] ?? '؟').toString().trim();
+    return CircleAvatar(
+      radius: 23,
+      backgroundColor: color.withOpacity(0.15),
+      child: Text(name.isEmpty ? '؟' : name.substring(0, 1),
+          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18)),
+    );
+  }
+
+  Widget _banner(IconData icon, String text, Color color) => Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+        child: Row(children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600))),
+        ]),
+      );
+
+  Widget _ratingBox(Map<String, dynamic> t) {
+    final r = (t['rating'] as num).toInt();
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: AppTheme.warning.withOpacity(0.07), borderRadius: BorderRadius.circular(10)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('امتیازِ مشتری: ', style: TextStyle(fontSize: 12, color: Colors.black54)),
+          ...List.generate(5, (i) => Icon(i < r ? Icons.star : Icons.star_border, size: 18, color: AppTheme.warning)),
+        ]),
+        if (t['rating_comment'] != null) ...[
+          const SizedBox(height: 6),
+          Text(t['rating_comment'], style: const TextStyle(fontSize: 13, height: 1.5)),
+        ],
+      ]),
+    );
+  }
+
+  Color? _hex(dynamic v) {
+    if (v is! String || !v.startsWith('#') || v.length < 7) return null;
+    return Color(int.parse('FF${v.substring(1)}', radix: 16));
   }
 
   Widget _badge(String text, Color color) => Container(

@@ -100,6 +100,8 @@ class CustomerController extends Controller
                 'id'                 => $customer->id,
                 'name'               => $customer->name,
                 'code'               => $customer->code,
+                'color'              => $customer->displayColor(),
+                'logo'               => $customer->logoData(),
                 'entity_type'        => $customer->entity_type,
                 'service_status'     => $customer->service_status,
                 'is_active'          => $customer->canReceiveService(),
