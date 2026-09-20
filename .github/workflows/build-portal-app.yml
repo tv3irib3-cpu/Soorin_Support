@@ -43,6 +43,14 @@ jobs:
             cp ../debug.keystore ~/.android/debug.keystore
           fi
 
+          # نامِ بستهٔ یکتا + برچسبِ فارسی — تا اپِ مشتری و پشتیبان جدا از هم نصب شوند
+          # و در لانچر با اسمِ فارسی دیده شوند.
+          appg=android/app/build.gradle.kts
+          [ -f "$appg" ] || appg=android/app/build.gradle
+          sed -i -E 's/applicationId *=? *"[^"]*"/applicationId = "ir.dpst.soorin_portal"/' "$appg"
+          manifest=android/app/src/main/AndroidManifest.xml
+          sed -i -E 's/android:label="[^"]*"/android:label="مشتریان سورین"/' "$manifest"
+
           # مجوزِ اینترنت را به منیفستِ اصلی (نسخهٔ release) اضافه کن.
           manifest=android/app/src/main/AndroidManifest.xml
           if ! grep -q 'android.permission.INTERNET' "$manifest"; then

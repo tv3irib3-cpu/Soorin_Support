@@ -5,13 +5,15 @@ import '../api.dart';
 import '../theme.dart';
 import 'ticket_detail_screen.dart';
 import 'invoice_detail_screen.dart';
+import 'create_invoice_screen.dart';
 
 /// جزئیاتِ مشتری برای پشتیبان: اطلاعاتِ تماس (تماس/پیامک/ایمیل)، وضعیتِ سرویس،
 /// پروژه‌ها، و تیکت‌ها/فاکتورهای اخیر (با لمس به صفحهٔ مربوط می‌رود).
 class CustomerDetailScreen extends StatefulWidget {
   final int id;
   final String name;
-  const CustomerDetailScreen({super.key, required this.id, required this.name});
+  final bool canInvoice;
+  const CustomerDetailScreen({super.key, required this.id, required this.name, this.canInvoice = false});
   @override
   State<CustomerDetailScreen> createState() => _CustomerDetailScreenState();
 }
@@ -51,6 +53,20 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
           : _data == null
               ? const Center(child: CircularProgressIndicator())
               : _body(),
+      bottomNavigationBar: (widget.canInvoice && _data != null)
+          ? SafeArea(child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: FilledButton.icon(
+                onPressed: () async {
+                  final done = await Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => CreateInvoiceScreen(customerId: widget.id)));
+                  if (done == true) _load();
+                },
+                icon: const Icon(Icons.receipt_long),
+                label: const Text('صدور فاکتور'),
+              ),
+            ))
+          : null,
     );
   }
 

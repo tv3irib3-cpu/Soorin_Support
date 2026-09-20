@@ -7,7 +7,8 @@ import 'customer_detail_screen.dart';
 /// تبِ مشتریانِ اپِ پشتیبان — فهرست با جستجو (نام/کد/شهر/تلفن) و شمارندهٔ تیکتِ
 /// باز و فاکتورِ پرداخت‌نشده. با لمس، صفحهٔ جزئیاتِ مشتری باز می‌شود.
 class CustomersTab extends StatefulWidget {
-  const CustomersTab({super.key});
+  final bool canInvoice;
+  const CustomersTab({super.key, this.canInvoice = false});
   @override
   State<CustomersTab> createState() => _CustomersTabState();
 }
@@ -94,7 +95,7 @@ class _CustomersTabState extends State<CustomersTab> {
     return Card(
       child: ListTile(
         onTap: () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => CustomerDetailScreen(id: c['id'] as int, name: c['name'] ?? ''))),
+            MaterialPageRoute(builder: (_) => CustomerDetailScreen(id: c['id'] as int, name: c['name'] ?? '', canInvoice: widget.canInvoice))),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         leading: CircleAvatar(
           backgroundColor: color.withOpacity(0.15),

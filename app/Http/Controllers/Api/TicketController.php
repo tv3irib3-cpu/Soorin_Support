@@ -119,6 +119,7 @@ class TicketController extends Controller
                 'change_status' => $user->isSupportAdmin(),
                 'assign'        => $user->can(Permission::AssignTickets->value),
                 'reset_rating'  => $ticket->rating !== null && $user->can(Permission::ManageTickets->value),
+                'create_invoice'=> $user->can(Permission::ManageInvoices->value),
             ],
         ]);
     }

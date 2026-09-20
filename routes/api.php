@@ -45,12 +45,21 @@ Route::middleware(AuthenticateApiToken::class . ':support')->group(function () {
     Route::post('tickets/{ticket}/reset-rating', [TicketController::class, 'resetRating']);
 
     Route::get('invoices', [\App\Http\Controllers\Api\InvoiceController::class, 'index']);
+    Route::get('invoices/create-form-data', [\App\Http\Controllers\Api\InvoiceController::class, 'createFormData']); // پیش از {invoice}
+    Route::post('invoices', [\App\Http\Controllers\Api\InvoiceController::class, 'store']);
     Route::get('invoices/{invoice}', [\App\Http\Controllers\Api\InvoiceController::class, 'show']);
     Route::post('invoices/{invoice}/pay', [\App\Http\Controllers\Api\InvoiceController::class, 'pay']);
+    Route::post('invoices/{invoice}/issue', [\App\Http\Controllers\Api\InvoiceController::class, 'issue']);
     Route::get('invoices/{invoice}/pdf', [\App\Http\Controllers\InvoicePdfController::class, 'view']);
 
     Route::get('customers', [\App\Http\Controllers\Api\CustomerController::class, 'index']);
     Route::get('customers/{customer}', [\App\Http\Controllers\Api\CustomerController::class, 'show']);
+
+    Route::get('contracts', [\App\Http\Controllers\Api\ContractController::class, 'index']);
+    Route::get('contracts/{contract}', [\App\Http\Controllers\Api\ContractController::class, 'show']);
+
+    Route::get('reports', [\App\Http\Controllers\Api\ReportController::class, 'index']);
+    Route::get('activity', [\App\Http\Controllers\Api\ActivityController::class, 'index']);
 });
 
 // ---- اپِ مشتری (فقط توکنِ portal) ----
@@ -68,4 +77,7 @@ Route::middleware(AuthenticateApiToken::class . ':portal')->prefix('portal')->gr
 
     Route::get('invoices', [\App\Http\Controllers\Api\Portal\InvoiceController::class, 'index']);
     Route::get('invoices/{invoice}/pdf', [\App\Http\Controllers\InvoicePdfController::class, 'view']);
+
+    Route::get('contracts', [\App\Http\Controllers\Api\Portal\ContractController::class, 'index']);
+    Route::get('contracts/{contract}', [\App\Http\Controllers\Api\Portal\ContractController::class, 'show']);
 });

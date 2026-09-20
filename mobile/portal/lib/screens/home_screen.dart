@@ -6,6 +6,7 @@ import 'login_screen.dart';
 import 'ticket_detail_screen.dart';
 import 'create_ticket_screen.dart';
 import 'invoices_tab.dart';
+import 'contracts_tab.dart';
 
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -63,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _DashboardTab(data: _dash!, onRefresh: _loadDash),
       _TicketsTab(key: _ticketsKey, isAdmin: widget.user['is_admin'] == true),
       if (canInvoices) const InvoicesTab(),
+      const ContractsTab(),
     ];
 
     final destinations = <NavigationDestination>[
@@ -70,9 +72,10 @@ class _HomeScreenState extends State<HomeScreen> {
       const NavigationDestination(icon: Icon(Icons.confirmation_number_outlined), selectedIcon: Icon(Icons.confirmation_number), label: 'تیکت‌ها'),
       if (canInvoices)
         const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'فاکتورها'),
+      const NavigationDestination(icon: Icon(Icons.description_outlined), selectedIcon: Icon(Icons.description), label: 'قراردادها'),
     ];
 
-    final titles = ['داشبورد', 'تیکت‌ها', if (canInvoices) 'فاکتورها'];
+    final titles = ['داشبورد', 'تیکت‌ها', if (canInvoices) 'فاکتورها', 'قراردادها'];
     final safeTab = _tab < tabs.length ? _tab : 0;
 
     return Scaffold(

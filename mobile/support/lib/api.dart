@@ -174,6 +174,41 @@ class Api {
   static Future<Map<String, dynamic>> customer(int id) async =>
       (await _get('customers/$id')) as Map<String, dynamic>;
 
+  // ---- قراردادها / گزارش / تاریخچه ----
+
+  static Future<Map<String, dynamic>> contracts({String? search, int page = 1}) async {
+    final q = <String, dynamic>{'page': '$page'};
+    if (search != null && search.isNotEmpty) q['search'] = search;
+    return (await _get('contracts', q)) as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> contract(int id) async =>
+      (await _get('contracts/$id')) as Map<String, dynamic>;
+
+  static Future<Map<String, dynamic>> reports({String? from, String? to}) async {
+    final q = <String, dynamic>{};
+    if (from != null) q['from'] = from;
+    if (to != null) q['to'] = to;
+    return (await _get('reports', q)) as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> activity({int page = 1}) async =>
+      (await _get('activity', {'page': '$page'})) as Map<String, dynamic>;
+
+  // ---- صدور فاکتور ----
+
+  static Future<Map<String, dynamic>> invoiceFormData({int? ticketId, int? customerId}) async {
+    final q = <String, dynamic>{};
+    if (ticketId != null) q['ticket_id'] = '$ticketId';
+    if (customerId != null) q['customer_id'] = '$customerId';
+    return (await _get('invoices/create-form-data', q)) as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> createInvoice(Map<String, dynamic> data) async =>
+      (await _post('invoices', data)) as Map<String, dynamic>;
+
+  static Future<void> issueInvoice(int id) => _post('invoices/$id/issue', {});
+
   /// بایت‌های PDFِ فاکتور با توکن — برای ذخیره و بازکردن در اپ.
   static Future<Uint8List> invoicePdf(int id) async {
     final r = await http.get(await _uri('invoices/$id/pdf'), headers: await _headers());

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Contract;
+use App\Models\ContractPlan;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Ticket;
@@ -131,6 +133,26 @@ class MobilePortalApiTest extends TestCase
             ->postJson("/api/portal/tickets/{$ticket->id}/assign", ['customer_assigned_to' => $this->staff->id])
             ->assertOk();
         $this->assertSame($this->staff->id, $ticket->fresh()->customer_assigned_to);
+    }
+
+    public function test_customer_sees_only_own_contracts(): void
+    {
+        $plan = ContractPlan::create(['name' => 'نقره‌ای', 'cover_software' => 50, 'cover_hardware' => 40,
+            'cover_parts' => 30, 'cover_onsite' => 60, 'is_active' => true]);
+        $mine = Contract::create(['number' => 'MINE-1', 'customer_id' => $this->customer->id, 'contract_plan_id' => $plan->id,
+            'start_date' => now()->subMonth(), 'end_date' => now()->addMonth(), 'status' => Contract::STATUS_ACTIVE]);
+        $other = Customer::create(['code' => 'OTHR', 'name' => 'دیگر']);
+        $theirs = Contract::create(['number' => 'THEIRS-1', 'customer_id' => $other->id, 'contract_plan_id' => $plan->id,
+            'start_date' => now()->subMonth(), 'end_date' => now()->addMonth(), 'status' => Contract::STATUS_ACTIVE]);
+
+        $token = $this->token('ca');
+        $numbers = collect($this->withToken($token)->getJson('/api/portal/contracts')->assertOk()->json('data'))->pluck('number');
+        $this->assertContains('MINE-1', $numbers);
+        $this->assertNotContains('THEIRS-1', $numbers);
+
+        // قراردادِ مشتریِ دیگر → ۴۰۴
+        $this->withToken($token)->getJson("/api/portal/contracts/{$theirs->id}")->assertStatus(404);
+        $this->withToken($token)->getJson("/api/portal/contracts/{$mine->id}")->assertOk();
     }
 
     public function test_invoices_are_scoped(): void

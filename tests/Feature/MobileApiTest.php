@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
+use App\Models\Contract;
+use App\Models\ContractPlan;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Ticket;
@@ -287,6 +290,66 @@ class MobileApiTest extends TestCase
             ->postJson("/api/tickets/{$ticket->id}/reset-rating")->assertOk();
 
         $this->assertNull($ticket->fresh()->rating);
+    }
+
+    public function test_contracts_list_and_detail(): void
+    {
+        $plan = ContractPlan::create(['name' => 'طلایی', 'cover_software' => 100, 'cover_hardware' => 70,
+            'cover_parts' => 50, 'cover_onsite' => 100, 'is_active' => true]);
+        $contract = Contract::create(['number' => 'C-1', 'customer_id' => $this->customer->id, 'contract_plan_id' => $plan->id,
+            'start_date' => now()->subMonth(), 'end_date' => now()->addMonth(), 'amount' => 5000000, 'status' => Contract::STATUS_ACTIVE]);
+
+        $token = $this->tokenFor('admin');
+        $numbers = collect($this->withToken($token)->getJson('/api/contracts')->assertOk()->json('data'))->pluck('number');
+        $this->assertContains('C-1', $numbers);
+
+        $this->withToken($token)->getJson("/api/contracts/{$contract->id}")->assertOk()
+            ->assertJsonPath('contract.plan', 'طلایی')
+            ->assertJsonStructure(['contract' => ['coverage', 'status_label'], 'tickets_count', 'invoices_count']);
+    }
+
+    public function test_activity_log_is_permission_gated(): void
+    {
+        ActivityLog::create(['user_id' => $this->admin->id, 'action' => 'assigned', 'subject_type' => Ticket::class, 'subject_id' => 1]);
+
+        $this->withToken($this->tokenFor('admin'))->getJson('/api/activity')->assertOk()
+            ->assertJsonStructure(['data' => [['action', 'user', 'created_at_jalali']], 'meta']);
+    }
+
+    public function test_reports_summary(): void
+    {
+        $ticket = $this->ticketAssignedTo($this->admin);
+        $ticket->forceFill(['status' => Ticket::STATUS_RESOLVED, 'resolved_at' => now()])->save();
+        Invoice::create(['number' => 'INV-R', 'customer_id' => $this->customer->id, 'ticket_id' => $ticket->id,
+            'issue_date' => now(), 'status' => Invoice::STATUS_ISSUED, 'payable_amount' => 300000]);
+
+        $this->withToken($this->tokenFor('admin'))->getJson('/api/reports')->assertOk()
+            ->assertJsonStructure(['from', 'to', 'summary' => ['revenue_fa', 'tickets_created'], 'by_customer', 'by_status', 'by_staff']);
+    }
+
+    public function test_create_invoice_with_items(): void
+    {
+        $ticket = $this->ticketAssignedTo($this->admin);
+        $token = $this->tokenFor('admin');
+
+        $res = $this->withToken($token)->postJson('/api/invoices', [
+            'customer_id' => $this->customer->id,
+            'ticket_id'   => $ticket->id,
+            'items'       => [
+                ['item_type' => 'service', 'title' => 'کارِ انجام‌شده', 'quantity' => 1, 'unit_price' => 200000],
+                ['item_type' => 'part', 'title' => 'قطعه', 'quantity' => 2, 'unit_price' => 50000],
+            ],
+        ])->assertStatus(201);
+
+        $id = $res->json('id');
+        // بدونِ قرارداد: قابلِ پرداخت = جمعِ ردیف‌ها (۲۰۰٬۰۰۰ + ۱۰۰٬۰۰۰).
+        $this->assertSame(300000, (int) Invoice::find($id)->payable_amount);
+        $this->assertSame(Invoice::STATUS_DRAFT, Invoice::find($id)->status);
+        $this->assertDatabaseCount('invoice_items', 2);
+
+        // صدور
+        $this->withToken($token)->postJson("/api/invoices/$id/issue")->assertOk();
+        $this->assertSame(Invoice::STATUS_ISSUED, Invoice::find($id)->fresh()->status);
     }
 
     public function test_invoice_show_and_pay(): void

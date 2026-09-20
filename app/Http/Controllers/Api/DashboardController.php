@@ -36,10 +36,14 @@ class DashboardController extends Controller
             'open'              => $open,
             'resolved'          => $resolved,
             'unpaid_invoices'   => $unpaid,
-            'unread'            => TicketRead::unreadCountFor($user),
-            'can_view_invoices' => $canViewInvoices,
-            'can_view_customers'=> $user->can(Permission::ViewCustomers->value),
-            'can_create_ticket' => $user->can(Permission::CreateTickets->value),
+            'unread'             => TicketRead::unreadCountFor($user),
+            'can_view_invoices'  => $canViewInvoices,
+            'can_view_customers' => $user->can(Permission::ViewCustomers->value),
+            'can_create_ticket'  => $user->can(Permission::CreateTickets->value),
+            'can_manage_invoices'=> $user->can(Permission::ManageInvoices->value),
+            'can_view_contracts' => $user->can(Permission::ViewContracts->value),
+            'can_view_reports'   => $user->can(Permission::ViewReports->value),
+            'can_view_activity'  => $user->can(Permission::ViewActivity->value),
         ]);
     }
 }

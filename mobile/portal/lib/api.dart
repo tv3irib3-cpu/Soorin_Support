@@ -108,6 +108,12 @@ class Api {
   static Future<Map<String, dynamic>> invoices({int page = 1}) async =>
       (await _get('portal/invoices', {'page': '$page'})) as Map<String, dynamic>;
 
+  static Future<Map<String, dynamic>> contracts({int page = 1}) async =>
+      (await _get('portal/contracts', {'page': '$page'})) as Map<String, dynamic>;
+
+  static Future<Map<String, dynamic>> contract(int id) async =>
+      (await _get('portal/contracts/$id')) as Map<String, dynamic>;
+
   /// دریافتِ بایت‌های PDFِ فاکتور با توکن — برای ذخیره و بازکردن در اپ.
   static Future<Uint8List> invoicePdf(int id) async {
     final r = await http.get(await _uri('portal/invoices/$id/pdf'), headers: await _headers());

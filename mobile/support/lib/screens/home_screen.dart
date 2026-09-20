@@ -7,6 +7,7 @@ import 'ticket_detail_screen.dart';
 import 'create_ticket_screen.dart';
 import 'invoices_tab.dart';
 import 'customers_tab.dart';
+import 'more_tab.dart';
 import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
@@ -61,12 +62,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final canInvoices = _dash!['can_view_invoices'] == true;
     final canCustomers = _dash!['can_view_customers'] == true;
     final canCreate = _dash!['can_create_ticket'] == true;
+    final canInvoiceCreate = _dash!['can_manage_invoices'] == true;
+    final hasMore = _dash!['can_view_reports'] == true || _dash!['can_view_contracts'] == true || _dash!['can_view_activity'] == true;
 
     final tabs = <Widget>[
       _DashboardTab(data: _dash!, onRefresh: _loadDash),
       _TicketsTab(key: _ticketsKey),
-      if (canCustomers) const CustomersTab(),
+      if (canCustomers) CustomersTab(canInvoice: canInvoiceCreate),
       if (canInvoices) const InvoicesTab(),
+      if (hasMore) MoreTab(dash: _dash!),
     ];
     final destinations = <NavigationDestination>[
       const NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'داشبورد'),
@@ -75,8 +79,10 @@ class _HomeScreenState extends State<HomeScreen> {
         const NavigationDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt), label: 'مشتریان'),
       if (canInvoices)
         const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'فاکتورها'),
+      if (hasMore)
+        const NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view), label: 'بیشتر'),
     ];
-    final titles = ['داشبورد', 'تیکت‌ها', if (canCustomers) 'مشتریان', if (canInvoices) 'فاکتورها'];
+    final titles = ['داشبورد', 'تیکت‌ها', if (canCustomers) 'مشتریان', if (canInvoices) 'فاکتورها', if (hasMore) 'بیشتر'];
     final safeTab = _tab < tabs.length ? _tab : 0;
 
     return Scaffold(

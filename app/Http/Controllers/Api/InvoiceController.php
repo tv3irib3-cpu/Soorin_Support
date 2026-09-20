@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\IssueInvoice;
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Models\Contract;
+use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Ticket;
 use App\Support\Jalali;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -64,6 +68,115 @@ class InvoiceController extends Controller
                 'total'        => $invoices->total(),
             ],
         ]);
+    }
+
+    /** دادهٔ فرمِ صدور فاکتور — اطلاعاتِ تیکت/مشتری + قراردادِ فعال + نوعِ ردیف‌ها. */
+    public function createFormData(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->can(Permission::ManageInvoices->value), 403);
+
+        $ticket = $request->integer('ticket_id') ? Ticket::with('customer')->find($request->integer('ticket_id')) : null;
+        $customer = $ticket?->customer
+            ?? ($request->integer('customer_id') ? Customer::find($request->integer('customer_id')) : null);
+        abort_unless($customer, 422, 'ابتدا مشتری یا تیکت را انتخاب کنید.');
+
+        $contract = $ticket?->contract_id ? Contract::find($ticket->contract_id) : $customer->activeContract();
+
+        return response()->json([
+            'customer'     => ['id' => $customer->id, 'name' => $customer->name],
+            'ticket'       => $ticket ? ['id' => $ticket->id, 'number' => $ticket->number, 'subject' => $ticket->subject, 'service_type' => $ticket->service_type] : null,
+            'contract'     => $contract ? [
+                'id' => $contract->id, 'number' => $contract->number, 'plan' => $contract->plan?->name,
+                'valid' => $contract->isValidOn(now()->toDateString()),
+            ] : null,
+            'item_types'   => __('invoices.item_types'),
+            'default_title'=> __('invoices.default_service_title'),
+        ]);
+    }
+
+    /** صدور فاکتور با ردیف‌ها. محاسبهٔ سهمِ قرارداد و مبلغِ قابل‌پرداخت خودکار است. */
+    public function store(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->can(Permission::ManageInvoices->value), 403);
+
+        $data = $request->validate([
+            'customer_id'     => ['required', 'exists:customers,id'],
+            'ticket_id'       => ['nullable', 'exists:tickets,id'],
+            'contract_id'     => ['nullable', 'exists:contracts,id'],
+            'discount_amount' => ['nullable', 'integer', 'min:0'],
+            'issue'           => ['nullable', 'boolean'],
+            'items'                => ['required', 'array', 'min:1'],
+            'items.*.item_type'    => ['required', 'in:service,part,other'],
+            'items.*.title'        => ['required', 'string', 'max:255'],
+            'items.*.quantity'     => ['nullable', 'numeric', 'min:0.01'],
+            'items.*.unit_price'   => ['required', 'integer', 'min:0'],
+            'items.*.part_code'    => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $ticket   = ! empty($data['ticket_id']) ? Ticket::find($data['ticket_id']) : null;
+        $contractId = $data['contract_id'] ?? $ticket?->contract_id
+            ?? Customer::find($data['customer_id'])?->activeContract()?->id;
+        $contract = $contractId ? Contract::find($contractId) : null;
+
+        $invoice = Invoice::create([
+            'number'          => $this->nextNumber(),
+            'customer_id'     => $data['customer_id'],
+            'ticket_id'       => $data['ticket_id'] ?? null,
+            'contract_id'     => $contractId,
+            'issue_date'      => now(),
+            'discount_amount' => $data['discount_amount'] ?? 0,
+            'status'          => Invoice::STATUS_DRAFT,
+            'created_by'      => $user->id,
+        ]);
+
+        $plan = ($contract && $contract->isValidOn(now()->toDateString())) ? $contract->plan : null;
+        $serviceType = $ticket?->service_type ?? 'other';
+
+        foreach ($data['items'] as $row) {
+            $item = $invoice->items()->create([
+                'item_type'  => $row['item_type'],
+                'title'      => $row['title'],
+                'part_code'  => $row['part_code'] ?? null,
+                'quantity'   => $row['quantity'] ?? 1,
+                'unit_price' => $row['unit_price'],
+            ]);
+            $item->recalculate($plan, $serviceType, null);
+        }
+
+        $invoice->recalculate();
+
+        if (! empty($data['issue'])) {
+            app(IssueInvoice::class)($invoice->refresh());
+        }
+
+        $invoice->refresh();
+
+        return response()->json([
+            'id' => $invoice->id, 'number' => $invoice->number, 'status' => $invoice->status,
+            'payable_fa' => Jalali::money((int) $invoice->payable_amount),
+        ], 201);
+    }
+
+    /** صدورِ یک فاکتورِ پیش‌نویس (draft → issued). */
+    public function issue(Request $request, Invoice $invoice): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->can(Permission::ManageInvoices->value), 403);
+        abort_unless($invoice->status === Invoice::STATUS_DRAFT, 422, 'این فاکتور قبلاً صادر شده است.');
+
+        app(IssueInvoice::class)($invoice);
+
+        return response()->json(['message' => 'ok', 'status' => $invoice->fresh()->status]);
+    }
+
+    /** شمارهٔ فاکتورِ بعدی — ادامهٔ بزرگ‌ترین شمارهٔ عددیِ موجود. */
+    private function nextNumber(): string
+    {
+        $max = (int) Invoice::max('id');
+
+        return 'INV-' . str_pad((string) ($max + 1), 5, '0', STR_PAD_LEFT);
     }
 
     /** جزئیاتِ فاکتور + سه عددِ کلیدی + فهرستِ پرداخت‌ها. */

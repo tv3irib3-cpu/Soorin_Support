@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api.dart';
 import '../store.dart';
 import '../theme.dart';
+import 'create_invoice_screen.dart';
 
 class TicketDetailScreen extends StatefulWidget {
   final int id;
@@ -41,8 +42,25 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final t = _data?['ticket'] as Map<String, dynamic>?;
+    final ab = _data != null ? (_data!['abilities'] as Map).cast<String, dynamic>() : const {};
     return Scaffold(
-      appBar: AppBar(title: Text(t?['number'] ?? 'تیکت')),
+      appBar: AppBar(
+        title: Text(t?['number'] ?? 'تیکت'),
+        actions: [
+          if (ab['create_invoice'] == true)
+            IconButton(
+              tooltip: 'صدور فاکتور',
+              icon: const Icon(Icons.receipt_long),
+              onPressed: () async {
+                final done = await Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => CreateInvoiceScreen(ticketId: widget.id)));
+                if (done == true && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فاکتور صادر شد')));
+                }
+              },
+            ),
+        ],
+      ),
       body: _error != null
           ? Center(child: Text(_error!))
           : _data == null
