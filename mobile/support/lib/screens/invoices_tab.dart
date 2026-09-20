@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import '../api.dart';
 import '../theme.dart';
+import 'invoice_detail_screen.dart';
 
 /// تبِ فاکتورهای اپِ پشتیبان — همهٔ فاکتورها با جستجو (شماره/نامِ مشتری) و
 /// نمایشِ PDF (اگر مجوزِ چاپ باشد).
@@ -114,7 +115,14 @@ class _InvoicesTabState extends State<InvoicesTab> {
     final canPrint = inv['can_print'] == true;
     final opening = _opening == inv['id'];
     return Card(
-      child: Padding(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () async {
+          await Navigator.push(context,
+              MaterialPageRoute(builder: (_) => InvoiceDetailScreen(id: inv['id'] as int)));
+          _load();
+        },
+        child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,6 +172,7 @@ class _InvoicesTabState extends State<InvoicesTab> {
             ],
           ],
         ),
+      ),
       ),
     );
   }

@@ -65,4 +65,89 @@ class InvoiceController extends Controller
             ],
         ]);
     }
+
+    /** جزئیاتِ فاکتور + سه عددِ کلیدی + فهرستِ پرداخت‌ها. */
+    public function show(Request $request, Invoice $invoice): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->can(Permission::ViewInvoices->value), 403);
+
+        $invoice->load(['customer', 'ticket', 'payments.registrar']);
+        $balance = $invoice->balance();
+
+        return response()->json([
+            'invoice' => [
+                'id'             => $invoice->id,
+                'number'         => $invoice->number,
+                'status'         => $invoice->status,
+                'status_label'   => __("invoices.statuses.$invoice->status"),
+                'issue_date'     => Jalali::format($invoice->issue_date),
+                'customer'       => $invoice->customer?->name,
+                'ticket_number'  => $invoice->ticket?->number,
+                'service_amount' => (int) $invoice->service_amount,
+                'contract_amount'=> (int) $invoice->contract_amount,
+                'payable'        => (int) $invoice->payable_amount,
+                'paid'           => (int) $invoice->paid_amount,
+                'remaining'      => $balance,
+                'service_fa'     => Jalali::money((int) $invoice->service_amount),
+                'contract_fa'    => Jalali::money((int) $invoice->contract_amount),
+                'payable_fa'     => Jalali::money((int) $invoice->payable_amount),
+                'paid_fa'        => Jalali::money((int) $invoice->paid_amount),
+                'remaining_fa'   => Jalali::money($balance),
+                'is_warranty'    => (bool) $invoice->is_warranty,
+                'notes'          => $invoice->notes,
+                'can_print'      => $user->canPrintInvoices(),
+                'can_pay'        => $user->can(Permission::ManagePayments->value)
+                    && $balance > 0
+                    && ! in_array($invoice->status, [Invoice::STATUS_DRAFT, Invoice::STATUS_CANCELLED], true),
+            ],
+            'payment_methods' => __('invoices.methods'),
+            'payments' => $invoice->payments->map(fn ($p) => [
+                'id'         => $p->id,
+                'amount'     => (int) $p->amount,
+                'amount_fa'  => Jalali::money((int) $p->amount),
+                'method'     => $p->method,
+                'method_label' => __("invoices.methods.$p->method"),
+                'reference'  => $p->reference,
+                'paid_at'    => Jalali::format($p->paid_at),
+                'registrar'  => $p->registrar?->name,
+            ])->all(),
+        ]);
+    }
+
+    /** ثبتِ پرداخت روی فاکتور — با مجوزِ «ثبت پرداخت». مبلغ از ماندهٔ فعلی بیشتر نمی‌شود. */
+    public function pay(Request $request, Invoice $invoice): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->can(Permission::ManagePayments->value), 403);
+        abort_if(in_array($invoice->status, [Invoice::STATUS_DRAFT, Invoice::STATUS_CANCELLED], true),
+            422, __('invoices.no_balance'));
+
+        $data = $request->validate([
+            'amount'    => ['required', 'integer', 'min:1'],
+            'paid_at'   => ['nullable', 'date'],
+            'method'    => ['required', 'in:' . implode(',', array_keys(__('invoices.methods')))],
+            'reference' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $amount = min((int) $data['amount'], $invoice->balance());
+        abort_if($amount <= 0, 422, __('invoices.no_balance'));
+
+        $invoice->payments()->create([
+            'amount'        => $amount,
+            'paid_at'       => $data['paid_at'] ?? now(),
+            'method'        => $data['method'],
+            'reference'     => $data['reference'] ?? null,
+            'registered_by' => $user->id,
+        ]);
+
+        $invoice->refresh();
+
+        return response()->json([
+            'message'   => 'ok',
+            'status'    => $invoice->status,
+            'paid_fa'   => Jalali::money((int) $invoice->paid_amount),
+            'remaining_fa' => Jalali::money($invoice->balance()),
+        ]);
+    }
 }

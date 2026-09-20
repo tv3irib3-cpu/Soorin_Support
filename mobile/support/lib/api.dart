@@ -89,9 +89,11 @@ class Api {
   static Future<Map<String, dynamic>> dashboard() async =>
       (await _get('dashboard')) as Map<String, dynamic>;
 
-  static Future<Map<String, dynamic>> tickets({List<String>? status, int page = 1}) async {
+  static Future<Map<String, dynamic>> tickets({List<String>? status, String? search, String? priority, int page = 1}) async {
     final q = <String, dynamic>{'page': '$page'};
     if (status != null && status.isNotEmpty) q['status[]'] = status;
+    if (search != null && search.isNotEmpty) q['search'] = search;
+    if (priority != null && priority.isNotEmpty) q['priority'] = priority;
     return (await _get('tickets', q)) as Map<String, dynamic>;
   }
 
@@ -149,6 +151,26 @@ class Api {
     if (status != null && status.isNotEmpty) q['status[]'] = status;
     return (await _get('invoices', q)) as Map<String, dynamic>;
   }
+
+  static Future<Map<String, dynamic>> invoice(int id) async =>
+      (await _get('invoices/$id')) as Map<String, dynamic>;
+
+  static Future<Map<String, dynamic>> payInvoice(int id, int amount, String method, {String? reference}) async =>
+      (await _post('invoices/$id/pay', {
+        'amount': amount, 'method': method,
+        if (reference != null && reference.isNotEmpty) 'reference': reference,
+      })) as Map<String, dynamic>;
+
+  // ---- مشتریان ----
+
+  static Future<Map<String, dynamic>> customers({String? search, int page = 1}) async {
+    final q = <String, dynamic>{'page': '$page'};
+    if (search != null && search.isNotEmpty) q['search'] = search;
+    return (await _get('customers', q)) as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> customer(int id) async =>
+      (await _get('customers/$id')) as Map<String, dynamic>;
 
   /// بایت‌های PDFِ فاکتور با توکن — برای ذخیره و بازکردن در اپ.
   static Future<Uint8List> invoicePdf(int id) async {

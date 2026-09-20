@@ -38,6 +38,7 @@ class DashboardController extends Controller
             'unpaid_invoices'   => $unpaid,
             'unread'            => TicketRead::unreadCountFor($user),
             'can_view_invoices' => $canViewInvoices,
+            'can_view_customers'=> $user->can(Permission::ViewCustomers->value),
             'can_create_ticket' => $user->can(Permission::CreateTickets->value),
         ]);
     }

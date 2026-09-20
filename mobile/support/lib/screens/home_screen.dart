@@ -6,6 +6,8 @@ import 'login_screen.dart';
 import 'ticket_detail_screen.dart';
 import 'create_ticket_screen.dart';
 import 'invoices_tab.dart';
+import 'customers_tab.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -57,20 +59,24 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final canInvoices = _dash!['can_view_invoices'] == true;
+    final canCustomers = _dash!['can_view_customers'] == true;
     final canCreate = _dash!['can_create_ticket'] == true;
 
     final tabs = <Widget>[
       _DashboardTab(data: _dash!, onRefresh: _loadDash),
       _TicketsTab(key: _ticketsKey),
+      if (canCustomers) const CustomersTab(),
       if (canInvoices) const InvoicesTab(),
     ];
     final destinations = <NavigationDestination>[
       const NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'داشبورد'),
       const NavigationDestination(icon: Icon(Icons.confirmation_number_outlined), selectedIcon: Icon(Icons.confirmation_number), label: 'تیکت‌ها'),
+      if (canCustomers)
+        const NavigationDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt), label: 'مشتریان'),
       if (canInvoices)
         const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'فاکتورها'),
     ];
-    final titles = ['داشبورد', 'تیکت‌ها', if (canInvoices) 'فاکتورها'];
+    final titles = ['داشبورد', 'تیکت‌ها', if (canCustomers) 'مشتریان', if (canInvoices) 'فاکتورها'];
     final safeTab = _tab < tabs.length ? _tab : 0;
 
     return Scaffold(
@@ -165,6 +171,8 @@ class _TicketsTabState extends State<_TicketsTab> {
   bool _loading = true;
   String? _error;
   final Set<String> _status = {};
+  final _searchCtrl = TextEditingController();
+  Timer? _debounce;
 
   static const _filters = {
     'waiting_support': 'منتظر پشتیبان',
@@ -179,20 +187,47 @@ class _TicketsTabState extends State<_TicketsTab> {
     refresh();
   }
 
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> refresh() async {
     setState(() => _loading = true);
     try {
-      final res = await Api.tickets(status: _status.toList());
+      final res = await Api.tickets(status: _status.toList(), search: _searchCtrl.text.trim());
       if (mounted) setState(() { _items = res['data'] as List; _error = null; _loading = false; });
     } catch (e) {
       if (mounted) setState(() { _error = '$e'; _loading = false; });
     }
   }
 
+  void _onSearchChanged(String _) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 450), refresh);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+          child: TextField(
+            controller: _searchCtrl,
+            onChanged: _onSearchChanged,
+            decoration: InputDecoration(
+              hintText: 'جستجو (شماره / موضوع / مشتری)',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchCtrl.text.isEmpty
+                  ? null
+                  : IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); refresh(); }),
+              isDense: true,
+            ),
+          ),
+        ),
         SizedBox(
           height: 52,
           child: ListView(

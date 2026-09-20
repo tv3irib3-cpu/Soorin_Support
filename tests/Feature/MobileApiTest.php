@@ -229,4 +229,62 @@ class MobileApiTest extends TestCase
         $none = $this->withToken($token)->getJson('/api/invoices?search=ناموجود')->json('data');
         $this->assertCount(0, $none);
     }
+
+    public function test_ticket_search_filters_by_subject_and_customer(): void
+    {
+        $bahar = Customer::create(['code' => 'BAHR', 'name' => 'بهار']);
+        $t1 = Ticket::create(['customer_id' => $this->customer->id, 'subject' => 'پرینتر خراب', 'description' => 'd']);
+        $t2 = Ticket::create(['customer_id' => $bahar->id, 'subject' => 'شبکه قطع', 'description' => 'd']);
+        $token = $this->tokenFor('admin');
+
+        $bySubject = collect($this->withToken($token)->getJson('/api/tickets?search=پرینتر')->assertOk()->json('data'))->pluck('id');
+        $this->assertContains($t1->id, $bySubject);
+        $this->assertNotContains($t2->id, $bySubject);
+
+        $byCustomer = collect($this->withToken($token)->getJson('/api/tickets?search=بهار')->json('data'))->pluck('id');
+        $this->assertContains($t2->id, $byCustomer);
+        $this->assertNotContains($t1->id, $byCustomer);
+    }
+
+    public function test_customers_list_with_counts_and_detail(): void
+    {
+        $ticket = Ticket::create(['customer_id' => $this->customer->id, 'subject' => 's', 'description' => 'd']);
+        $ticket->forceFill(['status' => Ticket::STATUS_WAITING_SUPPORT])->save();
+        Invoice::create(['number' => 'INV-C', 'customer_id' => $this->customer->id, 'ticket_id' => $ticket->id,
+            'issue_date' => now(), 'status' => Invoice::STATUS_ISSUED, 'payable_amount' => 50000]);
+        $token = $this->tokenFor('admin');
+
+        $row = collect($this->withToken($token)->getJson('/api/customers?search=آریا')->assertOk()->json('data'))
+            ->firstWhere('id', $this->customer->id);
+        $this->assertSame(1, $row['open_tickets']);
+        $this->assertSame(1, $row['unpaid_invoices']);
+
+        $this->withToken($token)->getJson("/api/customers/{$this->customer->id}")->assertOk()
+            ->assertJsonPath('customer.name', 'آریا')
+            ->assertJsonStructure(['customer' => ['phone', 'mobile', 'service_status'], 'projects', 'tickets', 'invoices']);
+    }
+
+    public function test_invoice_show_and_pay(): void
+    {
+        $ticket = $this->ticketAssignedTo($this->admin);
+        $invoice = Invoice::create(['number' => 'INV-P', 'customer_id' => $this->customer->id, 'ticket_id' => $ticket->id,
+            'issue_date' => now(), 'status' => Invoice::STATUS_ISSUED, 'payable_amount' => 100000]);
+
+        // کارشناس مجوزِ ثبت پرداخت را دارد؟ پیش‌فرضِ support_staff دارد (ManagePayments).
+        // اینجا با مدیر تست می‌کنیم.
+        $token = $this->tokenFor('admin');
+
+        $this->withToken($token)->getJson("/api/invoices/{$invoice->id}")->assertOk()
+            ->assertJsonPath('invoice.remaining', 100000)
+            ->assertJsonPath('invoice.can_pay', true)
+            ->assertJsonStructure(['invoice', 'payment_methods', 'payments']);
+
+        // پرداختِ کامل
+        $this->withToken($token)->postJson("/api/invoices/{$invoice->id}/pay", [
+            'amount' => 100000, 'method' => 'transfer',
+        ])->assertOk();
+
+        $this->assertSame(Invoice::STATUS_PAID, $invoice->fresh()->status);
+        $this->assertDatabaseHas('payments', ['invoice_id' => $invoice->id, 'amount' => 100000, 'registered_by' => $this->admin->id]);
+    }
 }

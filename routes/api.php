@@ -44,7 +44,12 @@ Route::middleware(AuthenticateApiToken::class . ':support')->group(function () {
     Route::post('tickets/{ticket}/assign', [TicketController::class, 'assign']);
 
     Route::get('invoices', [\App\Http\Controllers\Api\InvoiceController::class, 'index']);
+    Route::get('invoices/{invoice}', [\App\Http\Controllers\Api\InvoiceController::class, 'show']);
+    Route::post('invoices/{invoice}/pay', [\App\Http\Controllers\Api\InvoiceController::class, 'pay']);
     Route::get('invoices/{invoice}/pdf', [\App\Http\Controllers\InvoicePdfController::class, 'view']);
+
+    Route::get('customers', [\App\Http\Controllers\Api\CustomerController::class, 'index']);
+    Route::get('customers/{customer}', [\App\Http\Controllers\Api\CustomerController::class, 'show']);
 });
 
 // ---- اپِ مشتری (فقط توکنِ portal) ----

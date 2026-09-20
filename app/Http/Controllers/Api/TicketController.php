@@ -39,6 +39,20 @@ class TicketController extends Controller
             $query->whereIn('status', $statuses);
         }
 
+        if ($priority = $request->query('priority')) {
+            if (array_key_exists($priority, __('tickets.priorities'))) {
+                $query->where('priority', $priority);
+            }
+        }
+
+        if ($search = trim((string) $request->query('search', ''))) {
+            $query->where(function (\Illuminate\Database\Eloquent\Builder $q) use ($search): void {
+                $q->where('number', 'like', "%{$search}%")
+                    ->orWhere('subject', 'like', "%{$search}%")
+                    ->orWhereHas('customer', fn (\Illuminate\Database\Eloquent\Builder $c) => $c->where('name', 'like', "%{$search}%"));
+            });
+        }
+
         // مرتب‌سازی بر پایهٔ آخرین فعالیت — زیرکوئریِ مقاوم به پیشوندِ جدول (مثلِ پنل)؛
         // نامِ جدول را دستی ننوشتیم تا با DB_TABLE_PREFIX (soorin_) نشکند.
         $query->addSelect(['last_message_at' => TicketMessage::select('created_at')
