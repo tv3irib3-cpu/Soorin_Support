@@ -43,6 +43,10 @@ jobs:
           fi
 
           flutter pub get
+
+          # آیکونِ اپ را از نشانِ شرکت بساز (mipmapهای اندروید + آیکونِ adaptive).
+          dart run flutter_launcher_icons
+
           flutter build apk --release
           cp build/app/outputs/flutter-apk/app-release.apk soorin-portal.apk
 

@@ -59,6 +59,10 @@ jobs:
             sed -i -E 's/compileSdk(Version)?[[:space:]]*=?[[:space:]]*3[0-9]/compileSdk 36/' "$fp"
             echo "--- patched $fp ---"; grep -n compileSdk "$fp" || true
           done
+
+          # آیکونِ اپ را از نشانِ شرکت بساز (mipmapهای اندروید + آیکونِ adaptive).
+          dart run flutter_launcher_icons
+
           flutter build apk --release
           cp build/app/outputs/flutter-apk/app-release.apk soorin-support.apk
 

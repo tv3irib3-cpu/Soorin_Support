@@ -18,12 +18,28 @@ class Store {
 
   static Future<String> baseUrl() async {
     final p = await SharedPreferences.getInstance();
-    return p.getString(_kBaseUrl) ?? defaultBaseUrl;
+    return _normalize(p.getString(_kBaseUrl) ?? defaultBaseUrl);
   }
 
   static Future<void> setBaseUrl(String value) async {
     final p = await SharedPreferences.getInstance();
-    await p.setString(_kBaseUrl, value.trim());
+    await p.setString(_kBaseUrl, _normalize(value));
+  }
+
+  /// آدرسِ سرور را تمیز می‌کند: اسلشِ انتهایی و پسوندِ «/admin» را برمی‌دارد
+  /// (API زیرِ ریشه است نه زیرِ پنل)، تا اگر کاربر آدرسِ پنل را وارد کرد هم کار کند.
+  static String _normalize(String url) {
+    var u = url.trim();
+    while (u.endsWith('/')) {
+      u = u.substring(0, u.length - 1);
+    }
+    if (u.toLowerCase().endsWith('/admin')) {
+      u = u.substring(0, u.length - 6);
+    }
+    while (u.endsWith('/')) {
+      u = u.substring(0, u.length - 1);
+    }
+    return u;
   }
 
   static Future<Map<String, dynamic>?> user() async {

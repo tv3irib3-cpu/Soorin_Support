@@ -57,7 +57,8 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.support_agent, size: 64, color: Colors.white),
+                Image.asset('assets/logo-white.png', height: 76,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.support_agent, size: 64, color: Colors.white)),
                 const SizedBox(height: 12),
                 const Text('پرتالِ مشتریان',
                     style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),

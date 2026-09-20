@@ -57,7 +57,8 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.headset_mic, size: 64, color: Colors.white),
+                Image.asset('assets/logo-white.png', height: 76,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.headset_mic, size: 64, color: Colors.white)),
                 const SizedBox(height: 12),
                 const Text('پشتیبانِ سورین',
                     style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
